@@ -4,14 +4,18 @@ import * as yargs from 'yargs';
 import { readFileSync } from 'fs';
 import { decryptKeystore } from '@exsat/account-initializer';
 import { logger } from './logger';
-import { VALIDATOR_KEYSTORE_FILE, VALIDATOR_KEYSTORE_PASSWORD } from './config';
+import path from 'node:path';
+import dotenv from 'dotenv';
+import readlineSync from 'readline-sync';
+import { ClientType } from './enumeration';
+import { SYNCHRONIZER_KEYSTORE_PASSWORD, VALIDATOR_KEYSTORE_PASSWORD } from './config';
 
 interface Arguments {
   pwd?: string;
   pwdFile?: string;
 }
 
-function getKeystorePassword() {
+export function getConfigPassword(clientType: number) {
   const argv = yargs.options({
     pwd: { type: 'string', describe: 'Password as a command-line argument' },
     pwdFile: { type: 'string', describe: 'Path to the password file' }
@@ -36,26 +40,45 @@ function getKeystorePassword() {
 
   // Priority 3: Get passwords from environment variables
   if (!password) {
-    password = VALIDATOR_KEYSTORE_PASSWORD;
+    password = (clientType === ClientType.Synchronizer ? SYNCHRONIZER_KEYSTORE_PASSWORD : VALIDATOR_KEYSTORE_PASSWORD);
   }
-
-  // If no password is provided, output an error and exit the program
-  if (!password) {
-    console.error('Error: No password provided.');
-    process.exit(1);
-  }
-  console.log('Password acquired successfully.');
   return password;
 }
 
-async function decryptKeystoreWithPassword(password: string) {
-  const keystore = readFileSync(VALIDATOR_KEYSTORE_FILE, 'utf-8');
+export function getInputPassword(): string {
+  const password = readlineSync.question('Please enter your keystore password (Enter q to exit): ', {
+    hideEchoBack: true,
+  });
+  return password.trim();
+}
+
+export async function getAccountInfo(keystoreFile: string, password: string) {
+  const keystore = readFileSync(keystoreFile, 'utf-8');
   const keystoreInfo = JSON.parse(keystore);
   const accountName = keystoreInfo.username.endsWith('.sat') ? keystoreInfo.username : `${keystoreInfo.username}.sat`;
   const privateKey = await decryptKeystore(keystore, password);
   return { accountName, privateKey };
 }
 
-export async function getAccountInfo() {
-  return await decryptKeystoreWithPassword(getKeystorePassword());
+export function reloadEnv() {
+  const envFilePath = path.resolve(__dirname, '../', '.env');
+  if (!fs.existsSync(envFilePath)) {
+    throw new Error('No .env file found');
+  }
+  dotenv.config({ override: true, path: envFilePath });
+}
+
+export function existKeystore(): boolean {
+  reloadEnv();
+  const file = process.env.KEYSTORE_FILE;
+  if (file && fs.existsSync(file)) {
+    return true;
+  }
+  const dir = path.resolve(__dirname);
+  const files = fs.readdirSync(dir);
+  for (let i = 0; i < files.length; i++) {
+    if (files[i].endsWith('_keystore.json')) return true;
+  }
+
+  return false;
 }

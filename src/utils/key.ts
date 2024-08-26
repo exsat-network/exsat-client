@@ -13,6 +13,11 @@ function sha256(data: Buffer): Checksum256 {
   return crypto.createHash('sha256').update(data).digest();
 }
 
+/**
+ * Generates a SHA-256 hash of the provided string data.
+ * @param data - The input string to be hashed.
+ * @returns The SHA-256 hash of the input data in hexadecimal format.
+ */
 function hash(data: string) {
   return sha256(Buffer.from(data)).toString('hex');
 }
@@ -31,7 +36,7 @@ export function computeBlockId(height: bigint, hash: string): string {
 }
 
 /**
- * Compute Staker ID
+ * Compute Proxy ID
  * @param proxy Evm Proxy Address
  */
 export function computeId(proxy: Checksum160): string {
