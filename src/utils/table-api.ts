@@ -60,6 +60,18 @@ class TableApi {
     return null;
   }
 
+  public async getSynchronizerInfo(synchronizer: string): Promise<any> {
+    const rows = await this.exsatApi.getTableRows(ContractName.poolreg, ContractName.poolreg, 'synchronizer', {
+      limit: 1,
+      lower_bound: synchronizer,
+      upper_bound: synchronizer,
+    });
+    if (rows && rows.length > 0) {
+      return rows[0];
+    }
+    return null;
+  }
+
   /**
    * Retrieves a block bucket by its ID.
    * @param synchronizer - The synchronizer account name.

@@ -4,7 +4,7 @@ import {
   EXSAT_RPC_URLS,
   RETRY_INTERVAL_MS,
   SYNCHRONIZER_JOBS_BLOCK_PARSE,
-  SYNCHRONIZER_JOBS_BLOCK_UPLOAD,
+  SYNCHRONIZER_JOBS_BLOCK_UPLOAD, SYNCHRONIZER_JOBS_BLOCK_VERIFY,
   SYNCHRONIZER_KEYSTORE_FILE
 } from '../utils/config';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
@@ -16,7 +16,7 @@ import TableApi from '../utils/table-api';
 import { BlockStatus, ClientType, ContractName } from '../utils/enumeration';
 import moment from 'moment';
 
-let [uploadRunning, parseRunning] = [false, false];
+let [uploadRunning, verifyRunning, parseRunning] = [false, false, false];
 let accountName: string;
 let exsatApi: ExsatApi;
 let tableApi: TableApi;
@@ -32,7 +32,7 @@ async function initbucket(height: number, hash: string, block_size: number, num_
     chunk_size: CHUNK_SIZE
   });
   if (initbucketResult) {
-    logger.info(`Init bucket success, transaction_id: ${initbucketResult.transaction_id}`);
+    logger.info(`Init bucket success, height: ${height}, hash: ${hash}, transaction_id: ${initbucketResult.transaction_id}`);
   }
 }
 
@@ -45,7 +45,7 @@ async function delbucket(height: number, hash: string) {
     }
   );
   if (delbucketResult) {
-    logger.info(`Delete bucket success, transaction_id: ${delbucketResult.transaction_id}`);
+    logger.info(`Delete bucket success, height: ${height}, hash: ${hash}, transaction_id: ${delbucketResult.transaction_id}`);
   }
 }
 
@@ -88,14 +88,12 @@ async function verifyBlock(height: number, hash: string) {
 
 async function setupCronJobs() {
   cron.schedule(SYNCHRONIZER_JOBS_BLOCK_UPLOAD, async () => {
-    let logHeight: number = 0;
-    let logHash: string = '';
     try {
       if (uploadRunning) {
         return;
       }
       uploadRunning = true;
-      logger.info('Upload and verify block task is running.');
+      logger.info('Upload block task is running.');
       const chainstate = await tableApi.getChainstate();
       if (!chainstate) {
         logger.error('Get chainstate error.');
@@ -106,61 +104,122 @@ async function setupCronJobs() {
         logger.info('No new block found.');
         return;
       }
+      const synchronizerInfo = await tableApi.getSynchronizerInfo(accountName);
+      if (!synchronizerInfo) {
+        logger.error(`Get synchronizer[${accountName}] info error.`);
+        return;
+      }
+      const holdSlots: number = synchronizerInfo.num_slots;
+      let usedSlots: number = 0;
       const blockbuckets = await tableApi.getAllBlockbucket(accountName);
       if (blockbuckets && blockbuckets.length > 0) {
-        for (const blockbucket of blockbuckets) {
-          const {
-            height,
-            hash,
-            status,
-            size,
-            uploaded_size,
-            num_chunks,
-            uploaded_num_chunks,
-            chunk_size
-          } = blockbucket;
-          logHeight = height;
-          logHash = hash;
-          logger.info(`Blockbucket, status: ${status}, height: ${height}, hash: ${hash}`);
-          switch (status) {
-            case BlockStatus.UPLOADING:
-              const blockInfo = await getblock(hash);
-              if (blockInfo) {
-                if (blockInfo.result === null && blockInfo.error?.code === -5) {
-                  logger.info(`Block not found, height: ${height}, hash: ${hash}`);
-                  await delbucket(height, hash);
-                  break;
-                } else if (blockInfo.error) {
-                  logger.error(`Get block raw error, height: ${height}, hash: ${hash}`, blockInfo.error);
-                  break;
-                }
-              }
-              const blockRaw = blockInfo.result;
-              //Block sharding
-              const chunkMap: Map<number, string> = await getChunkMap(blockRaw);
-              if ((size === uploaded_size && num_chunks !== uploaded_num_chunks)
-                || (size !== uploaded_size && num_chunks === uploaded_num_chunks)
-                || chunk_size !== CHUNK_SIZE) {
-                logger.info(`Blockbucket size and uploaded_size are inconsistent`);
-                //Delete the block first, then initialize and re-upload
+        usedSlots = blockbuckets.length;
+      }
+      if (usedSlots >= holdSlots) {
+        logger.info(`The number of blockbuckets[${usedSlots}] has reached the upper limit[${holdSlots}], Please purchase more slots or wait for the slots to be released`);
+        return;
+      }
+      for (let height = chainstate.head_height + 1; height <= blockcountInfo.result && usedSlots < holdSlots; height++) {
+        //upload next bitcoin block
+        const blockhashInfo = await getblockhash(height);
+        const hash = blockhashInfo.result;
+        try {
+          const blockInfo = await getblock(hash);
+          if (blockInfo) {
+            if (blockInfo.result === null && blockInfo.error?.code === -5) {
+              logger.info(`Block not found, height: ${height}, hash: ${hash}`);
+              return;
+            } else if (blockInfo.error) {
+              logger.error(`Get block raw error, height: ${height}, hash: ${hash}`, blockInfo.error);
+              return;
+            }
+          }
+          const blockRaw = blockInfo.result;
+          const chunkMap: Map<number, string> = await getChunkMap(blockRaw);
+          await initbucket(height, hash, blockRaw.length / 2, chunkMap.size);
+          for (const item of chunkMap) {
+            await pushchunk(height, hash, item[0], item[1]);
+          }
+        } catch (e: any) {
+          const errorMessage = e?.message || '';
+          if (errorMessage.includes('duplicate transaction')) {
+            //Ignore duplicate transaction
+            await sleep(RETRY_INTERVAL_MS);
+          } else if (errorMessage.includes('blksync.xsat::initbucket: the block has reached consensus')) {
+            logger.info(`The block has reached consensus, height: ${height}, hash: ${hash}`);
+          } else if (errorMessage.includes('blksync.xsat::pushchunk: cannot push chunk in the current state [verify_merkle]')) {
+            //Ignore
+          } else {
+            logger.error(`Upload block task error, height: ${height}, hash: ${hash}`, e);
+            await sleep(RETRY_INTERVAL_MS);
+          }
+        }
+      }
+    } catch (e: any) {
+      logger.error(`Upload block task error`, e);
+    } finally {
+      uploadRunning = false;
+    }
+  });
+
+  cron.schedule(SYNCHRONIZER_JOBS_BLOCK_VERIFY, async () => {
+    let logHeight: number = 0;
+    let logHash: string = '';
+    try {
+      if (verifyRunning) {
+        return;
+      }
+      verifyRunning = true;
+      logger.info('Verify block task is running.');
+      const chainstate = await tableApi.getChainstate();
+      if (!chainstate) {
+        logger.error('Get chainstate error.');
+        return;
+      }
+      const blockbuckets = await tableApi.getAllBlockbucket(accountName);
+      if (!blockbuckets || blockbuckets.length === 0) {
+        logger.info('No blockbucket found.');
+        return;
+      }
+      for (const blockbucket of blockbuckets) {
+        const {
+          height,
+          hash,
+          status,
+          size,
+          uploaded_size,
+          num_chunks,
+          uploaded_num_chunks,
+          chunk_size
+        } = blockbucket;
+        logHeight = height;
+        logHash = hash;
+        logger.info(`Blockbucket, status: ${status}, height: ${height}, hash: ${hash}`);
+        switch (status) {
+          case BlockStatus.UPLOADING:
+            const blockInfo = await getblock(hash);
+            if (blockInfo) {
+              if (blockInfo.result === null && blockInfo.error?.code === -5) {
+                logger.info(`Block not found, height: ${height}, hash: ${hash}`);
                 await delbucket(height, hash);
-                await initbucket(height, hash, blockRaw.length / 2, chunkMap.size);
+                break;
+              } else if (blockInfo.error) {
+                logger.error(`Get block raw error, height: ${height}, hash: ${hash}`, blockInfo.error);
+                break;
               }
-              /*while (true) {
-                const newBlockbucket = await tableApi.getBlockbucketById(accountName, blockbucket.id);
-                if (!newBlockbucket) {
-                  break;
-                }
-                for (const item of chunkMap) {
-                  const chunkId: number = item[0];
-                  const chunkData: string = item[1];
-                  if (newBlockbucket.chunk_ids.includes(chunkId)) {
-                    continue;
-                  }
-                  await pushchunk(height, hash, chunkId, chunkData);
-                await sleep(5000); //todo
-                }
-              }*/
+            }
+            const blockRaw = blockInfo.result;
+            //Block sharding
+            const chunkMap: Map<number, string> = await getChunkMap(blockRaw);
+            if ((size === uploaded_size && num_chunks !== uploaded_num_chunks)
+              || (size !== uploaded_size && num_chunks === uploaded_num_chunks)
+              || chunk_size !== CHUNK_SIZE) {
+              logger.info(`Blockbucket size and uploaded_size are inconsistent`);
+              //Delete the block first, then initialize and re-upload
+              await delbucket(height, hash);
+              await initbucket(height, hash, blockRaw.length / 2, chunkMap.size);
+            }
+            /*while (true) {
               const newBlockbucket = await tableApi.getBlockbucketById(accountName, blockbucket.id);
               if (!newBlockbucket) {
                 break;
@@ -172,50 +231,41 @@ async function setupCronJobs() {
                   continue;
                 }
                 await pushchunk(height, hash, chunkId, chunkData);
+              await sleep(5000); //todo
               }
+            }*/
+            const newBlockbucket = await tableApi.getBlockbucketById(accountName, blockbucket.id);
+            if (!newBlockbucket) {
               break;
-            case BlockStatus.UPLOAD_COMPLETE:
-            case BlockStatus.VERIFY_MERKLE:
-            case BlockStatus.VERIFY_PARENT_HASH:
+            }
+            for (const item of chunkMap) {
+              const chunkId: number = item[0];
+              const chunkData: string = item[1];
+              if (newBlockbucket.chunk_ids.includes(chunkId)) {
+                continue;
+              }
+              await pushchunk(height, hash, chunkId, chunkData);
+            }
+            break;
+          case BlockStatus.UPLOAD_COMPLETE:
+          case BlockStatus.VERIFY_MERKLE:
+          case BlockStatus.VERIFY_PARENT_HASH:
+            await verifyBlock(height, hash);
+            break;
+          case BlockStatus.WAITING_MINER_VERIFICATION:
+            const consensusBlk = await tableApi.getConsensusByBucketId(accountName, blockbucket.id);
+            if (consensusBlk || chainstate.irreversible_height >= blockbucket.height) {
+              //The block has been completed by consensus and can be deleted
+              await delbucket(height, hash);
+            } else {
               await verifyBlock(height, hash);
-              break;
-            case BlockStatus.WAITING_MINER_VERIFICATION:
-              const consensusBlk = await tableApi.getConsensusByBucketId(accountName, blockbucket.id);
-              if (consensusBlk || chainstate.irreversible_height >= blockbucket.height) {
-                await delbucket(height, hash);
-              } else {
-                await verifyBlock(height, hash);
-              }
-              break;
-            case BlockStatus.VERIFY_PASS:
-              logger.info(`Block verify pass, Wait for the validator to endorse the block, height: ${height}, hash: ${hash}`);
-              break;
-            default:
-              break;
-          }
-        }
-      } else {
-        //upload next bitcoin block
-        const height = chainstate.head_height + 1;
-        const blockhashInfo = await getblockhash(height);
-        const hash = blockhashInfo.result;
-        logHeight = height;
-        logHash = hash;
-        const blockInfo = await getblock(hash);
-        if (blockInfo) {
-          if (blockInfo.result === null && blockInfo.error?.code === -5) {
-            logger.info(`Block not found, height: ${height}, hash: ${hash}`);
-            return;
-          } else if (blockInfo.error) {
-            logger.error(`Get block raw error, height: ${height}, hash: ${hash}`, blockInfo.error);
-            return;
-          }
-        }
-        const blockRaw = blockInfo.result;
-        const chunkMap: Map<number, string> = await getChunkMap(blockRaw);
-        await initbucket(height, hash, blockRaw.length / 2, chunkMap.size);
-        for (const item of chunkMap) {
-          await pushchunk(height, hash, item[0], item[1]);
+            }
+            break;
+          case BlockStatus.VERIFY_PASS:
+            logger.info(`Block verify pass, Wait for the validator to endorse the block, height: ${height}, hash: ${hash}`);
+            break;
+          default:
+            break;
         }
       }
     } catch (e: any) {
@@ -227,15 +277,15 @@ async function setupCronJobs() {
       } else if (errorMessage.includes('blksync.xsat::initbucket: the block has reached consensus')) {
         logger.info(`The block has reached consensus, height: ${logHeight}, hash: ${logHash}`);
       } else if (errorMessage.includes('blksync.xsat::verify: you have not uploaded the block data. please upload it first and then verify it')) {
-        //Ignore duplicate transaction
+        //Ignore
       } else if (errorMessage.includes('blksync.xsat::pushchunk: cannot push chunk in the current state [verify_merkle]')) {
-        //Ignore duplicate transaction
+        //Ignore
       } else {
         logger.error(`Upload and verify block task error, height: ${logHeight}, hash: ${logHash}`, e);
         await sleep(RETRY_INTERVAL_MS);
       }
     } finally {
-      uploadRunning = false;
+      verifyRunning = false;
     }
   });
 
@@ -270,16 +320,13 @@ async function setupCronJobs() {
               }
             } catch (e: any) {
               if (e.message.includes('reached node configured max-transaction-time')) {
-                processRows = Math.floor(processRows / 2);
-                if (processRows < 1) {
-                  processRows = 1;
-                }
+                processRows = Math.ceil(processRows * 0.618);
               } else if (e.message.includes('duplicate transaction')) {
                 //Ignore duplicate transaction
                 await sleep(RETRY_INTERVAL_MS);
               } else {
                 logger.error(`Parse block failed, height=${chainstate.head_height}, stack=${e.stack}`);
-                await sleep(3000);
+                await sleep(RETRY_INTERVAL_MS);
                 break;
               }
             }

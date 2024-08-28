@@ -4,8 +4,8 @@
   "author": "RobinHolmes <robin@exsat.org>",
   "license": "MIT",
   "scripts": {
-    "start-commander": "ts-node  src/commander/index.ts",
-    "start-synchronizer": "ts-node  src/synchronizer/index.ts",
+    "start-commander": "ts-node src/commander/index.ts",
+    "start-synchronizer": "ts-node src/synchronizer/index.ts",
     "start-validator": "ts-node src/validator/index.ts",
     "build": "tsc"
   },
