@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import {
-  EXSAT_RPC_URLS,
+  EXSAT_RPC_URLS, PROMETHEUS, PROMETHEUS_ADDRESS,
   RETRY_INTERVAL_MS,
   VALIDATOR_JOBS_ENDORSE,
   VALIDATOR_JOBS_ENDORSE_CHECK,
@@ -13,6 +13,14 @@ import { envCheck, sleep } from '../utils/common';
 import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
 import { ClientType, ContractName } from '../utils/enumeration';
+import {
+  setUpPrometheus,
+  errorTotalCounter,
+  warnTotalCounter,
+  blockValidateTotalCounter,
+  validateLatestBlockGauge,
+  validateLatestTimeGauge
+} from "../utils/prom";
 
 // Global variables to track job status and store API instances
 let [endorseRunning, endorseCheckRunning, startupStatus] = [false, false, false];
@@ -49,6 +57,9 @@ async function submitEndorsement(validator: string, height: number, hash: string
     if (result && result.transaction_id) {
       lastEndorseHeight = height;
       logger.info(`Submit endorsement success, accountName: ${validator}, height: ${height}, hash: ${hash}, transaction_id: ${result?.transaction_id}`);
+      validateLatestBlockGauge.set({account:accountName,client:'validator'},height)
+      blockValidateTotalCounter.inc({account:accountName,client:'validator'})
+      validateLatestTimeGauge.set({account:accountName,client:'validator'},Date.now())
     }
   } catch (e: any) {
     const errorMessage = e.message || '';
@@ -58,6 +69,7 @@ async function submitEndorsement(validator: string, height: number, hash: string
       logger.info(`Wait for exsat network endorsement to be enabled, height: ${height}, hash: ${hash}`);
     } else {
       logger.error(`Submit endorsement failed, accountName: ${validator}, height: ${height}, hash: ${hash}`, e);
+      errorTotalCounter.inc({account:accountName,client:'validator'})
     }
   }
 }
@@ -85,6 +97,7 @@ async function setupCronJobs() {
       await checkAndSubmitEndorsement(accountName, blockcountInfo.result, blockhashInfo.result);
     } catch (e) {
       logger.error('Endorse task error', e);
+      errorTotalCounter.inc({account:accountName,client:'validator'})
       await sleep(RETRY_INTERVAL_MS);
     } finally {
       endorseRunning = false;
@@ -109,6 +122,7 @@ async function setupCronJobs() {
       const chainstate = await tableApi.getChainstate();
       if (!chainstate) {
         logger.error('Get chainstate error.');
+        errorTotalCounter.inc({account:accountName,client:'validator'})
         return;
       }
       const blockcount = await getblockcount();
@@ -123,6 +137,7 @@ async function setupCronJobs() {
       }
     } catch (e) {
       logger.error('Endorse check task error', e);
+      errorTotalCounter.inc({account:accountName,client:'validator'})
       await sleep(RETRY_INTERVAL_MS);
     } finally {
       endorseCheckRunning = false;
@@ -159,11 +174,13 @@ async function main() {
   await exsatApi.checkClient(ClientType.Validator);
 }
 
+
 // Entry point of the application
 (async () => {
   try {
     await main();
     await setupCronJobs();
+    setUpPrometheus();
   } catch (e) {
     logger.error(e);
   }
