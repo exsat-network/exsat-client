@@ -104,19 +104,8 @@ class TableApi {
     return rows;
   }
 
-
-  public async getBlockbuckets(synchronizer: string, status: number): Promise<any> {
-    const rows = await this.exsatApi.getTableRows(ContractName.blkendt, synchronizer, 'blockbuckets', {
-      index_position: IndexPosition.Secondary,
-      upper_bound: status,
-      lower_bound: status,
-      key_type: KeyType.I64,
-    });
-    return rows;
-  }
-
   /**
-   * Retrieves consensus data for a block bucket by its ID.
+   * Retrieves consensus data for a block bucket by bucketId.
    * @param synchronizer - The synchronizer account name.
    * @param bucketId - The bucket ID.
    * @returns The consensus data or null if not found.
@@ -134,7 +123,12 @@ class TableApi {
     return null;
   }
 
-  public async getConsensusByBlockId(synchronizer: string, height: bigint, hash: string): Promise<any> {
+  /**
+   * Retrieves consensus data for a block by blockId(height + hash).
+   * @param height
+   * @param hash
+   */
+  public async getConsensusByBlockId(height: bigint, hash: string): Promise<any> {
     const blockId = computeBlockId(height, hash);
     const rows = await this.exsatApi.getTableRows(ContractName.utxomng, ContractName.utxomng, 'consensusblk', {
       index_position: IndexPosition.Tertiary,

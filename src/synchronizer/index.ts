@@ -343,7 +343,7 @@ async function setupCronJobs() {
       height = chainstate.irreversible_height + 1;
       const blockhashInfo = await getblockhash(height);
       hash = blockhashInfo.result;
-      const consensusblk = await tableApi.getConsensusByBlockId(accountName, BigInt(height), hash);
+      const consensusblk = await tableApi.getConsensusByBlockId(BigInt(height), hash);
       if (consensusblk) {
         return;
       }
