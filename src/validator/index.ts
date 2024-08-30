@@ -1,7 +1,6 @@
 import cron from 'node-cron';
 import {
   EXSAT_RPC_URLS,
-  RETRY_INTERVAL_MS,
   VALIDATOR_JOBS_ENDORSE,
   VALIDATOR_JOBS_ENDORSE_CHECK,
   VALIDATOR_KEYSTORE_FILE
@@ -44,21 +43,10 @@ async function checkAndSubmitEndorsement(accountName: string, height: number, ha
 
 // Submit an endorsement to the blockchain
 async function submitEndorsement(validator: string, height: number, hash: string) {
-  try {
-    const result: any = await exsatApi.executeAction(ContractName.blkendt, 'endorse', { validator, height, hash });
-    if (result && result.transaction_id) {
-      lastEndorseHeight = height;
-      logger.info(`Submit endorsement success, accountName: ${validator}, height: ${height}, hash: ${hash}, transaction_id: ${result?.transaction_id}`);
-    }
-  } catch (e: any) {
-    const errorMessage = e.message || '';
-    if (errorMessage.includes('blkendt.xsat::endorse: the block has been parsed and does not need to be endorsed')) {
-      logger.info(`The block has been parsed and does not need to be endorsed, height: ${height}, hash: ${hash}`);
-    } else if (errorMessage.includes('blkendt.xsat::endorse: the current endorsement status is disabled')) {
-      logger.info(`Wait for exsat network endorsement to be enabled, height: ${height}, hash: ${hash}`);
-    } else {
-      logger.error(`Submit endorsement failed, accountName: ${validator}, height: ${height}, hash: ${hash}`, e);
-    }
+  const result: any = await exsatApi.executeAction(ContractName.blkendt, 'endorse', { validator, height, hash });
+  if (result && result.transaction_id) {
+    lastEndorseHeight = height;
+    logger.info(`Submit endorsement success, accountName: ${validator}, height: ${height}, hash: ${hash}, transaction_id: ${result?.transaction_id}`);
   }
 }
 
@@ -83,9 +71,12 @@ async function setupCronJobs() {
       const blockcountInfo = await getblockcount();
       const blockhashInfo = await getblockhash(blockcountInfo.result);
       await checkAndSubmitEndorsement(accountName, blockcountInfo.result, blockhashInfo.result);
-    } catch (e) {
-      logger.error('Endorse task error', e);
-      await sleep(RETRY_INTERVAL_MS);
+    } catch (e: any) {
+      if (e.message?.includes('blkendt.xsat::endorse: the current endorsement status is disabled')) {
+        logger.warn('Endorse task result', e);
+      } else {
+        logger.error('Endorse task error', e);
+      }
     } finally {
       endorseRunning = false;
     }
@@ -111,19 +102,34 @@ async function setupCronJobs() {
         logger.error('Get chainstate error.');
         return;
       }
+      
       const blockcount = await getblockcount();
       let startEndorseHeight = chainstate.irreversible_height + 1;
       if (lastEndorseHeight > startEndorseHeight && lastEndorseHeight < blockcount - 6) {
         startEndorseHeight = lastEndorseHeight;
       }
       for (let i = startEndorseHeight; i <= blockcount.result; i++) {
-        const blockhash = await getblockhash(i);
-        logger.info(`Check endorsement for block ${i}/${blockcount.result}`);
-        await checkAndSubmitEndorsement(accountName, i, blockhash.result);
+        let hash: string;
+        try {
+          const blockhash = await getblockhash(i);
+          hash = blockhash.result;
+          logger.info(`Check endorsement for block ${i}/${blockcount.result}`);
+          await checkAndSubmitEndorsement(accountName, i, blockhash.result);
+        } catch (e: any) {
+          const errorMessage = e.message || '';
+          if (errorMessage.includes('blkendt.xsat::endorse: the block has been parsed and does not need to be endorsed')) {
+            logger.info(`The block has been parsed and does not need to be endorsed, height: ${i}, hash: ${hash}`);
+          } else if (errorMessage.includes('blkendt.xsat::endorse: the current endorsement status is disabled')) {
+            logger.warn(`Wait for endorsement status to be enabled, height: ${i}, hash: ${hash}`);
+            return;
+          } else {
+            logger.error(`Submit endorsement failed, height: ${i}, hash: ${hash}`, e);
+          }
+        }
       }
     } catch (e) {
       logger.error('Endorse check task error', e);
-      await sleep(RETRY_INTERVAL_MS);
+      await sleep();
     } finally {
       endorseCheckRunning = false;
     }
