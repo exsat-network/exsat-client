@@ -44,7 +44,7 @@ Ubuntu 22.04
 
 #### Step 2: Verify Node.js Version
 
-Current version had been tested on Nodejs v20.15.1, it's not guaranteed it works well on other Nodejs versions.
+Current version had been tested on Node.js v20.15.1, it's not guaranteed it works well on other Node.js versions.
 
 1. If Node.js is installed, ensure that the version is `20.15.1` or higher.
 2. If the installed version is lower than `20.15.1` or Node.js is not installed, proceed to the installation steps below.
@@ -306,4 +306,12 @@ Using Docker daemon commands
 Put your password in ```$HOME/.exsat/validator/password```
 ```shell
 docker run -d -v $HOME/.exsat/validator/.env:/app/.env -v $HOME/.exsat/validator/:/root/.exsat --name validator exsatnetwork/validator --run --pwdfile /root/.exsat/password
+```
+
+## pm2 management
+
+```shell
+yarn build
+pm2 start ecosystem.config.js --only synchronizer
+pm2 start ecosystem.config.js --only synchronizer
 ```

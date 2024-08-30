@@ -1,14 +1,20 @@
 module.exports = {
   apps: [
     {
-      name: 'validator',
-      script: 'ts-node',
-      args: '-r tsconfig-paths/register src/validator/index.ts',
+      name: 'synchronizer',
+      script: 'dist/synchronizer/index.js',
       exec_mode: 'fork',
       instances: 1,
       autorestart: true,
       watch: false,
-      max_memory_restart: '1G',
+    },
+    {
+      name: 'validator',
+      script: 'dist/validator/index.js',
+      exec_mode: 'fork',
+      instances: 1,
+      autorestart: true,
+      watch: false,
     }
   ]
 };
