@@ -1,7 +1,6 @@
 import cron from 'node-cron';
 import {
   EXSAT_RPC_URLS, PROMETHEUS, PROMETHEUS_ADDRESS,
-  RETRY_INTERVAL_MS,
   VALIDATOR_JOBS_ENDORSE,
   VALIDATOR_JOBS_ENDORSE_CHECK,
   VALIDATOR_KEYSTORE_FILE
@@ -20,7 +19,7 @@ import {
   blockValidateTotalCounter,
   validateLatestBlockGauge,
   validateLatestTimeGauge
-} from "../utils/prom";
+} from '../utils/prom';
 
 // Global variables to track job status and store API instances
 let [endorseRunning, endorseCheckRunning, startupStatus] = [false, false, false];
@@ -29,55 +28,42 @@ let exsatApi: ExsatApi;
 let tableApi: TableApi;
 let lastEndorseHeight: number = 0;
 
-// Check if the account is qualified to endorse
-function isEndorserQualified(endorsers: {
-  account: string
-  staking: number
-}[], accountName: string): boolean {
-  return endorsers.some(endorser => endorser.account === accountName);
-}
+const endorseOperations = {
+  // Check if the account is qualified to endorse
+  isEndorserQualified(endorsers: {
+    account: string
+    staking: number
+  }[], accountName: string): boolean {
+    return endorsers.some(endorser => endorser.account === accountName);
+  },
 
-// Check if an endorsement is needed and submit if necessary
-async function checkAndSubmitEndorsement(accountName: string, height: number, hash: string) {
-  const endorsement = await tableApi.getEndorsementByBlockId(height, hash);
-  if (endorsement) {
-    let isQualified = isEndorserQualified(endorsement.requested_validators, accountName);
-    if (isQualified && !isEndorserQualified(endorsement.provider_validators, accountName)) {
-      await submitEndorsement(accountName, height, hash);
+  // Check if an endorsement is needed and submit if necessary
+  async checkAndSubmit(accountName: string, height: number, hash: string) {
+    const endorsement = await tableApi.getEndorsementByBlockId(height, hash);
+    if (endorsement) {
+      let isQualified = this.isEndorserQualified(endorsement.requested_validators, accountName);
+      if (isQualified && !this.isEndorserQualified(endorsement.provider_validators, accountName)) {
+        await this.submit(accountName, height, hash);
+      } else {
+        lastEndorseHeight = height;
+      }
+    } else {
+      await this.submit(accountName, height, hash);
     }
-  } else {
-    await submitEndorsement(accountName, height, hash);
-  }
-}
+  },
 
-// Submit an endorsement to the blockchain
-async function submitEndorsement(validator: string, height: number, hash: string) {
-  try {
+  // Submit an endorsement to the blockchain
+  async submit(validator: string, height: number, hash: string) {
     const result: any = await exsatApi.executeAction(ContractName.blkendt, 'endorse', { validator, height, hash });
     if (result && result.transaction_id) {
       lastEndorseHeight = height;
       logger.info(`Submit endorsement success, accountName: ${validator}, height: ${height}, hash: ${hash}, transaction_id: ${result?.transaction_id}`);
-      validateLatestBlockGauge.set({account:accountName,client:'validator'},height)
-      blockValidateTotalCounter.inc({account:accountName,client:'validator'})
-      validateLatestTimeGauge.set({account:accountName,client:'validator'},Date.now())
     }
-  } catch (e: any) {
-    const errorMessage = e.message || '';
-    if (errorMessage.includes('blkendt.xsat::endorse: the block has been parsed and does not need to be endorsed')) {
-      logger.info(`The block has been parsed and does not need to be endorsed, height: ${height}, hash: ${hash}`);
-    } else if (errorMessage.includes('blkendt.xsat::endorse: the current endorsement status is disabled')) {
-      logger.info(`Wait for exsat network endorsement to be enabled, height: ${height}, hash: ${hash}`);
-    } else {
-      logger.error(`Submit endorsement failed, accountName: ${validator}, height: ${height}, hash: ${hash}`, e);
-      errorTotalCounter.inc({account:accountName,client:'validator'})
-    }
-  }
-}
+  },
+};
 
-// Set up cron jobs for endorsing and checking endorsements
-async function setupCronJobs() {
-  // Cron job for regular endorsement
-  cron.schedule(VALIDATOR_JOBS_ENDORSE, async () => {
+const jobs = {
+  async endorse() {
     if (!startupStatus) {
       startupStatus = await tableApi.getStartupStatus();
       if (!startupStatus) {
@@ -94,18 +80,22 @@ async function setupCronJobs() {
       logger.info('Endorse task is running.');
       const blockcountInfo = await getblockcount();
       const blockhashInfo = await getblockhash(blockcountInfo.result);
-      await checkAndSubmitEndorsement(accountName, blockcountInfo.result, blockhashInfo.result);
-    } catch (e) {
-      logger.error('Endorse task error', e);
-      errorTotalCounter.inc({account:accountName,client:'validator'})
-      await sleep(RETRY_INTERVAL_MS);
+      await endorseOperations.checkAndSubmit(accountName, blockcountInfo.result, blockhashInfo.result);
+    } catch (e: any) {
+      const errorMessage = e.message || '';
+      if (errorMessage.includes('blkendt.xsat::endorse: the current endorsement status is disabled')
+        || errorMessage.includes('blkendt.xsat::endorse: the endorsement height cannot exceed height')) {
+        logger.warn('Endorse task result', e);
+      } else {
+        errorTotalCounter.inc({ account: accountName, client: 'validator' });
+        logger.error('Endorse task error', e);
+      }
     } finally {
       endorseRunning = false;
     }
-  });
+  },
 
-  // Cron job for checking and catching up on missed endorsements
-  cron.schedule(VALIDATOR_JOBS_ENDORSE_CHECK, async () => {
+  async endorseCheck() {
     if (!startupStatus) {
       startupStatus = await tableApi.getStartupStatus();
       if (!startupStatus) {
@@ -122,26 +112,57 @@ async function setupCronJobs() {
       const chainstate = await tableApi.getChainstate();
       if (!chainstate) {
         logger.error('Get chainstate error.');
-        errorTotalCounter.inc({account:accountName,client:'validator'})
         return;
       }
+
       const blockcount = await getblockcount();
       let startEndorseHeight = chainstate.irreversible_height + 1;
-      if (lastEndorseHeight > startEndorseHeight && lastEndorseHeight < blockcount - 6) {
+      if (lastEndorseHeight > startEndorseHeight && lastEndorseHeight < blockcount.result - 6) {
         startEndorseHeight = lastEndorseHeight;
       }
       for (let i = startEndorseHeight; i <= blockcount.result; i++) {
-        const blockhash = await getblockhash(i);
-        logger.info(`Check endorsement for block ${i}/${blockcount.result}`);
-        await checkAndSubmitEndorsement(accountName, i, blockhash.result);
+        let hash: string;
+        try {
+          const blockhash = await getblockhash(i);
+          hash = blockhash.result;
+          logger.info(`Check endorsement for block ${i}/${blockcount.result}`);
+          await endorseOperations.checkAndSubmit(accountName, i, blockhash.result);
+        } catch (e: any) {
+          const errorMessage = e.message || '';
+          if (errorMessage.includes('blkendt.xsat::endorse: the block has been parsed and does not need to be endorsed')) {
+            logger.info(`The block has been parsed and does not need to be endorsed, height: ${i}, hash: ${hash}`);
+          } else if (errorMessage.includes('blkendt.xsat::endorse: the current endorsement status is disabled')
+            || errorMessage.includes('blkendt.xsat::endorse: the endorsement height cannot exceed height')) {
+            logger.warn(`Wait for endorsement status to be enabled, height: ${i}, hash: ${hash}`);
+            return;
+          } else {
+            logger.error(`Submit endorsement failed, height: ${i}, hash: ${hash}`, e);
+          }
+        }
       }
     } catch (e) {
       logger.error('Endorse check task error', e);
-      errorTotalCounter.inc({account:accountName,client:'validator'})
-      await sleep(RETRY_INTERVAL_MS);
+      errorTotalCounter.inc({ account: accountName, client: 'validator' });
+      await sleep();
     } finally {
       endorseCheckRunning = false;
     }
+  }
+};
+
+// Set up cron jobs for endorsing and checking endorsements
+function setupCronJobs() {
+  const cronJobs = [
+    { schedule: VALIDATOR_JOBS_ENDORSE, job: jobs.endorse },
+    { schedule: VALIDATOR_JOBS_ENDORSE_CHECK, job: jobs.endorseCheck },
+  ];
+
+  cronJobs.forEach(({ schedule, job }) => {
+    cron.schedule(schedule, () => {
+      job().catch(error => {
+        console.error(`Unhandled error in ${job.name} job:`, error);
+      });
+    });
   });
 }
 
@@ -173,7 +194,6 @@ async function main() {
   tableApi = new TableApi(exsatApi);
   await exsatApi.checkClient(ClientType.Validator);
 }
-
 
 // Entry point of the application
 (async () => {

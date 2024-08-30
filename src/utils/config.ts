@@ -15,11 +15,11 @@ export const BTC_RPC_USERNAME: string = process.env.BTC_RPC_USERNAME;
 export const BTC_RPC_PASSWORD: string = process.env.BTC_RPC_PASSWORD;
 // export const BTC_START_HEIGHT = parseInt(process.env.BTC_START_HEIGHT) || 840000;
 export const CHUNK_SIZE = parseInt(process.env.CHUNK_SIZE) || 262144;
+export const PROCESS_ROWS = parseInt(process.env.PROCESS_ROWS) || 2000;
 export const SYNCHRONIZER_JOBS_BLOCK_UPLOAD: string = process.env.SYNCHRONIZER_JOBS_BLOCK_UPLOAD || '*/1 * * * * *';
 export const SYNCHRONIZER_JOBS_BLOCK_VERIFY: string = process.env.SYNCHRONIZER_JOBS_BLOCK_VERIFY || '*/1 * * * * *';
-export const SYNCHRONIZER_JOBS_BLOCK_PARSE: string = process.env.SYNCHRONIZER_JOBS_BLOCK_PARSE || '*/5 * * * * *';
-// export const SYNCHRONIZER_JOBS_DELETE_SLOT: string = process.env.SYNCHRONIZER_JOBS_DELETE_SLOT || '*/5 * * * * *';
-// export const SYNCHRONIZER_JOBS_OTHER_PARSE: string = process.env.SYNCHRONIZER_JOBS_OTHER_PARSE || '*/5 * * * * *';
+export const SYNCHRONIZER_JOBS_BLOCK_PARSE: string = process.env.SYNCHRONIZER_JOBS_BLOCK_PARSE || '*/10 * * * * *';
+export const SYNCHRONIZER_JOBS_BLOCK_FORK_CHECK: string = process.env.SYNCHRONIZER_JOBS_BLOCK_FORK_CHECK || '0 * * * * *';
 export const SYNCHRONIZER_KEYSTORE_FILE: string = process.env.SYNCHRONIZER_KEYSTORE_FILE || '';
 export const SYNCHRONIZER_KEYSTORE_PASSWORD: string = process.env.SYNCHRONIZER_KEYSTORE_PASSWORD || '';
 
