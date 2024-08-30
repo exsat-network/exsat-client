@@ -2,7 +2,7 @@ import cron from 'node-cron';
 import {
   CHUNK_SIZE,
   EXSAT_RPC_URLS,
-  RETRY_INTERVAL_MS,
+  RETRY_INTERVAL_MS, SYNCHRONIZER_JOBS_BLOCK_FORK_CHECK,
   SYNCHRONIZER_JOBS_BLOCK_PARSE,
   SYNCHRONIZER_JOBS_BLOCK_UPLOAD, SYNCHRONIZER_JOBS_BLOCK_VERIFY,
   SYNCHRONIZER_KEYSTORE_FILE
@@ -16,7 +16,7 @@ import TableApi from '../utils/table-api';
 import { BlockStatus, ClientType, ContractName } from '../utils/enumeration';
 import moment from 'moment';
 
-let [uploadRunning, verifyRunning, parseRunning] = [false, false, false];
+let [uploadRunning, verifyRunning, parseRunning, forkCheckRunning] = [false, false, false, false];
 let accountName: string;
 let exsatApi: ExsatApi;
 let tableApi: TableApi;
@@ -125,14 +125,12 @@ async function setupCronJobs() {
         const hash = blockhashInfo.result;
         try {
           const blockInfo = await getblock(hash);
-          if (blockInfo) {
-            if (blockInfo.result === null && blockInfo.error?.code === -5) {
-              logger.info(`Block not found, height: ${height}, hash: ${hash}`);
-              return;
-            } else if (blockInfo.error) {
-              logger.error(`Get block raw error, height: ${height}, hash: ${hash}`, blockInfo.error);
-              return;
-            }
+          if (blockInfo.result === null && blockInfo.error?.code === -5) {
+            logger.info(`Block not found, height: ${height}, hash: ${hash}`);
+            return;
+          } else if (blockInfo.error) {
+            logger.error(`Get block raw error, height: ${height}, hash: ${hash}`, blockInfo.error);
+            return;
           }
           const blockRaw = blockInfo.result;
           const chunkMap: Map<number, string> = await getChunkMap(blockRaw);
@@ -144,14 +142,14 @@ async function setupCronJobs() {
           const errorMessage = e?.message || '';
           if (errorMessage.includes('duplicate transaction')) {
             //Ignore duplicate transaction
-            await sleep(RETRY_INTERVAL_MS);
+            await sleep();
           } else if (errorMessage.includes('blksync.xsat::initbucket: the block has reached consensus')) {
             logger.info(`The block has reached consensus, height: ${height}, hash: ${hash}`);
           } else if (errorMessage.includes('blksync.xsat::pushchunk: cannot push chunk in the current state [verify_merkle]')) {
             //Ignore
           } else {
             logger.error(`Upload block task error, height: ${height}, hash: ${hash}`, e);
-            await sleep(RETRY_INTERVAL_MS);
+            await sleep();
           }
         }
       }
@@ -198,15 +196,13 @@ async function setupCronJobs() {
         switch (status) {
           case BlockStatus.UPLOADING:
             const blockInfo = await getblock(hash);
-            if (blockInfo) {
-              if (blockInfo.result === null && blockInfo.error?.code === -5) {
-                logger.info(`Block not found, height: ${height}, hash: ${hash}`);
-                await delbucket(height, hash);
-                break;
-              } else if (blockInfo.error) {
-                logger.error(`Get block raw error, height: ${height}, hash: ${hash}`, blockInfo.error);
-                break;
-              }
+            if (blockInfo.result === null && blockInfo.error?.code === -5) {
+              logger.info(`Block not found, height: ${height}, hash: ${hash}`);
+              await delbucket(height, hash);
+              break;
+            } else if (blockInfo.error) {
+              logger.error(`Get block raw error, height: ${height}, hash: ${hash}`, blockInfo.error);
+              break;
             }
             const blockRaw = blockInfo.result;
             //Block sharding
@@ -219,21 +215,6 @@ async function setupCronJobs() {
               await delbucket(height, hash);
               await initbucket(height, hash, blockRaw.length / 2, chunkMap.size);
             }
-            /*while (true) {
-              const newBlockbucket = await tableApi.getBlockbucketById(accountName, blockbucket.id);
-              if (!newBlockbucket) {
-                break;
-              }
-              for (const item of chunkMap) {
-                const chunkId: number = item[0];
-                const chunkData: string = item[1];
-                if (newBlockbucket.chunk_ids.includes(chunkId)) {
-                  continue;
-                }
-                await pushchunk(height, hash, chunkId, chunkData);
-              await sleep(5000); //todo
-              }
-            }*/
             const newBlockbucket = await tableApi.getBlockbucketById(accountName, blockbucket.id);
             if (!newBlockbucket) {
               break;
@@ -260,6 +241,9 @@ async function setupCronJobs() {
             } else {
               await verifyBlock(height, hash);
             }
+            break;
+          case BlockStatus.VERIFY_FAIL:
+            await delbucket(height, hash);
             break;
           case BlockStatus.VERIFY_PASS:
             logger.info(`Block verify pass, Wait for the validator to endorse the block, height: ${height}, hash: ${hash}`);
@@ -323,10 +307,10 @@ async function setupCronJobs() {
                 processRows = Math.ceil(processRows * 0.618);
               } else if (e.message.includes('duplicate transaction')) {
                 //Ignore duplicate transaction
-                await sleep(RETRY_INTERVAL_MS);
+                await sleep();
               } else {
                 logger.error(`Parse block failed, height=${chainstate.head_height}, stack=${e.stack}`);
-                await sleep(RETRY_INTERVAL_MS);
+                await sleep();
                 break;
               }
             }
@@ -335,9 +319,70 @@ async function setupCronJobs() {
       }
     } catch (e) {
       logger.error('Parse block task error', e);
-      await sleep(RETRY_INTERVAL_MS);
+      await sleep();
     } finally {
       parseRunning = false;
+    }
+  });
+
+  cron.schedule(SYNCHRONIZER_JOBS_BLOCK_FORK_CHECK, async () => {
+    let height: number = 0;
+    let hash: string = '';
+    try {
+      if (forkCheckRunning) {
+        return;
+      }
+      forkCheckRunning = true;
+      logger.info('Block fork check task is running.');
+      const chainstate = await tableApi.getChainstate();
+      if (!chainstate) {
+        logger.error('Get chainstate error.');
+        return;
+      }
+      //check next irreversible block
+      height = chainstate.irreversible_height + 1;
+      const blockhashInfo = await getblockhash(height);
+      hash = blockhashInfo.result;
+      const consensusblk = await tableApi.getConsensusByBlockId(accountName, BigInt(height), hash);
+      if (consensusblk) {
+        return;
+      }
+      //Delete all occupied card slots when a fork occurs
+      const blockbuckets = await tableApi.getAllBlockbucket(accountName);
+      if (blockbuckets && blockbuckets.length > 0) {
+        for (const blockbucket of blockbuckets) {
+          await delbucket(blockbucket.height, blockbucket.hash);
+        }
+      }
+      const blockInfo = await getblock(hash);
+      if (blockInfo.result === null && blockInfo.error?.code === -5) {
+        logger.info(`Block not found, height: ${height}, hash: ${hash}`);
+        return;
+      } else if (blockInfo.error) {
+        logger.error(`Get block raw error, height: ${height}, hash: ${hash}`, blockInfo.error);
+        return;
+      }
+      const blockRaw = blockInfo.result;
+      const chunkMap: Map<number, string> = await getChunkMap(blockRaw);
+      await initbucket(height, hash, blockRaw.length / 2, chunkMap.size);
+      for (const item of chunkMap) {
+        await pushchunk(height, hash, item[0], item[1]);
+      }
+    } catch (e: any) {
+      const errorMessage = e?.message || '';
+      if (errorMessage.includes('duplicate transaction')) {
+        //Ignore duplicate transaction
+        await sleep();
+      } else if (errorMessage.includes('blksync.xsat::initbucket: the block has reached consensus')) {
+        logger.info(`The block has reached consensus, height: ${height}, hash: ${hash}`);
+      } else if (errorMessage.includes('blksync.xsat::pushchunk: cannot push chunk in the current state [verify_merkle]')) {
+        //Ignore
+      } else {
+        logger.error(`Fork check block task error, height: ${height}, hash: ${hash}`, e);
+        await sleep();
+      }
+    } finally {
+      forkCheckRunning = false;
     }
   });
 }

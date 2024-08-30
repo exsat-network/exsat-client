@@ -1,5 +1,6 @@
 import ExsatApi from './exsat-api';
-import { ContractName } from './enumeration';
+import { ContractName, IndexPosition, KeyType } from './enumeration';
+import { computeBlockId } from './key';
 
 class TableApi {
   private exsatApi: ExsatApi;
@@ -36,10 +37,10 @@ class TableApi {
    */
   public async getEndorsementByBlockId(height: number, hash: string): Promise<any> {
     const rows = await this.exsatApi.getTableRows(ContractName.blkendt, height, 'endorsements', {
-      index_position: 'secondary',
+      index_position: IndexPosition.Secondary,
       upper_bound: hash,
       lower_bound: hash,
-      key_type: 'sha256',
+      key_type: KeyType.Sha256,
       limit: 1,
     });
     if (rows && rows.length > 0) {
@@ -80,10 +81,10 @@ class TableApi {
    */
   public async getBlockbucketById(synchronizer: string, bucketId: number): Promise<any> {
     const rows = await this.exsatApi.getTableRows(ContractName.blksync, synchronizer, 'blockbuckets', {
-      index_position: 'primary',
+      index_position: IndexPosition.Primary,
       upper_bound: bucketId,
       lower_bound: bucketId,
-      key_type: 'i64',
+      key_type: KeyType.I64,
     });
     if (rows && rows.length > 0) {
       return rows[0];
@@ -106,10 +107,10 @@ class TableApi {
 
   public async getBlockbuckets(synchronizer: string, status: number): Promise<any> {
     const rows = await this.exsatApi.getTableRows(ContractName.blkendt, synchronizer, 'blockbuckets', {
-      index_position: 'secondary',
+      index_position: IndexPosition.Secondary,
       upper_bound: status,
       lower_bound: status,
-      key_type: 'i64',
+      key_type: KeyType.I64,
     });
     return rows;
   }
@@ -122,10 +123,24 @@ class TableApi {
    */
   public async getConsensusByBucketId(synchronizer: string, bucketId: number): Promise<any> {
     const rows = await this.exsatApi.getTableRows(ContractName.utxomng, ContractName.utxomng, 'consensusblk', {
-      index_position: 'primary',
+      index_position: IndexPosition.Primary,
       upper_bound: bucketId,
       lower_bound: bucketId,
-      key_type: 'i64',
+      key_type: KeyType.I64,
+    });
+    if (rows && rows.length > 0) {
+      return rows[0];
+    }
+    return null;
+  }
+
+  public async getConsensusByBlockId(synchronizer: string, height: bigint, hash: string): Promise<any> {
+    const blockId = computeBlockId(height, hash);
+    const rows = await this.exsatApi.getTableRows(ContractName.utxomng, ContractName.utxomng, 'consensusblk', {
+      index_position: IndexPosition.Tertiary,
+      upper_bound: blockId,
+      lower_bound: blockId,
+      key_type: KeyType.Sha256,
     });
     if (rows && rows.length > 0) {
       return rows[0];
