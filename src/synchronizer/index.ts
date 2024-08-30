@@ -264,9 +264,11 @@ async function setupCronJobs() {
         //Ignore
       } else if (errorMessage.includes('blksync.xsat::pushchunk: cannot push chunk in the current state [verify_merkle]')) {
         //Ignore
+      } else if (errorMessage.includes('blksync.xsat::verify: parent block hash did not reach consensus')) {
+        //Ignore
       } else {
-        logger.error(`Upload and verify block task error, height: ${logHeight}, hash: ${logHash}`, e);
-        await sleep(RETRY_INTERVAL_MS);
+        logger.error(`Verify block task error, height: ${logHeight}, hash: ${logHash}`, e);
+        await sleep();
       }
     } finally {
       verifyRunning = false;
@@ -337,6 +339,11 @@ async function setupCronJobs() {
       const chainstate = await tableApi.getChainstate();
       if (!chainstate) {
         logger.error('Get chainstate error.');
+        return;
+      }
+      const blockcountInfo = await getblockcount();
+      if (chainstate.irreversible_height <= blockcountInfo.result - 6) {
+        //No need to check fork during block synchronization
         return;
       }
       //check next irreversible block
