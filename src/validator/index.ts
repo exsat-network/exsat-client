@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import {
-  EXSAT_RPC_URLS,
+  EXSAT_RPC_URLS, PROMETHEUS, PROMETHEUS_ADDRESS,
   VALIDATOR_JOBS_ENDORSE,
   VALIDATOR_JOBS_ENDORSE_CHECK,
   VALIDATOR_KEYSTORE_FILE
@@ -12,6 +12,14 @@ import { envCheck, sleep } from '../utils/common';
 import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
 import { ClientType, ContractName } from '../utils/enumeration';
+import {
+  setUpPrometheus,
+  errorTotalCounter,
+  warnTotalCounter,
+  blockValidateTotalCounter,
+  validateLatestBlockGauge,
+  validateLatestTimeGauge
+} from '../utils/prom';
 
 // Global variables to track job status and store API instances
 let [endorseRunning, endorseCheckRunning, startupStatus] = [false, false, false];
@@ -79,6 +87,7 @@ const jobs = {
         || errorMessage.includes('blkendt.xsat::endorse: the endorsement height cannot exceed height')) {
         logger.warn('Endorse task result', e);
       } else {
+        errorTotalCounter.inc({ account: accountName, client: 'validator' });
         logger.error('Endorse task error', e);
       }
     } finally {
@@ -133,6 +142,7 @@ const jobs = {
       }
     } catch (e) {
       logger.error('Endorse check task error', e);
+      errorTotalCounter.inc({ account: accountName, client: 'validator' });
       await sleep();
     } finally {
       endorseCheckRunning = false;
@@ -189,7 +199,8 @@ async function main() {
 (async () => {
   try {
     await main();
-    await setupCronJobs();
+    setupCronJobs();
+    setUpPrometheus();
   } catch (e) {
     logger.error(e);
   }

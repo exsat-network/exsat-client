@@ -27,4 +27,5 @@ export const VALIDATOR_JOBS_ENDORSE: string = process.env.VALIDATOR_JOBS_ENDORSE
 export const VALIDATOR_JOBS_ENDORSE_CHECK: string = process.env.VALIDATOR_JOBS_ENDORSE_CHECK || '*/5 * * * * *';
 export const VALIDATOR_KEYSTORE_FILE: string = process.env.VALIDATOR_KEYSTORE_FILE || '';
 export const VALIDATOR_KEYSTORE_PASSWORD: string = process.env.VALIDATOR_KEYSTORE_PASSWORD || '';
-
+export const PROMETHEUS: boolean = process.env.PROMETHEUS === 'true';
+export const PROMETHEUS_ADDRESS = process.env.PROMETHEUS_ADDRESS || '0.0.0.0:9900';

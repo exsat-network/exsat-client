@@ -17,6 +17,14 @@ import { envCheck, sleep } from '../utils/common';
 import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
 import { BlockStatus, ClientType, ContractName } from '../utils/enumeration';
+import {
+  setUpPrometheus,
+  syncLatestBlockGauge,
+  errorTotalCounter,
+  warnTotalCounter,
+  blockUploadTotalCounter,
+  syncLatestTimeGauge,
+} from '../utils/prom';
 
 let accountName: string;
 let exsatApi: ExsatApi;
@@ -36,6 +44,7 @@ const blockOperations = {
       chunk_size: CHUNK_SIZE
     });
     if (result) {
+      blockUploadTotalCounter.inc({ account: accountName, client: 'synchronizer', status: 'init' });
       logger.info(`Init bucket success, height: ${height}, hash: ${hash}, transaction_id: ${result.transaction_id}`);
     }
   },
@@ -48,6 +57,7 @@ const blockOperations = {
       hash
     });
     if (result) {
+      blockUploadTotalCounter.inc({ account: accountName, client: 'synchronizer', status: 'delete' });
       logger.info(`Delete bucket success, height: ${height}, hash: ${hash}, transaction_id: ${result.transaction_id}`);
     }
   },
@@ -62,6 +72,7 @@ const blockOperations = {
       data: chunkData
     });
     if (result) {
+      blockUploadTotalCounter.inc({ account: accountName, client: 'synchronizer', status: 'push' });
       logger.info(`Push chunk success, height: ${height}, hash: ${hash}, chunk_id: ${chunkId}, transaction_id: ${result.transaction_id}`);
     }
   },
@@ -79,9 +90,13 @@ const blockOperations = {
         const returnValueData = result.processed?.action_traces[0]?.return_value_data;
         if (returnValueData.status === 'verify_pass') {
           logger.info(`Block verify pass, height: ${height}, hash: ${hash}`);
+          syncLatestBlockGauge.set({ account: accountName, client: 'synchronizer' }, height);
+          blockUploadTotalCounter.inc({ account: accountName, client: 'synchronizer', status: 'verify_pass' });
+          syncLatestTimeGauge.set({ account: accountName, client: 'synchronizer' }, Date.now());
           break;
         } else if (returnValueData.status === 'verify_fail') {
           logger.info(`Block verify fail, height: ${height}, hash: ${hash}, reason: ${returnValueData.reason}`);
+          blockUploadTotalCounter.inc({ account: accountName, client: 'synchronizer', status: 'verify_fail' });
           await this.delbucket(height, hash);
           break;
         }
@@ -128,6 +143,7 @@ const jobs = {
             logger.info(`Block not found, height: ${height}, hash: ${hash}`);
             return;
           } else if (blockInfo.error) {
+            errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
             logger.error(`Get block raw error, height: ${height}, hash: ${hash}`, blockInfo.error);
             return;
           }
@@ -264,6 +280,7 @@ const jobs = {
       } else if (errorMessage.includes('blksync.xsat::verify: parent block hash did not reach consensus')) {
         //Ignore
       } else {
+        errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
         logger.error(`Verify block task error, height: ${logHeight}, hash: ${logHash}`, e);
         await sleep();
       }
@@ -434,6 +451,7 @@ async function main() {
   try {
     await main();
     setupCronJobs();
+    setUpPrometheus();
   } catch (e) {
     logger.error(e);
   }
