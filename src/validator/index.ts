@@ -199,7 +199,7 @@ async function main() {
 (async () => {
   try {
     await main();
-    await setupCronJobs();
+    setupCronJobs();
     setUpPrometheus();
   } catch (e) {
     logger.error(e);
