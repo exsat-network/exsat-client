@@ -35,6 +35,8 @@ async function checkAndSubmitEndorsement(accountName: string, height: number, ha
     let isQualified = isEndorserQualified(endorsement.requested_validators, accountName);
     if (isQualified && !isEndorserQualified(endorsement.provider_validators, accountName)) {
       await submitEndorsement(accountName, height, hash);
+    } else {
+      lastEndorseHeight = height;
     }
   } else {
     await submitEndorsement(accountName, height, hash);
@@ -72,7 +74,9 @@ async function setupCronJobs() {
       const blockhashInfo = await getblockhash(blockcountInfo.result);
       await checkAndSubmitEndorsement(accountName, blockcountInfo.result, blockhashInfo.result);
     } catch (e: any) {
-      if (e.message?.includes('blkendt.xsat::endorse: the current endorsement status is disabled')) {
+      const errorMessage = e.message || '';
+      if (errorMessage.includes('blkendt.xsat::endorse: the current endorsement status is disabled')
+        || errorMessage.includes('blkendt.xsat::endorse: the endorsement height cannot exceed height')) {
         logger.warn('Endorse task result', e);
       } else {
         logger.error('Endorse task error', e);
@@ -102,10 +106,10 @@ async function setupCronJobs() {
         logger.error('Get chainstate error.');
         return;
       }
-      
+
       const blockcount = await getblockcount();
       let startEndorseHeight = chainstate.irreversible_height + 1;
-      if (lastEndorseHeight > startEndorseHeight && lastEndorseHeight < blockcount - 6) {
+      if (lastEndorseHeight > startEndorseHeight && lastEndorseHeight < blockcount.result - 6) {
         startEndorseHeight = lastEndorseHeight;
       }
       for (let i = startEndorseHeight; i <= blockcount.result; i++) {
@@ -119,7 +123,8 @@ async function setupCronJobs() {
           const errorMessage = e.message || '';
           if (errorMessage.includes('blkendt.xsat::endorse: the block has been parsed and does not need to be endorsed')) {
             logger.info(`The block has been parsed and does not need to be endorsed, height: ${i}, hash: ${hash}`);
-          } else if (errorMessage.includes('blkendt.xsat::endorse: the current endorsement status is disabled')) {
+          } else if (errorMessage.includes('blkendt.xsat::endorse: the current endorsement status is disabled')
+            || errorMessage.includes('blkendt.xsat::endorse: the endorsement height cannot exceed height')) {
             logger.warn(`Wait for endorsement status to be enabled, height: ${i}, hash: ${hash}`);
             return;
           } else {
