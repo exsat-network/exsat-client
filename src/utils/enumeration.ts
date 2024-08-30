@@ -14,12 +14,36 @@ export enum ContractName {
   rwddist = 'rwddist.xsat',
 }
 
-export const BlockStatus = {
-  UPLOADING: 1,
-  UPLOAD_COMPLETE: 2,
-  VERIFY_MERKLE: 3,
-  VERIFY_PARENT_HASH: 4,
-  WAITING_MINER_VERIFICATION: 5,
-  VERIFY_FAIL: 6,
-  VERIFY_PASS: 7
-};
+export enum BlockStatus {
+  UPLOADING = 1,
+  UPLOAD_COMPLETE = 2,
+  VERIFY_MERKLE = 3,
+  VERIFY_PARENT_HASH = 4,
+  WAITING_MINER_VERIFICATION = 5,
+  VERIFY_FAIL = 6,
+  VERIFY_PASS = 7
+}
+
+export enum IndexPosition {
+  Primary = 'primary',
+  Secondary = 'secondary',
+  Tertiary = 'tertiary',
+  Fourth = 'fourth',
+  Fifth = 'fifth',
+  Sixth = 'sixth',
+  Seventh = 'seventh',
+  Eighth = 'eighth',
+  Ninth = 'ninth',
+  Tenth = 'tenth'
+}
+
+export enum KeyType {
+  I64 = 'i64',
+  I128 = 'i128',
+  I256 = 'i256',
+  Float64 = 'float64',
+  Float128 = 'float128',
+  Ripemd160 = 'ripemd160',
+  Sha256 = 'sha256',
+  Name = 'name',
+}

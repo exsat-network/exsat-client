@@ -180,7 +180,7 @@ class ExsatApi {
         blocksBehind: 3,
         expireSeconds: 30,
       });
-      logger.info(`Execute actions: ${this.executeActions++}`);
+      // logger.info(`Execute actions: ${this.executeActions++}`);
       return result;
     } catch (e: any) {
       if (e instanceof RpcError && e.json?.code === 401 && e.json?.message === 'UnAuthorized') {
