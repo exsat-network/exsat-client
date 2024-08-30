@@ -20,42 +20,42 @@ let exsatApi: ExsatApi;
 let tableApi: TableApi;
 let lastEndorseHeight: number = 0;
 
-// Check if the account is qualified to endorse
-function isEndorserQualified(endorsers: {
-  account: string
-  staking: number
-}[], accountName: string): boolean {
-  return endorsers.some(endorser => endorser.account === accountName);
-}
+const endorseOperations = {
+  // Check if the account is qualified to endorse
+  isEndorserQualified(endorsers: {
+    account: string
+    staking: number
+  }[], accountName: string): boolean {
+    return endorsers.some(endorser => endorser.account === accountName);
+  },
 
-// Check if an endorsement is needed and submit if necessary
-async function checkAndSubmitEndorsement(accountName: string, height: number, hash: string) {
-  const endorsement = await tableApi.getEndorsementByBlockId(height, hash);
-  if (endorsement) {
-    let isQualified = isEndorserQualified(endorsement.requested_validators, accountName);
-    if (isQualified && !isEndorserQualified(endorsement.provider_validators, accountName)) {
-      await submitEndorsement(accountName, height, hash);
+  // Check if an endorsement is needed and submit if necessary
+  async checkAndSubmit(accountName: string, height: number, hash: string) {
+    const endorsement = await tableApi.getEndorsementByBlockId(height, hash);
+    if (endorsement) {
+      let isQualified = this.isEndorserQualified(endorsement.requested_validators, accountName);
+      if (isQualified && !this.isEndorserQualified(endorsement.provider_validators, accountName)) {
+        await this.submit(accountName, height, hash);
+      } else {
+        lastEndorseHeight = height;
+      }
     } else {
-      lastEndorseHeight = height;
+      await this.submit(accountName, height, hash);
     }
-  } else {
-    await submitEndorsement(accountName, height, hash);
-  }
-}
+  },
 
-// Submit an endorsement to the blockchain
-async function submitEndorsement(validator: string, height: number, hash: string) {
-  const result: any = await exsatApi.executeAction(ContractName.blkendt, 'endorse', { validator, height, hash });
-  if (result && result.transaction_id) {
-    lastEndorseHeight = height;
-    logger.info(`Submit endorsement success, accountName: ${validator}, height: ${height}, hash: ${hash}, transaction_id: ${result?.transaction_id}`);
-  }
-}
+  // Submit an endorsement to the blockchain
+  async submit(validator: string, height: number, hash: string) {
+    const result: any = await exsatApi.executeAction(ContractName.blkendt, 'endorse', { validator, height, hash });
+    if (result && result.transaction_id) {
+      lastEndorseHeight = height;
+      logger.info(`Submit endorsement success, accountName: ${validator}, height: ${height}, hash: ${hash}, transaction_id: ${result?.transaction_id}`);
+    }
+  },
+};
 
-// Set up cron jobs for endorsing and checking endorsements
-async function setupCronJobs() {
-  // Cron job for regular endorsement
-  cron.schedule(VALIDATOR_JOBS_ENDORSE, async () => {
+const jobs = {
+  async endorse() {
     if (!startupStatus) {
       startupStatus = await tableApi.getStartupStatus();
       if (!startupStatus) {
@@ -72,7 +72,7 @@ async function setupCronJobs() {
       logger.info('Endorse task is running.');
       const blockcountInfo = await getblockcount();
       const blockhashInfo = await getblockhash(blockcountInfo.result);
-      await checkAndSubmitEndorsement(accountName, blockcountInfo.result, blockhashInfo.result);
+      await endorseOperations.checkAndSubmit(accountName, blockcountInfo.result, blockhashInfo.result);
     } catch (e: any) {
       const errorMessage = e.message || '';
       if (errorMessage.includes('blkendt.xsat::endorse: the current endorsement status is disabled')
@@ -84,10 +84,9 @@ async function setupCronJobs() {
     } finally {
       endorseRunning = false;
     }
-  });
+  },
 
-  // Cron job for checking and catching up on missed endorsements
-  cron.schedule(VALIDATOR_JOBS_ENDORSE_CHECK, async () => {
+  async endorseCheck() {
     if (!startupStatus) {
       startupStatus = await tableApi.getStartupStatus();
       if (!startupStatus) {
@@ -118,7 +117,7 @@ async function setupCronJobs() {
           const blockhash = await getblockhash(i);
           hash = blockhash.result;
           logger.info(`Check endorsement for block ${i}/${blockcount.result}`);
-          await checkAndSubmitEndorsement(accountName, i, blockhash.result);
+          await endorseOperations.checkAndSubmit(accountName, i, blockhash.result);
         } catch (e: any) {
           const errorMessage = e.message || '';
           if (errorMessage.includes('blkendt.xsat::endorse: the block has been parsed and does not need to be endorsed')) {
@@ -138,6 +137,22 @@ async function setupCronJobs() {
     } finally {
       endorseCheckRunning = false;
     }
+  }
+};
+
+// Set up cron jobs for endorsing and checking endorsements
+function setupCronJobs() {
+  const cronJobs = [
+    { schedule: VALIDATOR_JOBS_ENDORSE, job: jobs.endorse },
+    { schedule: VALIDATOR_JOBS_ENDORSE_CHECK, job: jobs.endorseCheck },
+  ];
+
+  cronJobs.forEach(({ schedule, job }) => {
+    cron.schedule(schedule, () => {
+      job().catch(error => {
+        console.error(`Unhandled error in ${job.name} job:`, error);
+      });
+    });
   });
 }
 
