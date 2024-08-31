@@ -11,7 +11,7 @@ import { configureLogger, logger } from '../utils/logger';
 import { envCheck, sleep } from '../utils/common';
 import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
-import { ClientType, ContractName } from '../utils/enumeration';
+import { ClientType, ContractName, ErrorCode } from '../utils/enumeration';
 import {
   setUpPrometheus,
   errorTotalCounter,
@@ -83,8 +83,7 @@ const jobs = {
       await endorseOperations.checkAndSubmit(accountName, blockcountInfo.result, blockhashInfo.result);
     } catch (e: any) {
       const errorMessage = e.message || '';
-      if (errorMessage.includes('blkendt.xsat::endorse: the current endorsement status is disabled')
-        || errorMessage.includes('blkendt.xsat::endorse: the endorsement height cannot exceed height')) {
+      if (errorMessage.startsWith(ErrorCode.Code1001) || errorMessage.startsWith(ErrorCode.Code1003)) {
         logger.warn('Endorse task result', e);
       } else {
         errorTotalCounter.inc({ account: accountName, client: 'validator' });
@@ -129,10 +128,9 @@ const jobs = {
           await endorseOperations.checkAndSubmit(accountName, i, blockhash.result);
         } catch (e: any) {
           const errorMessage = e.message || '';
-          if (errorMessage.includes('blkendt.xsat::endorse: the block has been parsed and does not need to be endorsed')) {
+          if (errorMessage.startsWith(ErrorCode.Code1002)) {
             logger.info(`The block has been parsed and does not need to be endorsed, height: ${i}, hash: ${hash}`);
-          } else if (errorMessage.includes('blkendt.xsat::endorse: the current endorsement status is disabled')
-            || errorMessage.includes('blkendt.xsat::endorse: the endorsement height cannot exceed height')) {
+          } else if (errorMessage.startsWith(ErrorCode.Code1001) || errorMessage.startsWith(ErrorCode.Code1003)) {
             logger.warn(`Wait for endorsement status to be enabled, height: ${i}, hash: ${hash}`);
             return;
           } else {
