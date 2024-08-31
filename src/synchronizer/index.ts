@@ -16,7 +16,7 @@ import { configureLogger, logger } from '../utils/logger';
 import { envCheck, sleep } from '../utils/common';
 import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
-import { BlockStatus, ClientType, ContractName } from '../utils/enumeration';
+import { BlockStatus, ClientType, ContractName, ErrorCode } from '../utils/enumeration';
 import {
   setUpPrometheus,
   syncLatestBlockGauge,
@@ -158,9 +158,9 @@ const jobs = {
           if (errorMessage.includes('duplicate transaction')) {
             //Ignore duplicate transaction
             await sleep();
-          } else if (errorMessage.includes('blksync.xsat::initbucket: the block has reached consensus')) {
+          } else if (errorMessage.startsWith(ErrorCode.Code2005)) {
             logger.info(`The block has reached consensus, height: ${height}, hash: ${hash}`);
-          } else if (errorMessage.includes('blksync.xsat::pushchunk: cannot push chunk in the current state [verify_merkle]')) {
+          } else if (errorMessage.startsWith(ErrorCode.Code2013)) {
             //Ignore
           } else {
             logger.error(`Upload block task error, height: ${height}, hash: ${hash}`, e);
@@ -267,17 +267,17 @@ const jobs = {
       }
     } catch (e: any) {
       const errorMessage = e?.message || '';
-      if (errorMessage.includes('blksync.xsat::delbucket: [blockbuckets] does not exists')) {
+      if (errorMessage.startsWith(ErrorCode.Code2017)) {
         logger.info('blockbucket has been deleted.');
       } else if (errorMessage.includes('duplicate transaction')) {
         //Ignore duplicate transaction
-      } else if (errorMessage.includes('blksync.xsat::initbucket: the block has reached consensus')) {
+      } else if (errorMessage.startsWith(ErrorCode.Code2005)) {
         logger.info(`The block has reached consensus, height: ${logHeight}, hash: ${logHash}`);
-      } else if (errorMessage.includes('blksync.xsat::verify: you have not uploaded the block data. please upload it first and then verify it')) {
+      } else if (errorMessage.startsWith(ErrorCode.Code2018)) {
         //Ignore
-      } else if (errorMessage.includes('blksync.xsat::pushchunk: cannot push chunk in the current state [verify_merkle]')) {
+      } else if (errorMessage.startsWith(ErrorCode.Code2013)) {
         //Ignore
-      } else if (errorMessage.includes('blksync.xsat::verify: parent block hash did not reach consensus')) {
+      } else if (errorMessage.startsWith(ErrorCode.Code2020)) {
         //Ignore
       } else {
         errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
@@ -388,9 +388,9 @@ const jobs = {
       if (errorMessage.includes('duplicate transaction')) {
         //Ignore duplicate transaction
         await sleep();
-      } else if (errorMessage.includes('blksync.xsat::initbucket: the block has reached consensus')) {
+      } else if (errorMessage.startsWith(ErrorCode.Code2005)) {
         logger.info(`The block has reached consensus, height: ${height}, hash: ${hash}`);
-      } else if (errorMessage.includes('blksync.xsat::pushchunk: cannot push chunk in the current state [verify_merkle]')) {
+      } else if (errorMessage.startsWith(ErrorCode.Code2013)) {
         //Ignore
       } else {
         logger.error(`Fork check block task error, height: ${height}, hash: ${hash}`, e);
