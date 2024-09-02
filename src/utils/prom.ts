@@ -14,6 +14,7 @@ const errorTotalCounter = new promClient.Counter({
   help: 'Total count of errors that occurred in the exsat node',
   labelNames: ['account', 'client'],
 });
+
 const warnTotalCounter = new promClient.Counter({
   name: 'exsat_node_warn_total',
   help: 'Total count of warnings that occurred in the exsat node',
