@@ -95,7 +95,7 @@ function createApp() {
   return app;
 }
 
-function setUpPrometheus() {
+function setupPrometheus() {
   if (PROMETHEUS) {
     const ipPort = PROMETHEUS_ADDRESS.split(':');
     const app = createApp();
@@ -107,7 +107,7 @@ function setUpPrometheus() {
 
 export {
   createApp,
-  setUpPrometheus,
+  setupPrometheus,
   errorTotalCounter,
   warnTotalCounter,
   blockValidateTotalCounter,

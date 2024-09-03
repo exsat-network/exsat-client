@@ -13,7 +13,7 @@ import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
 import { ClientType, ContractName, ErrorCode } from '../utils/enumeration';
 import {
-  setUpPrometheus,
+  setupPrometheus,
   errorTotalCounter,
   warnTotalCounter,
   blockValidateTotalCounter,
@@ -57,6 +57,9 @@ const endorseOperations = {
     const result: any = await exsatApi.executeAction(ContractName.blkendt, 'endorse', { validator, height, hash });
     if (result && result.transaction_id) {
       lastEndorseHeight = height;
+      blockValidateTotalCounter.inc({ account: accountName, client: 'validator' });
+      validateLatestBlockGauge.set({ account: accountName, client: 'validator' }, height);
+      validateLatestTimeGauge.set({ account: accountName, client: 'validator' }, Date.now());
       logger.info(`Submit endorsement success, accountName: ${validator}, height: ${height}, hash: ${hash}, transaction_id: ${result?.transaction_id}`);
     }
   },
@@ -85,9 +88,10 @@ const jobs = {
       const errorMessage = e.message || '';
       if (errorMessage.startsWith(ErrorCode.Code1001) || errorMessage.startsWith(ErrorCode.Code1003)) {
         logger.warn('Endorse task result', e);
+        warnTotalCounter.inc({ account: accountName, client: 'validator' });
       } else {
-        errorTotalCounter.inc({ account: accountName, client: 'validator' });
         logger.error('Endorse task error', e);
+        errorTotalCounter.inc({ account: accountName, client: 'validator' });
       }
     } finally {
       endorseRunning = false;
@@ -111,6 +115,7 @@ const jobs = {
       const chainstate = await tableApi.getChainstate();
       if (!chainstate) {
         logger.error('Get chainstate error.');
+        errorTotalCounter.inc({ account: accountName, client: 'validator' });
         return;
       }
 
@@ -132,9 +137,11 @@ const jobs = {
             logger.info(`The block has been parsed and does not need to be endorsed, height: ${i}, hash: ${hash}`);
           } else if (errorMessage.startsWith(ErrorCode.Code1001) || errorMessage.startsWith(ErrorCode.Code1003)) {
             logger.warn(`Wait for endorsement status to be enabled, height: ${i}, hash: ${hash}`);
+            warnTotalCounter.inc({ account: accountName, client: 'validator' });
             return;
           } else {
             logger.error(`Submit endorsement failed, height: ${i}, hash: ${hash}`, e);
+            errorTotalCounter.inc({ account: accountName, client: 'validator' });
           }
         }
       }
@@ -159,6 +166,7 @@ function setupCronJobs() {
     cron.schedule(schedule, () => {
       job().catch(error => {
         console.error(`Unhandled error in ${job.name} job:`, error);
+        errorTotalCounter.inc({ account: accountName, client: 'validator' });
       });
     });
   });
@@ -183,6 +191,7 @@ async function main() {
         accountInfo = await getAccountInfo(VALIDATOR_KEYSTORE_FILE, password);
       } catch (e) {
         logger.warn(e);
+        warnTotalCounter.inc({ account: accountName, client: 'validator' });
       }
     }
   }
@@ -198,7 +207,7 @@ async function main() {
   try {
     await main();
     setupCronJobs();
-    setUpPrometheus();
+    setupPrometheus();
   } catch (e) {
     logger.error(e);
   }
