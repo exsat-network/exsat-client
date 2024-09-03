@@ -18,7 +18,7 @@ import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
 import { BlockStatus, ClientType, ContractName, ErrorCode } from '../utils/enumeration';
 import {
-  setUpPrometheus,
+  setupPrometheus,
   syncLatestBlockGauge,
   errorTotalCounter,
   warnTotalCounter,
@@ -114,6 +114,7 @@ const jobs = {
       const chainstate = await tableApi.getChainstate();
       if (!chainstate) {
         logger.error('Get chainstate error.');
+        errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
         return;
       }
       const blockcountInfo = await getblockcount();
@@ -124,6 +125,7 @@ const jobs = {
       const synchronizerInfo = await tableApi.getSynchronizerInfo(accountName);
       if (!synchronizerInfo) {
         logger.error(`Get synchronizer[${accountName}] info error.`);
+        errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
         return;
       }
       const holdSlots: number = synchronizerInfo.num_slots;
@@ -143,8 +145,8 @@ const jobs = {
             logger.info(`Block not found, height: ${height}, hash: ${hash}`);
             return;
           } else if (blockInfo.error) {
-            errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
             logger.error(`Get block raw error, height: ${height}, hash: ${hash}`, blockInfo.error);
+            errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
             return;
           }
           const blockRaw = blockInfo.result;
@@ -164,12 +166,14 @@ const jobs = {
             //Ignore
           } else {
             logger.error(`Upload block task error, height: ${height}, hash: ${hash}`, e);
+            errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
             await sleep();
           }
         }
       }
     } catch (error) {
       console.error('Error in upload task:', error);
+      errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
     } finally {
       uploadRunning = false;
     }
@@ -185,6 +189,7 @@ const jobs = {
       const chainstate = await tableApi.getChainstate();
       if (!chainstate) {
         logger.error('Get chainstate error.');
+        errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
         return;
       }
       const blockbuckets = await tableApi.getAllBlockbucket(accountName);
@@ -215,6 +220,7 @@ const jobs = {
               break;
             } else if (blockInfo.error) {
               logger.error(`Get block raw error, height: ${height}, hash: ${hash}`, blockInfo.error);
+              errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
               break;
             }
             const blockRaw = blockInfo.result;
@@ -297,6 +303,7 @@ const jobs = {
       const chainstate = await tableApi.getChainstate();
       if (!chainstate) {
         logger.error('Get chainstate error.');
+        errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
         return;
       }
       for (const item of chainstate.parsing_progress_of) {
@@ -324,6 +331,7 @@ const jobs = {
                 await sleep();
               } else {
                 logger.error(`Parse block failed, height=${chainstate.head_height}, stack=${e.stack}`);
+                errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
                 await sleep();
                 break;
               }
@@ -333,6 +341,7 @@ const jobs = {
       }
     } catch (e) {
       logger.error('Parse block task error', e);
+      errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
       await sleep();
     } finally {
       parseRunning = false;
@@ -349,6 +358,7 @@ const jobs = {
       const chainstate = await tableApi.getChainstate();
       if (!chainstate) {
         logger.error('Get chainstate error.');
+        errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
         return;
       }
       const blockcountInfo = await getblockcount();
@@ -375,6 +385,7 @@ const jobs = {
         return;
       } else if (blockInfo.error) {
         logger.error(`Get block raw error, height: ${height}, hash: ${hash}`, blockInfo.error);
+        errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
         return;
       }
       const blockRaw = blockInfo.result;
@@ -394,6 +405,7 @@ const jobs = {
         //Ignore
       } else {
         logger.error(`Fork check block task error, height: ${height}, hash: ${hash}`, e);
+        errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
         await sleep();
       }
     } finally {
@@ -414,6 +426,7 @@ function setupCronJobs() {
     cron.schedule(schedule, () => {
       job().catch(error => {
         console.error(`Unhandled error in ${job.name} job:`, error);
+        errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
       });
     });
   });
@@ -437,6 +450,7 @@ async function main() {
         accountInfo = await getAccountInfo(SYNCHRONIZER_KEYSTORE_FILE, password);
       } catch (e) {
         logger.warn(e);
+        warnTotalCounter.inc({ account: accountName, client: 'synchronizer' });
       }
     }
   }
@@ -451,7 +465,7 @@ async function main() {
   try {
     await main();
     setupCronJobs();
-    setUpPrometheus();
+    setupPrometheus();
   } catch (e) {
     logger.error(e);
   }
