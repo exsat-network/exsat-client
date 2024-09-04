@@ -6,10 +6,8 @@ import {decryptKeystore} from '@exsat/account-initializer';
 import {logger} from './logger';
 import path from 'node:path';
 import dotenv from 'dotenv';
-import readlineSync from 'readline-sync';
 import {ClientType} from './enumeration';
 import {SYNCHRONIZER_KEYSTORE_PASSWORD, VALIDATOR_KEYSTORE_PASSWORD} from './config';
-import {inputWithCancel} from "./input";
 import {password} from "@inquirer/prompts";
 
 interface Arguments {
