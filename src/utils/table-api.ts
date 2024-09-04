@@ -82,7 +82,7 @@ class TableApi {
    * @param validator
    */
   public async getValidatorInfo(validator: string): Promise<any> {
-    const rows = await this.exsatApi.getTableRows(ContractName.endrmng, ContractName.poolreg, 'validators', {
+    const rows = await this.exsatApi.getTableRows(ContractName.endrmng, ContractName.endrmng, 'validators', {
       limit: 1,
       lower_bound: validator,
       upper_bound: validator,
