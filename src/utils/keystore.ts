@@ -6,9 +6,9 @@ import { decryptKeystore } from '@exsat/account-initializer';
 import { logger } from './logger';
 import path from 'node:path';
 import dotenv from 'dotenv';
-import readlineSync from 'readline-sync';
 import { ClientType } from './enumeration';
 import { SYNCHRONIZER_KEYSTORE_PASSWORD, VALIDATOR_KEYSTORE_PASSWORD } from './config';
+import { password } from "@inquirer/prompts";
 
 interface Arguments {
   pwd?: string;
@@ -45,11 +45,9 @@ export function getConfigPassword(clientType: number) {
   return password;
 }
 
-export function getInputPassword(): string {
-  const password = readlineSync.question('Please enter your keystore password (Enter q to exit): ', {
-    hideEchoBack: true,
-  });
-  return password.trim();
+export async function getInputPassword(): Promise<string> {
+  const passwordInput = await password({ message: 'Please enter your keystore password (Enter q to exit): ' });
+  return passwordInput.trim();
 }
 
 export async function getAccountInfo(keystoreFile: string, password: string) {
@@ -57,11 +55,11 @@ export async function getAccountInfo(keystoreFile: string, password: string) {
   const keystoreInfo = JSON.parse(keystore);
   const accountName = keystoreInfo.username.endsWith('.sat') ? keystoreInfo.username : `${keystoreInfo.username}.sat`;
   const privateKey = await decryptKeystore(keystore, password);
-  return { accountName, privateKey };
+  return { accountName, privateKey, publicKey: keystoreInfo.address };
 }
 
 export function reloadEnv() {
-  const envFilePath = path.resolve(__dirname, '../', '.env');
+  const envFilePath = path.resolve(__dirname, '../../', '.env');
   if (!fs.existsSync(envFilePath)) {
     throw new Error('No .env file found');
   }

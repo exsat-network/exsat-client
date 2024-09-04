@@ -68,3 +68,55 @@ export async function envCheck(keystoreFile: string) {
     process.exit(1);
   }
 }
+
+/**
+ * Try calling the function repeatedly
+ * @param fn
+ * @param retries
+ */
+export const retry = async (
+  fn: () => Promise<any>,
+  retries = 3,
+  delay = 1000,
+  ft = '',
+): Promise<any> => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (i === retries - 1) throw error;
+      await sleep(delay);
+      logger.warn(`${ft} Retrying... (${i + 1}/${retries})`);
+    }
+  }
+};
+
+// Function to validate URL
+export function isValidUrl(url: string): boolean {
+  try {
+    new URL(url);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+// Functions to validate JSON strings
+export function isValidJson(jsonString: string): boolean {
+  try {
+    JSON.parse(jsonString);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+export function showInfo(info) {
+  console.log('-----------------------------------------------');
+  for (const key in info) {
+    if (info.hasOwnProperty(key)) {
+      console.log(`${key}: ${info[key]}`);
+    }
+  }
+  console.log('-----------------------------------------------\n');
+}

@@ -61,6 +61,10 @@ class TableApi {
     return null;
   }
 
+  /**
+   * Retrieves the synchronizer information by account name.
+   * @param synchronizer
+   */
   public async getSynchronizerInfo(synchronizer: string): Promise<any> {
     const rows = await this.exsatApi.getTableRows(ContractName.poolreg, ContractName.poolreg, 'synchronizer', {
       limit: 1,
@@ -71,6 +75,38 @@ class TableApi {
       return rows[0];
     }
     return null;
+  }
+
+  /**
+   * Retrieves the validator information by account name.
+   * @param validator
+   */
+  public async getValidatorInfo(validator: string): Promise<any> {
+    const rows = await this.exsatApi.getTableRows(ContractName.endrmng, ContractName.endrmng, 'validators', {
+      limit: 1,
+      lower_bound: validator,
+      upper_bound: validator,
+    });
+    if (rows && rows.length > 0) {
+      return rows[0];
+    }
+    return null;
+  }
+
+  /**
+   * get account balance
+   */
+  public async getAccountBalance(account: string): Promise<any> {
+    const rows: any[] = await this.exsatApi.getTableRows(ContractName.rescmng, account, 'accounts', {
+      limit: 1,
+      lower_bound: account,
+      upper_bound: account,
+    });
+    if (rows && rows.length > 0) {
+      return rows[0].balance;
+    }
+    return 0;
+
   }
 
   /**

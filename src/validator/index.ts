@@ -184,7 +184,7 @@ async function main() {
   } else {
     while (!accountInfo) {
       try {
-        password = getInputPassword();
+        password = await getInputPassword();
         if (password.trim() === 'q') {
           process.exit(0);
         }
