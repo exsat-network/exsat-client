@@ -75,10 +75,10 @@ export async function envCheck(keystoreFile: string) {
  * @param retries
  */
 export const retry = async (
-    fn: () => Promise<any>,
-    retries = 3,
-    delay = 1000,
-    ft = '',
+  fn: () => Promise<any>,
+  retries = 3,
+  delay = 1000,
+  ft = '',
 ): Promise<any> => {
   for (let i = 0; i < retries; i++) {
     try {
@@ -100,6 +100,7 @@ export function isValidUrl(url: string): boolean {
     return false;
   }
 }
+
 // Functions to validate JSON strings
 export function isValidJson(jsonString: string): boolean {
   try {
