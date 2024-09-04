@@ -25,11 +25,6 @@ export class SynchronizerCommander {
   private exsatApi: ExsatApi;
 
   async main() {
-    const versions = await Version.checkForUpdates('message');
-    if (versions.newVersion) {
-      await updateMenu(versions);
-    }
-
     // check if keystore exist
     while (!fs.existsSync(process.env.SYNCHRONIZER_KEYSTORE_FILE)) {
       await notAccountMenu('Synchronizer');

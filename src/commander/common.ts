@@ -1,4 +1,4 @@
-import { select, Separator } from "@inquirer/prompts";
+import { input, select, Separator } from "@inquirer/prompts";
 import { importFromMnemonic, importFromPrivateKey, initializeAccount } from "@exsat/account-initializer";
 import process from "node:process";
 import { Font } from "../utils/font";
@@ -59,8 +59,11 @@ export async function updateMenu(versions) {
   });
   switch (action) {
     case 'get_upgrade_method':
-      //todo  get upgrade method
-      console.log(versions.newVersion);
+
+      console.log('\nPlease enter the following command in the terminal to complete the version upgrade:');
+      console.log(`git fetch --tags && git checkout -f ${versions.latest} \n`)
+      await input({message:'Press Enter to Continue...'})
+      process.exit(0);
       break;
     default:
       return;

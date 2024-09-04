@@ -2,8 +2,14 @@ import { configureLogger, logger } from "../utils/logger";
 import { select } from "@inquirer/prompts";
 import { SynchronizerCommander } from "./synchronizer";
 import { ValidatorCommander } from "./validator";
+import { Version } from "../utils/version";
+import { updateMenu } from "./common";
 
 async function main() {
+  const versions = await Version.checkForUpdates('message');
+  if (versions.newVersion) {
+    await updateMenu(versions);
+  }
 
   console.log(
     '-------------------------------\n' +

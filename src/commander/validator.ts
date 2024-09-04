@@ -22,11 +22,6 @@ export class ValidatorCommander {
 
 
   async main() {
-    const versions = await Version.checkForUpdates('message');
-    if (versions.newVersion) {
-      await updateMenu(versions);
-    }
-
     // check if keystore exist
     while (!fs.existsSync(process.env.VALIDATOR_KEYSTORE_FILE)) {
       await notAccountMenu('Validator');

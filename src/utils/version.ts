@@ -5,8 +5,8 @@ import process from 'node:process';
 
 
 export class Version {
-  private static repoUrl = 'https://github.com/exsat-network/client_testnet';
-  private static repoPath = 'exsat-network/client_testnet';
+  private static repoUrl = 'https://github.com/exsat-network/exsat-client';
+  private static repoPath = 'exsat-network/exsat-client';
   private static packageJsonPath = path.join(process.cwd(), './package.json');
 
   // Get the latest version number of the remote warehouse
