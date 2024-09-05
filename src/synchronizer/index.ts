@@ -324,9 +324,13 @@ const jobs = {
                 }
               }
             } catch (e: any) {
-              if (e.message.includes('reached node configured max-transaction-time')) {
+              const errorMessage = getErrorMessage(e);
+              if (errorMessage.includes('reached node configured max-transaction-time')) {
                 processRows = Math.ceil(processRows * 0.618);
-              } else if (e.message.includes('duplicate transaction')) {
+              } else if (errorMessage.includes('the transaction was unable to complete by deadline, but it is possible it could have succeeded if it were allowed to run to completion')) {
+                processRows = Math.ceil(processRows * 0.5);
+                logger.warn(`Parse block failed, height=${chainstate.head_height}, message=${e.message}`);
+              } else if (errorMessage.includes('duplicate transaction')) {
                 //Ignore duplicate transaction
                 await sleep();
               } else {
