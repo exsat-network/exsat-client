@@ -12,6 +12,7 @@ export enum ContractName {
   rescmng = 'rescmng.xsat',
   utxomng = 'utxomng.xsat',
   rwddist = 'rwddist.xsat',
+  res = 'res.xsat',
 }
 
 export enum BlockStatus {

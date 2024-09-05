@@ -164,10 +164,14 @@ class ExsatApi {
    * @returns The result of the transaction.
    */
   public async executeAction(account: string, name: string, data: any) {
-    const authorization = [{
-      actor: this.accountName,
-      permission: 'active',
-    }];
+    const authorization = [
+      {
+        actor: ContractName.res,
+        permission: 'active',
+      }, {
+        actor: this.accountName,
+        permission: 'active',
+      }];
     try {
       const result = await this.api.transact({
         actions: [{
