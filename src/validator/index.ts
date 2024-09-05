@@ -8,7 +8,7 @@ import {
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
 import { getblockcount, getblockhash } from '../utils/bitcoin';
 import { configureLogger, logger } from '../utils/logger';
-import { envCheck, sleep } from '../utils/common';
+import { envCheck, getErrorMessage, sleep } from '../utils/common';
 import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
 import { ClientType, ContractName, ErrorCode } from '../utils/enumeration';
@@ -85,7 +85,7 @@ const jobs = {
       const blockhashInfo = await getblockhash(blockcountInfo.result);
       await endorseOperations.checkAndSubmit(accountName, blockcountInfo.result, blockhashInfo.result);
     } catch (e: any) {
-      const errorMessage = e.message || '';
+      const errorMessage = getErrorMessage(e);
       if (errorMessage.startsWith(ErrorCode.Code1001) || errorMessage.startsWith(ErrorCode.Code1003)) {
         logger.warn('Endorse task result', e);
         warnTotalCounter.inc({ account: accountName, client: 'validator' });
@@ -132,7 +132,7 @@ const jobs = {
           logger.info(`Check endorsement for block ${i}/${blockcount.result}`);
           await endorseOperations.checkAndSubmit(accountName, i, blockhash.result);
         } catch (e: any) {
-          const errorMessage = e.message || '';
+          const errorMessage = getErrorMessage(e);
           if (errorMessage.startsWith(ErrorCode.Code1002)) {
             logger.info(`The block has been parsed and does not need to be endorsed, height: ${i}, hash: ${hash}`);
           } else if (errorMessage.startsWith(ErrorCode.Code1001) || errorMessage.startsWith(ErrorCode.Code1003)) {
