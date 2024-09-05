@@ -120,3 +120,18 @@ export function showInfo(info) {
   }
   console.log('-----------------------------------------------\n');
 }
+
+/**
+ * Get the error message from an error object.
+ * If the error message starts with 'assertion failure with message: ',
+ * return the message after the prefix.
+ * @param e
+ */
+export function getErrorMessage(e: any): string {
+  let errorMessage = e?.message || '';
+  const prefix = 'assertion failure with message: ';
+  if (errorMessage.startsWith(prefix)) {
+    return errorMessage.substring(prefix.length);
+  }
+  return errorMessage;
+}

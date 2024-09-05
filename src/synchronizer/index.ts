@@ -13,7 +13,7 @@ import {
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
 import { getblock, getblockcount, getblockhash, getChunkMap } from '../utils/bitcoin';
 import { configureLogger, logger } from '../utils/logger';
-import { envCheck, sleep } from '../utils/common';
+import { envCheck, getErrorMessage, sleep } from '../utils/common';
 import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
 import { BlockStatus, ClientType, ContractName, ErrorCode } from '../utils/enumeration';
@@ -156,7 +156,7 @@ const jobs = {
             await blockOperations.pushchunk(height, hash, chunkId, chunkData);
           }
         } catch (e: any) {
-          const errorMessage = e?.message || '';
+          const errorMessage = getErrorMessage(e);
           if (errorMessage.includes('duplicate transaction')) {
             //Ignore duplicate transaction
             await sleep();
@@ -272,7 +272,7 @@ const jobs = {
         }
       }
     } catch (e: any) {
-      const errorMessage = e?.message || '';
+      const errorMessage = getErrorMessage(e);
       if (errorMessage.startsWith(ErrorCode.Code2017)) {
         logger.info('blockbucket has been deleted.');
       } else if (errorMessage.includes('duplicate transaction')) {
@@ -395,7 +395,7 @@ const jobs = {
         await blockOperations.pushchunk(height, hash, item[0], item[1]);
       }
     } catch (e: any) {
-      const errorMessage = e?.message || '';
+      const errorMessage = getErrorMessage(e);
       if (errorMessage.includes('duplicate transaction')) {
         //Ignore duplicate transaction
         await sleep();
