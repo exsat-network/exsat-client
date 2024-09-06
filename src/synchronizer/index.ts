@@ -132,6 +132,7 @@ const jobs = {
       const holdSlots: number = synchronizerInfo.num_slots;
       const blockbuckets = await tableApi.getAllBlockbucket(accountName);
       const usedSlots: number = blockbuckets?.length || 0;
+      const uploadedHeights = new Set(blockbuckets.map(item => item.height));
       if (usedSlots >= holdSlots) {
         const { minBucket, maxBucket } = getMinMaxBucket(blockbuckets);
         if (minBucket.height > chainstate.head_height) {
@@ -142,25 +143,26 @@ const jobs = {
         await sleep(10000);
         return;
       }
-      const height = chainstate.head_height + 1;
-      const blockhashInfo = await getblockhash(height);
+      const nextHeight = chainstate.head_height + 1;
+      const uploadHeight = uploadedHeights.has(nextHeight) ? nextHeight + 1 : nextHeight;
+      const blockhashInfo = await getblockhash(uploadHeight);
       const hash = blockhashInfo.result;
       try {
         const blockInfo = await getblock(hash);
         if (blockInfo.result === null && blockInfo.error?.code === -5) {
-          logger.info(`Block not found, height: ${height}, hash: ${hash}`);
+          logger.info(`Block not found, height: ${uploadHeight}, hash: ${hash}`);
           return;
         } else if (blockInfo.error) {
-          logger.error(`Get block raw error, height: ${height}, hash: ${hash}`, blockInfo.error);
+          logger.error(`Get block raw error, height: ${uploadHeight}, hash: ${hash}`, blockInfo.error);
           errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
           return;
         }
         const blockRaw = blockInfo.result;
         const chunkMap: Map<number, string> = await getChunkMap(blockRaw);
-        await blockOperations.initbucket(height, hash, blockRaw.length / 2, chunkMap.size);
-        uploadingHeight = height;
+        uploadingHeight = uploadHeight;
+        await blockOperations.initbucket(uploadHeight, hash, blockRaw.length / 2, chunkMap.size);
         for (const [chunkId, chunkData] of chunkMap) {
-          await blockOperations.pushchunk(height, hash, chunkId, chunkData);
+          await blockOperations.pushchunk(uploadHeight, hash, chunkId, chunkData);
         }
       } catch (e: any) {
         const errorMessage = getErrorMessage(e);
@@ -168,11 +170,11 @@ const jobs = {
           //Ignore duplicate transaction
           await sleep();
         } else if (errorMessage.startsWith(ErrorCode.Code2005)) {
-          logger.info(`The block has reached consensus, height: ${height}, hash: ${hash}`);
+          logger.info(`The block has reached consensus, height: ${uploadHeight}, hash: ${hash}`);
         } else if (errorMessage.startsWith(ErrorCode.Code2008) || errorMessage.startsWith(ErrorCode.Code2013)) {
           //Ignore
         } else {
-          logger.error(`Upload block task error, height: ${height}, hash: ${hash}`, e);
+          logger.error(`Upload block task error, height: ${uploadHeight}, hash: ${hash}`, e);
           errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
           await sleep();
         }
