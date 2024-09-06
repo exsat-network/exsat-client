@@ -191,7 +191,9 @@ class ExsatApi {
         logger.error(`The account[${this.accountName}] permissions do not match this rpc node[${this.getCurrentNode()}].`);
         process.exit(1);
       }
-      logger.warn(`Transaction failed: account=${account}, name=${name}, data=${JSON.stringify(data).substring(0, 150)}...`, e);
+      let dataStr = JSON.stringify(data);
+      dataStr = dataStr.length > 150 ? dataStr.substring(0, 150) + '...' : dataStr;
+      logger.info(`Transaction result, account: ${account}, name: ${name}, data: ${dataStr}`, e);
       throw e;
     }
   }
