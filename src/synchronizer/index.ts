@@ -141,39 +141,38 @@ const jobs = {
         await sleep(10000);
         return;
       }
-      for (let height = chainstate.head_height + 1; height <= blockcountInfo.result && usedSlots < holdSlots; height++) {
-        const blockhashInfo = await getblockhash(height);
-        const hash = blockhashInfo.result;
-        try {
-          const blockInfo = await getblock(hash);
-          if (blockInfo.result === null && blockInfo.error?.code === -5) {
-            logger.info(`Block not found, height: ${height}, hash: ${hash}`);
-            return;
-          } else if (blockInfo.error) {
-            logger.error(`Get block raw error, height: ${height}, hash: ${hash}`, blockInfo.error);
-            errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
-            return;
-          }
-          const blockRaw = blockInfo.result;
-          const chunkMap: Map<number, string> = await getChunkMap(blockRaw);
-          await blockOperations.initbucket(height, hash, blockRaw.length / 2, chunkMap.size);
-          for (const [chunkId, chunkData] of chunkMap) {
-            await blockOperations.pushchunk(height, hash, chunkId, chunkData);
-          }
-        } catch (e: any) {
-          const errorMessage = getErrorMessage(e);
-          if (errorMessage.includes('duplicate transaction')) {
-            //Ignore duplicate transaction
-            await sleep();
-          } else if (errorMessage.startsWith(ErrorCode.Code2005)) {
-            logger.info(`The block has reached consensus, height: ${height}, hash: ${hash}`);
-          } else if (errorMessage.startsWith(ErrorCode.Code2013)) {
-            //Ignore
-          } else {
-            logger.error(`Upload block task error, height: ${height}, hash: ${hash}`, e);
-            errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
-            await sleep();
-          }
+      const height = chainstate.head_height + 1;
+      const blockhashInfo = await getblockhash(height);
+      const hash = blockhashInfo.result;
+      try {
+        const blockInfo = await getblock(hash);
+        if (blockInfo.result === null && blockInfo.error?.code === -5) {
+          logger.info(`Block not found, height: ${height}, hash: ${hash}`);
+          return;
+        } else if (blockInfo.error) {
+          logger.error(`Get block raw error, height: ${height}, hash: ${hash}`, blockInfo.error);
+          errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
+          return;
+        }
+        const blockRaw = blockInfo.result;
+        const chunkMap: Map<number, string> = await getChunkMap(blockRaw);
+        await blockOperations.initbucket(height, hash, blockRaw.length / 2, chunkMap.size);
+        for (const [chunkId, chunkData] of chunkMap) {
+          await blockOperations.pushchunk(height, hash, chunkId, chunkData);
+        }
+      } catch (e: any) {
+        const errorMessage = getErrorMessage(e);
+        if (errorMessage.includes('duplicate transaction')) {
+          //Ignore duplicate transaction
+          await sleep();
+        } else if (errorMessage.startsWith(ErrorCode.Code2005)) {
+          logger.info(`The block has reached consensus, height: ${height}, hash: ${hash}`);
+        } else if (errorMessage.startsWith(ErrorCode.Code2013)) {
+          //Ignore
+        } else {
+          logger.error(`Upload block task error, height: ${height}, hash: ${hash}`, e);
+          errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
+          await sleep();
         }
       }
     } catch (error) {
