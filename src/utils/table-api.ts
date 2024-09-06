@@ -137,6 +137,9 @@ class TableApi {
     const rows = await this.exsatApi.getTableRows(ContractName.blksync, synchronizer, 'blockbuckets', {
       fetch_all: true,
     });
+    if (rows && rows.length > 0) {
+      return rows.sort((a: any, b: any) => a.height - b.height);
+    }
     return rows;
   }
 
