@@ -64,7 +64,7 @@ const blockOperations = {
   },
 
   // Pushes a chunk of block data to the bucket.
-  async pushchunk(height: number, hash: string, chunkId: number, chunkData: string, source: string) {
+  async pushchunk(height: number, hash: string, chunkId: number, chunkData: string) {
     const result: any = await exsatApi.executeAction(ContractName.blksync, 'pushchunk', {
       synchronizer: accountName,
       height,
@@ -74,7 +74,7 @@ const blockOperations = {
     });
     if (result) {
       blockUploadTotalCounter.inc({ account: accountName, client: 'synchronizer', status: 'push' });
-      logger.info(`hello----${source}: Push chunk success, height: ${height}, hash: ${hash}, chunk_id: ${chunkId}, transaction_id: ${result.transaction_id}`);
+      logger.info(`Push chunk success, height: ${height}, hash: ${hash}, chunk_id: ${chunkId}, transaction_id: ${result.transaction_id}`);
     }
   },
 
@@ -160,7 +160,7 @@ const jobs = {
         await blockOperations.initbucket(height, hash, blockRaw.length / 2, chunkMap.size);
         uploadingHeight = height;
         for (const [chunkId, chunkData] of chunkMap) {
-          await blockOperations.pushchunk(height, hash, chunkId, chunkData, 'upload');
+          await blockOperations.pushchunk(height, hash, chunkId, chunkData);
         }
       } catch (e: any) {
         const errorMessage = getErrorMessage(e);
@@ -251,7 +251,7 @@ const jobs = {
                 if (newBlockbucket.chunk_ids.includes(chunkId)) {
                   continue;
                 }
-                await blockOperations.pushchunk(height, hash, chunkId, chunkData, 'verify');
+                await blockOperations.pushchunk(height, hash, chunkId, chunkData);
               }
             }
             break;
@@ -410,7 +410,7 @@ const jobs = {
       const chunkMap: Map<number, string> = await getChunkMap(blockRaw);
       await blockOperations.initbucket(height, hash, blockRaw.length / 2, chunkMap.size);
       for (const item of chunkMap) {
-        await blockOperations.pushchunk(height, hash, item[0], item[1], 'forkCheck');
+        await blockOperations.pushchunk(height, hash, item[0], item[1]);
       }
     } catch (e: any) {
       const errorMessage = getErrorMessage(e);
