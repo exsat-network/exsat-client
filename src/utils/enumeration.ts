@@ -59,4 +59,5 @@ export enum ErrorCode {
   Code2017 = '2017', //2017:blksync.xsat::delbucket: [blockbuckets] does not exists
   Code2018 = '2018', //2018:blksync.xsat::verify: you have not uploaded the block data. please upload it first and then verify it
   Code2020 = '2020', //2020:blksync.xsat::verify: parent block hash did not reach consensus
+  Code2022 = '2022', //2022:blksync.xsat::verify: waiting for miners to produce blocks
 }

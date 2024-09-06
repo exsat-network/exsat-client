@@ -74,7 +74,7 @@ const blockOperations = {
     });
     if (result) {
       blockUploadTotalCounter.inc({ account: accountName, client: 'synchronizer', status: 'push' });
-      logger.info(`${source}: Push chunk success, height: ${height}, hash: ${hash}, chunk_id: ${chunkId}, transaction_id: ${result.transaction_id}`);
+      logger.info(`hello----${source}: Push chunk success, height: ${height}, hash: ${hash}, chunk_id: ${chunkId}, transaction_id: ${result.transaction_id}`);
     }
   },
 
@@ -294,6 +294,8 @@ const jobs = {
       } else if (errorMessage.startsWith(ErrorCode.Code2013)) {
         //Ignore
       } else if (errorMessage.startsWith(ErrorCode.Code2020)) {
+        //Ignore
+      } else if (errorMessage.startsWith(ErrorCode.Code2022)) {
         //Ignore
       } else {
         errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
