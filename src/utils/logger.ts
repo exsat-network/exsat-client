@@ -3,7 +3,7 @@ import DailyRotateFile from 'winston-daily-rotate-file';
 import { LOGGER_DIR, LOGGER_MAX_FILES, LOGGER_MAX_SIZE } from './config';
 
 const customFormat = format.combine(
-  format.timestamp({ format: 'YYYY-MM-DDThh:mm:ssZ' }),
+  format.timestamp({ format: 'YYYY-MM-DDTHH:mm:ssZ' }),
   // format.align(),
   format.errors({ stack: true }),
   format.splat(),
