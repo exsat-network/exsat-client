@@ -29,6 +29,7 @@ import {
 let accountName: string;
 let exsatApi: ExsatApi;
 let tableApi: TableApi;
+let uploadingHeight: number = 0;
 let [uploadRunning, verifyRunning, parseRunning, forkCheckRunning] = [false, false, false, false];
 
 // Block-related operations
@@ -134,7 +135,7 @@ const jobs = {
       if (usedSlots >= holdSlots) {
         const { minBucket, maxBucket } = getMinMaxBucket(blockbuckets);
         if (minBucket.height > chainstate.head_height) {
-          logger.info(`delbucket: The prev block need upload, height: ${minBucket.height}, hash: ${minBucket.hash}`);
+          logger.info(`delbucket: The prev block need reupload, height: ${minBucket.height}, hash: ${minBucket.hash}`);
           await blockOperations.delbucket(maxBucket.height, maxBucket.hash);
         }
         logger.info(`The number of blockbuckets[${usedSlots}] has reached the upper limit[${holdSlots}], Please purchase more slots or wait for the slots to be released`);
@@ -157,6 +158,7 @@ const jobs = {
         const blockRaw = blockInfo.result;
         const chunkMap: Map<number, string> = await getChunkMap(blockRaw);
         await blockOperations.initbucket(height, hash, blockRaw.length / 2, chunkMap.size);
+        uploadingHeight = height;
         for (const [chunkId, chunkData] of chunkMap) {
           await blockOperations.pushchunk(height, hash, chunkId, chunkData);
         }
@@ -167,7 +169,7 @@ const jobs = {
           await sleep();
         } else if (errorMessage.startsWith(ErrorCode.Code2005)) {
           logger.info(`The block has reached consensus, height: ${height}, hash: ${hash}`);
-        } else if (errorMessage.startsWith(ErrorCode.Code2013)) {
+        } else if (errorMessage.startsWith(ErrorCode.Code2008) || errorMessage.startsWith(ErrorCode.Code2013)) {
           //Ignore
         } else {
           logger.error(`Upload block task error, height: ${height}, hash: ${hash}`, e);
@@ -176,7 +178,7 @@ const jobs = {
         }
       }
     } catch (error) {
-      console.error('Error in upload task:', error);
+      logger.error('Error in upload task:', error);
       errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
     } finally {
       uploadRunning = false;
@@ -242,13 +244,15 @@ const jobs = {
             if (!newBlockbucket) {
               break;
             }
-            for (const item of chunkMap) {
-              const chunkId: number = item[0];
-              const chunkData: string = item[1];
-              if (newBlockbucket.chunk_ids.includes(chunkId)) {
-                continue;
+            if (uploadingHeight !== height) {
+              for (const item of chunkMap) {
+                const chunkId: number = item[0];
+                const chunkData: string = item[1];
+                if (newBlockbucket.chunk_ids.includes(chunkId)) {
+                  continue;
+                }
+                await blockOperations.pushchunk(height, hash, chunkId, chunkData);
               }
-              await blockOperations.pushchunk(height, hash, chunkId, chunkData);
             }
             break;
           case BlockStatus.UPLOAD_COMPLETE:
@@ -336,6 +340,7 @@ const jobs = {
               } else if (errorMessage.includes('the transaction was unable to complete by deadline, but it is possible it could have succeeded if it were allowed to run to completion')) {
                 processRows = Math.ceil(processRows * 0.5);
                 logger.warn(`Parse block failed, height=${chainstate.head_height}, message=${e.message}`);
+                warnTotalCounter.inc({ account: accountName, client: 'synchronizer' });
               } else if (errorMessage.includes('duplicate transaction')) {
                 //Ignore duplicate transaction
                 await sleep();
@@ -386,7 +391,7 @@ const jobs = {
       const blockbuckets = await tableApi.getAllBlockbucket(accountName);
       if (blockbuckets && blockbuckets.length > 0) {
         for (const blockbucket of blockbuckets) {
-          logger.info(`delete: Fork check happen, height: ${blockbucket.height}, hash: ${blockbucket.hash}`);
+          logger.info(`delete: Bitcoin fork happen, height: ${blockbucket.height}, hash: ${blockbucket.hash}`);
           await blockOperations.delbucket(blockbucket.height, blockbucket.hash);
         }
       }
@@ -436,7 +441,7 @@ function setupCronJobs() {
   cronJobs.forEach(({ schedule, job }) => {
     cron.schedule(schedule, () => {
       job().catch(error => {
-        console.error(`Unhandled error in ${job.name} job:`, error);
+        logger.error(`Unhandled error in ${job.name} job:`, error);
         errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
       });
     });

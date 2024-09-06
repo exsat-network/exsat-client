@@ -54,6 +54,7 @@ export enum ErrorCode {
   Code1002 = '1002', //1002:blkendt.xsat::endorse: the block has been parsed and does not need to be endorsed
   Code1003 = '1003', //1003:blkendt.xsat::endorse: the endorsement height cannot exceed height
   Code2005 = '2005', //2005:blksync.xsat::initbucket: the block has reached consensus
+  Code2008 = '2008', //2008:blksync.xsat::initbucket: cannot init bucket in the current state [verify_pass]
   Code2013 = '2013', //2013:blksync.xsat::pushchunk: cannot push chunk in the current state [verify_merkle]
   Code2017 = '2017', //2017:blksync.xsat::delbucket: [blockbuckets] does not exists
   Code2018 = '2018', //2018:blksync.xsat::verify: you have not uploaded the block data. please upload it first and then verify it
