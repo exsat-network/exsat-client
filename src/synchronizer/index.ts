@@ -129,13 +129,14 @@ const jobs = {
         errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
         return;
       }
+      const nextHeight = chainstate.head_height + 1;
       const holdSlots: number = synchronizerInfo.num_slots;
       const blockbuckets = await tableApi.getAllBlockbucket(accountName);
       const usedSlots: number = blockbuckets?.length || 0;
       const uploadedHeights = new Set(blockbuckets.map(item => item.height));
       if (usedSlots >= holdSlots) {
         const { minBucket, maxBucket } = getMinMaxBucket(blockbuckets);
-        if (minBucket.height > chainstate.head_height) {
+        if (minBucket.height > nextHeight) {
           logger.info(`delbucket: The prev block need reupload, height: ${minBucket.height}, hash: ${minBucket.hash}`);
           await blockOperations.delbucket(maxBucket.height, maxBucket.hash);
         }
@@ -143,7 +144,6 @@ const jobs = {
         await sleep(10000);
         return;
       }
-      const nextHeight = chainstate.head_height + 1;
       const uploadHeight = uploadedHeights.has(nextHeight) ? nextHeight + 1 : nextHeight;
       const blockhashInfo = await getblockhash(uploadHeight);
       const hash = blockhashInfo.result;
