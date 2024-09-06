@@ -73,7 +73,9 @@ function createApp() {
   register.registerMetric(blockValidateTotalCounter);
   register.registerMetric(blockUploadTotalCounter);
   register.registerMetric(syncLatestBlockGauge);
+  register.registerMetric(syncLatestTimeGauge);
   register.registerMetric(validateLatestBlockGauge);
+  register.registerMetric(validateLatestTimeGauge);
 
   // Endpoint to expose metrics
   app.get('/metrics', async (req, res) => {

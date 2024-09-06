@@ -86,9 +86,9 @@ const jobs = {
       await endorseOperations.checkAndSubmit(accountName, blockcountInfo.result, blockhashInfo.result);
     } catch (e: any) {
       const errorMessage = getErrorMessage(e);
+      logger.info(`Endorse task info: ${errorMessage}`);
       if (errorMessage.startsWith(ErrorCode.Code1001) || errorMessage.startsWith(ErrorCode.Code1003)) {
-        logger.warn('Endorse task result', e);
-        warnTotalCounter.inc({ account: accountName, client: 'validator' });
+        // ignore
       } else {
         logger.error('Endorse task error', e);
         errorTotalCounter.inc({ account: accountName, client: 'validator' });
@@ -133,11 +133,9 @@ const jobs = {
           await endorseOperations.checkAndSubmit(accountName, i, blockhash.result);
         } catch (e: any) {
           const errorMessage = getErrorMessage(e);
+          logger.info(`Endorse check task result, height: ${i}, hash: ${hash}, ${errorMessage}`);
           if (errorMessage.startsWith(ErrorCode.Code1002)) {
-            logger.info(`The block has been parsed and does not need to be endorsed, height: ${i}, hash: ${hash}`);
           } else if (errorMessage.startsWith(ErrorCode.Code1001) || errorMessage.startsWith(ErrorCode.Code1003)) {
-            logger.warn(`Wait for endorsement status to be enabled, height: ${i}, hash: ${hash}`);
-            warnTotalCounter.inc({ account: accountName, client: 'validator' });
             return;
           } else {
             logger.error(`Submit endorsement failed, height: ${i}, hash: ${hash}`, e);
