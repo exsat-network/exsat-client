@@ -13,7 +13,7 @@ import {
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
 import { getblock, getblockcount, getblockhash, getChunkMap } from '../utils/bitcoin';
 import { configureLogger, logger } from '../utils/logger';
-import { envCheck, getErrorMessage, sleep } from '../utils/common';
+import { envCheck, getErrorMessage, getMinMaxBucket, sleep } from '../utils/common';
 import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
 import { BlockStatus, ClientType, ContractName, ErrorCode } from '../utils/enumeration';
@@ -95,7 +95,7 @@ const blockOperations = {
           syncLatestTimeGauge.set({ account: accountName, client: 'synchronizer' }, Date.now());
           break;
         } else if (returnValueData.status === 'verify_fail') {
-          logger.info(`Block verify fail, height: ${height}, hash: ${hash}, reason: ${returnValueData.reason}`);
+          logger.info(`delbucket: Block verify fail, height: ${height}, hash: ${hash}, reason: ${returnValueData.reason}`);
           blockUploadTotalCounter.inc({ account: accountName, client: 'synchronizer', status: 'verify_fail' });
           await this.delbucket(height, hash);
           break;
@@ -132,6 +132,11 @@ const jobs = {
       const blockbuckets = await tableApi.getAllBlockbucket(accountName);
       const usedSlots: number = blockbuckets?.length || 0;
       if (usedSlots >= holdSlots) {
+        const { minBucket, maxBucket } = getMinMaxBucket(blockbuckets);
+        if (minBucket.height > chainstate.head_height) {
+          logger.info(`delbucket: The prev block need upload, height: ${minBucket.height}, hash: ${minBucket.hash}`);
+          await blockOperations.delbucket(maxBucket.height, maxBucket.hash);
+        }
         logger.info(`The number of blockbuckets[${usedSlots}] has reached the upper limit[${holdSlots}], Please purchase more slots or wait for the slots to be released`);
         await sleep(10000);
         return;
@@ -215,7 +220,7 @@ const jobs = {
           case BlockStatus.UPLOADING:
             const blockInfo = await getblock(hash);
             if (blockInfo.result === null && blockInfo.error?.code === -5) {
-              logger.info(`Block not found, height: ${height}, hash: ${hash}`);
+              logger.info(`delbucket: Block not found, height: ${height}, hash: ${hash}`);
               await blockOperations.delbucket(height, hash);
               break;
             } else if (blockInfo.error) {
@@ -229,8 +234,8 @@ const jobs = {
             if ((size === uploaded_size && num_chunks !== uploaded_num_chunks)
               || (size !== uploaded_size && num_chunks === uploaded_num_chunks)
               || chunk_size !== CHUNK_SIZE) {
-              logger.info(`Blockbucket size and uploaded_size are inconsistent`);
               //Delete the block first, then initialize and re-upload
+              logger.info(`delbucket: Blockbucket size and uploaded_size are inconsistent`);
               await blockOperations.delbucket(height, hash);
               await blockOperations.initbucket(height, hash, blockRaw.length / 2, chunkMap.size);
             }
@@ -256,12 +261,14 @@ const jobs = {
             const consensusBlk = await tableApi.getConsensusByBucketId(accountName, blockbucket.id);
             if (consensusBlk || chainstate.irreversible_height >= blockbucket.height) {
               //The block has been completed by consensus and can be deleted
+              logger.info(`delbucket: The block has been completed by consensus, height: ${height}, hash: ${hash}`);
               await blockOperations.delbucket(height, hash);
             } else {
               await blockOperations.verifyBlock(height, hash);
             }
             break;
           case BlockStatus.VERIFY_FAIL:
+            logger.info(`delbucket: Block verify fail, height: ${height}, hash: ${hash}`);
             await blockOperations.delbucket(height, hash);
             break;
           case BlockStatus.VERIFY_PASS:
@@ -380,6 +387,7 @@ const jobs = {
       const blockbuckets = await tableApi.getAllBlockbucket(accountName);
       if (blockbuckets && blockbuckets.length > 0) {
         for (const blockbucket of blockbuckets) {
+          logger.info(`delete: Fork check happen, height: ${blockbucket.height}, hash: ${blockbucket.hash}`);
           await blockOperations.delbucket(blockbucket.height, blockbucket.hash);
         }
       }

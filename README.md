@@ -313,5 +313,5 @@ docker run -d -v $HOME/.exsat/validator/.env:/app/.env -v $HOME/.exsat/validator
 ```shell
 yarn build
 pm2 start ecosystem.config.js --only synchronizer
-pm2 start ecosystem.config.js --only synchronizer
+pm2 start ecosystem.config.js --only validator
 ```

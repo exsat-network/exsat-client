@@ -135,3 +135,20 @@ export function getErrorMessage(e: any): string {
   }
   return errorMessage;
 }
+
+/**
+ * Get the min and max bucket from a list of blockbuckets.
+ * @param blockbuckets
+ */
+export function getMinMaxBucket(blockbuckets) {
+  let minBucket = blockbuckets[0], maxBucket = blockbuckets[0];
+  for (const blockbucket of blockbuckets) {
+    if (minBucket.height > blockbucket.height) {
+      minBucket = blockbucket;
+    }
+    if (maxBucket.height < blockbucket.height) {
+      maxBucket = blockbucket;
+    }
+  }
+  return { minBucket, maxBucket };
+}
