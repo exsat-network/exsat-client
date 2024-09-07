@@ -148,7 +148,7 @@ const jobs = {
           }
           return;
         }
-        uploadHeight = uploadedHeights.has(nextHeight) ? nextHeight : getNextHeight(uploadedHeights);
+        uploadHeight = uploadedHeights.has(nextHeight) ? getNextHeight(uploadedHeights) : nextHeight;
       }
       const blockhashInfo = await getblockhash(uploadHeight);
       const hash = blockhashInfo.result;
