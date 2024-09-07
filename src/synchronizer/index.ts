@@ -286,9 +286,6 @@ const jobs = {
           break;
         case BlockStatus.WAITING_MINER_VERIFICATION:
           const consensusBlk = await tableApi.getConsensusByBucketId(accountName, bucket_id);
-          //todo
-          logger.error(`-----consensusBlk=${JSON.stringify(consensusBlk)}----`);
-          logger.error(`----verifyBucket.bucket_id=${bucket_id}-----chainstate.irreversible_height=${chainstate.irreversible_height}------verifyBucket.height=${verifyBucket.height}-----------------`);
           if (consensusBlk || chainstate.irreversible_height >= verifyBucket.height) {
             //The block has been completed by consensus and can be deleted
             logger.info(`delbucket: The block has been completed by consensus, height: ${height}, hash: ${hash}`);
