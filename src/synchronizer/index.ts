@@ -227,6 +227,7 @@ const jobs = {
         return;
       }
       const {
+        bucket_id,
         height,
         hash,
         status,
@@ -265,7 +266,7 @@ const jobs = {
             await blockOperations.delbucket(height, hash);
             await blockOperations.initbucket(height, hash, blockRaw.length / 2, chunkMap.size);
           }
-          const newBlockbucket = await tableApi.getBlockbucketById(accountName, verifyBucket.id);
+          const newBlockbucket = await tableApi.getBlockbucketById(accountName, bucket_id);
           if (!newBlockbucket) {
             break;
           }
@@ -284,10 +285,10 @@ const jobs = {
           await blockOperations.verifyBlock(height, hash);
           break;
         case BlockStatus.WAITING_MINER_VERIFICATION:
-          const consensusBlk = await tableApi.getConsensusByBucketId(accountName, verifyBucket.id);
+          const consensusBlk = await tableApi.getConsensusByBucketId(accountName, bucket_id);
           //todo
           logger.error(`-----consensusBlk=${JSON.stringify(consensusBlk)}----`);
-          logger.error(`----verifyBucket.id=${verifyBucket.id}-----chainstate.irreversible_height=${chainstate.irreversible_height}------verifyBucket.height=${verifyBucket.height}-----------------`);
+          logger.error(`----verifyBucket.id=${bucket_id}-----chainstate.irreversible_height=${chainstate.irreversible_height}------verifyBucket.height=${verifyBucket.height}-----------------`);
           if (consensusBlk || chainstate.irreversible_height >= verifyBucket.height) {
             //The block has been completed by consensus and can be deleted
             logger.info(`delbucket: The block has been completed by consensus, height: ${height}, hash: ${hash}`);
