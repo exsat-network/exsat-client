@@ -238,7 +238,7 @@ const jobs = {
       } = verifyBucket;
       logHeight = height;
       logHash = hash;
-      logger.info(`Blockbucket, status: ${status}, height: ${height}, hash: ${hash}`);
+      logger.info(`Verify blockbucket, status: ${status}, height: ${height}, hash: ${hash}`);
       switch (status) {
         case BlockStatus.UPLOADING:
           if (uploadingHeight === height) {
@@ -285,6 +285,9 @@ const jobs = {
           break;
         case BlockStatus.WAITING_MINER_VERIFICATION:
           const consensusBlk = await tableApi.getConsensusByBucketId(accountName, verifyBucket.id);
+          //todo
+          logger.error(`-----consensusBlk=${JSON.stringify(consensusBlk)}----`);
+          logger.error(`----verifyBucket.id=${verifyBucket.id}-----chainstate.irreversible_height=${chainstate.irreversible_height}------verifyBucket.height=${verifyBucket.height}-----------------`);
           if (consensusBlk || chainstate.irreversible_height >= verifyBucket.height) {
             //The block has been completed by consensus and can be deleted
             logger.info(`delbucket: The block has been completed by consensus, height: ${height}, hash: ${hash}`);
