@@ -13,17 +13,17 @@ import {
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
 import { getblock, getblockcount, getblockhash, getChunkMap } from '../utils/bitcoin';
 import { configureLogger, logger } from '../utils/logger';
-import { envCheck, getErrorMessage, getMinMaxBucket, sleep } from '../utils/common';
+import { envCheck, getErrorMessage, getNextHeight, sleep } from '../utils/common';
 import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
 import { BlockStatus, ClientType, ContractName, ErrorCode } from '../utils/enumeration';
 import {
+  blockUploadTotalCounter,
+  errorTotalCounter,
   setupPrometheus,
   syncLatestBlockGauge,
-  errorTotalCounter,
-  warnTotalCounter,
-  blockUploadTotalCounter,
   syncLatestTimeGauge,
+  warnTotalCounter,
 } from '../utils/prom';
 
 let accountName: string;
@@ -130,21 +130,26 @@ const jobs = {
         return;
       }
       const nextHeight = chainstate.head_height + 1;
-      const holdSlots: number = synchronizerInfo.num_slots;
+      let uploadHeight = nextHeight;
       const blockbuckets = await tableApi.getAllBlockbucket(accountName);
-      const usedSlots: number = blockbuckets?.length || 0;
       const uploadedHeights = new Set(blockbuckets.map(item => item.height));
-      if (usedSlots >= holdSlots) {
-        const { minBucket, maxBucket } = getMinMaxBucket(blockbuckets);
-        if (minBucket.height > nextHeight) {
-          logger.info(`delbucket: The prev block need reupload, height: ${minBucket.height}, hash: ${minBucket.hash}`);
-          await blockOperations.delbucket(maxBucket.height, maxBucket.hash);
+      if (blockbuckets && blockbuckets.length > 0) {
+        const holdSlots: number = synchronizerInfo.num_slots;
+        const usedSlots: number = blockbuckets.length;
+        const minBucket = blockbuckets[0];
+        const maxBucket = blockbuckets[blockbuckets.length - 1];
+        if (usedSlots >= holdSlots) {
+          if (minBucket.height > nextHeight) {
+            logger.info(`delbucket: The prev block need reupload, height: ${minBucket.height}, hash: ${minBucket.hash}`);
+            await blockOperations.delbucket(maxBucket.height, maxBucket.hash);
+          } else {
+            logger.info(`The number of blockbuckets[${usedSlots}] has reached the upper limit[${holdSlots}], Please purchase more slots or wait for the slots to be released`);
+            await sleep(10000);
+          }
+          return;
         }
-        logger.info(`The number of blockbuckets[${usedSlots}] has reached the upper limit[${holdSlots}], Please purchase more slots or wait for the slots to be released`);
-        await sleep(10000);
-        return;
+        uploadHeight = getNextHeight(uploadedHeights);
       }
-      const uploadHeight = uploadedHeights.has(nextHeight) ? nextHeight + 1 : nextHeight;
       const blockhashInfo = await getblockhash(uploadHeight);
       const hash = blockhashInfo.result;
       try {
@@ -206,84 +211,83 @@ const jobs = {
         logger.info('No blockbucket found.');
         return;
       }
-      for (const blockbucket of blockbuckets) {
-        const {
-          height,
-          hash,
-          status,
-          size,
-          uploaded_size,
-          num_chunks,
-          uploaded_num_chunks,
-          chunk_size
-        } = blockbucket;
-        logHeight = height;
-        logHash = hash;
-        logger.info(`Blockbucket, status: ${status}, height: ${height}, hash: ${hash}`);
-        switch (status) {
-          case BlockStatus.UPLOADING:
-            if (uploadingHeight === height) {
-              break;
-            }
-            const blockInfo = await getblock(hash);
-            if (blockInfo.result === null && blockInfo.error?.code === -5) {
-              logger.info(`delbucket: Block not found, height: ${height}, hash: ${hash}`);
-              await blockOperations.delbucket(height, hash);
-              break;
-            } else if (blockInfo.error) {
-              logger.error(`Get block raw error, height: ${height}, hash: ${hash}`, blockInfo.error);
-              errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
-              break;
-            }
-            const blockRaw = blockInfo.result;
-            //Block sharding
-            const chunkMap: Map<number, string> = await getChunkMap(blockRaw);
-            if ((size === uploaded_size && num_chunks !== uploaded_num_chunks)
-              || (size !== uploaded_size && num_chunks === uploaded_num_chunks)
-              || chunk_size !== CHUNK_SIZE) {
-              //Delete the block first, then initialize and re-upload
-              logger.info(`delbucket: Blockbucket size and uploaded_size are inconsistent`);
-              await blockOperations.delbucket(height, hash);
-              await blockOperations.initbucket(height, hash, blockRaw.length / 2, chunkMap.size);
-            }
-            const newBlockbucket = await tableApi.getBlockbucketById(accountName, blockbucket.id);
-            if (!newBlockbucket) {
-              break;
-            }
-            for (const item of chunkMap) {
-              const chunkId: number = item[0];
-              const chunkData: string = item[1];
-              if (newBlockbucket.chunk_ids.includes(chunkId)) {
-                continue;
-              }
-              await blockOperations.pushchunk(height, hash, chunkId, chunkData);
-            }
+      const blockbucket = blockbuckets[0];
+      const {
+        height,
+        hash,
+        status,
+        size,
+        uploaded_size,
+        num_chunks,
+        uploaded_num_chunks,
+        chunk_size
+      } = blockbucket;
+      logHeight = height;
+      logHash = hash;
+      logger.info(`Blockbucket, status: ${status}, height: ${height}, hash: ${hash}`);
+      switch (status) {
+        case BlockStatus.UPLOADING:
+          if (uploadingHeight === height) {
             break;
-          case BlockStatus.UPLOAD_COMPLETE:
-          case BlockStatus.VERIFY_MERKLE:
-          case BlockStatus.VERIFY_PARENT_HASH:
-            await blockOperations.verifyBlock(height, hash);
-            break;
-          case BlockStatus.WAITING_MINER_VERIFICATION:
-            const consensusBlk = await tableApi.getConsensusByBucketId(accountName, blockbucket.id);
-            if (consensusBlk || chainstate.irreversible_height >= blockbucket.height) {
-              //The block has been completed by consensus and can be deleted
-              logger.info(`delbucket: The block has been completed by consensus, height: ${height}, hash: ${hash}`);
-              await blockOperations.delbucket(height, hash);
-            } else {
-              await blockOperations.verifyBlock(height, hash);
-            }
-            break;
-          case BlockStatus.VERIFY_FAIL:
-            logger.info(`delbucket: Block verify fail, height: ${height}, hash: ${hash}`);
+          }
+          const blockInfo = await getblock(hash);
+          if (blockInfo.result === null && blockInfo.error?.code === -5) {
+            logger.info(`delbucket: Block not found, height: ${height}, hash: ${hash}`);
             await blockOperations.delbucket(height, hash);
             break;
-          case BlockStatus.VERIFY_PASS:
-            logger.info(`Block verify pass, Wait for the validator to endorse the block, height: ${height}, hash: ${hash}`);
+          } else if (blockInfo.error) {
+            logger.error(`Get block raw error, height: ${height}, hash: ${hash}`, blockInfo.error);
+            errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
             break;
-          default:
+          }
+          const blockRaw = blockInfo.result;
+          //Block sharding
+          const chunkMap: Map<number, string> = await getChunkMap(blockRaw);
+          if ((size === uploaded_size && num_chunks !== uploaded_num_chunks)
+            || (size !== uploaded_size && num_chunks === uploaded_num_chunks)
+            || chunk_size !== CHUNK_SIZE) {
+            //Delete the block first, then initialize and re-upload
+            logger.info(`delbucket: Blockbucket size and uploaded_size are inconsistent`);
+            await blockOperations.delbucket(height, hash);
+            await blockOperations.initbucket(height, hash, blockRaw.length / 2, chunkMap.size);
+          }
+          const newBlockbucket = await tableApi.getBlockbucketById(accountName, blockbucket.id);
+          if (!newBlockbucket) {
             break;
-        }
+          }
+          for (const item of chunkMap) {
+            const chunkId: number = item[0];
+            const chunkData: string = item[1];
+            if (newBlockbucket.chunk_ids.includes(chunkId)) {
+              continue;
+            }
+            await blockOperations.pushchunk(height, hash, chunkId, chunkData);
+          }
+          break;
+        case BlockStatus.UPLOAD_COMPLETE:
+        case BlockStatus.VERIFY_MERKLE:
+        case BlockStatus.VERIFY_PARENT_HASH:
+          await blockOperations.verifyBlock(height, hash);
+          break;
+        case BlockStatus.WAITING_MINER_VERIFICATION:
+          const consensusBlk = await tableApi.getConsensusByBucketId(accountName, blockbucket.id);
+          if (consensusBlk || chainstate.irreversible_height >= blockbucket.height) {
+            //The block has been completed by consensus and can be deleted
+            logger.info(`delbucket: The block has been completed by consensus, height: ${height}, hash: ${hash}`);
+            await blockOperations.delbucket(height, hash);
+          } else {
+            await blockOperations.verifyBlock(height, hash);
+          }
+          break;
+        case BlockStatus.VERIFY_FAIL:
+          logger.info(`delbucket: Block verify fail, height: ${height}, hash: ${hash}`);
+          await blockOperations.delbucket(height, hash);
+          break;
+        case BlockStatus.VERIFY_PASS:
+          logger.info(`Block verify pass, Wait for the validator to endorse the block, height: ${height}, hash: ${hash}`);
+          break;
+        default:
+          break;
       }
     } catch (e: any) {
       const errorMessage = getErrorMessage(e);

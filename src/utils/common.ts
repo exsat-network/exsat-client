@@ -152,3 +152,17 @@ export function getMinMaxBucket(blockbuckets) {
   }
   return { minBucket, maxBucket };
 }
+
+/**
+ * Get the next height from a set of heights.
+ * @param heightSet
+ */
+export function getNextHeight(heightSet) {
+  const sortedArray: any[] = Array.from(heightSet).sort((a: any, b: any) => a - b);
+  for (let i = 0; i < sortedArray.length - 1; i++) {
+    if (sortedArray[i + 1] !== sortedArray[i] + 1) {
+      return sortedArray[i] + 1;
+    }
+  }
+  return Math.max(...sortedArray) + 1;
+}
