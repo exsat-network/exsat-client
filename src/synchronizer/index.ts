@@ -129,9 +129,10 @@ const jobs = {
         errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
         return;
       }
-      const nextHeight = chainstate.head_height + 1;
-      let uploadHeight = nextHeight;
+      let uploadHeight = chainstate.head_height + 1;
       const blockbuckets = await tableApi.getAllBlockbucket(accountName);
+      const result = blockbuckets.map(obj => obj.height).join(', ');
+      logger.info(`upload: all blockbuckets height: ${result}`);
       const uploadedHeights = new Set(blockbuckets.map(item => item.height));
       if (blockbuckets && blockbuckets.length > 0) {
         const holdSlots: number = synchronizerInfo.num_slots;
@@ -139,16 +140,18 @@ const jobs = {
         const minBucket = blockbuckets[0];
         const maxBucket = blockbuckets[blockbuckets.length - 1];
         if (usedSlots >= holdSlots) {
-          if (minBucket.height > nextHeight) {
+          if (minBucket.height > uploadHeight) {
             logger.info(`delbucket: The prev block need reupload, height: ${minBucket.height}, hash: ${minBucket.hash}`);
             await blockOperations.delbucket(maxBucket.height, maxBucket.hash);
           } else {
             logger.info(`The number of blockbuckets[${usedSlots}] has reached the upper limit[${holdSlots}], Please purchase more slots or wait for the slots to be released`);
-            await sleep(10000);
+            await sleep(5000);
           }
           return;
         }
-        uploadHeight = uploadedHeights.has(nextHeight) ? getNextHeight(uploadedHeights) : nextHeight;
+        if (uploadedHeights.has(uploadHeight)) {
+          uploadHeight = getNextHeight(uploadedHeights);
+        }
       }
       const blockhashInfo = await getblockhash(uploadHeight);
       const hash = blockhashInfo.result;
@@ -214,10 +217,13 @@ const jobs = {
         logger.info('No blockbucket found.');
         return;
       }
+      const result = blockbuckets.map(obj => obj.height).join(', ');
+      logger.info(`verify: all blockbuckets height: ${result}`);
       let verifyBucket;
       for (const blockbucket of blockbuckets) {
         if (chainstate.head_height >= blockbucket.height) {
           //Delete blocks that have been endorsed
+          logger.info(`delbucket: The block has been endorsed, height: ${blockbucket.height}, hash: ${blockbucket.hash}`);
           await blockOperations.delbucket(blockbucket.height, blockbucket.hash);
         } else {
           if (!verifyBucket) {
@@ -418,6 +424,8 @@ const jobs = {
       //Delete all occupied card slots when a fork occurs
       const blockbuckets = await tableApi.getAllBlockbucket(accountName);
       if (blockbuckets && blockbuckets.length > 0) {
+        const result = blockbuckets.map(obj => obj.height).join(', ');
+        logger.info(`forkCheck: all blockbuckets height: ${result}`);
         for (const blockbucket of blockbuckets) {
           logger.info(`delete: Bitcoin fork happen, height: ${blockbucket.height}, hash: ${blockbucket.hash}`);
           await blockOperations.delbucket(blockbucket.height, blockbucket.hash);
