@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y curl \
 
 WORKDIR /app
 COPY . /app
-RUN yarn install
+RUN yarn install \
+    && yarn build
 
 CMD ["sh", "-c", "yarn start-$CLIENT_TYPE"]
