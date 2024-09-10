@@ -21,4 +21,13 @@ export class AsyncLock {
       this.locked = false;
     }
   }
+
+  async executeWithLock<T>(fn: () => Promise<T>): Promise<T> {
+    await this.acquire();
+    try {
+      return await fn();
+    } finally {
+      this.release();
+    }
+  }
 }
