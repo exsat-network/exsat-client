@@ -24,6 +24,7 @@ import {
   syncLatestBlockGauge,
   syncLatestTimeGauge,
   warnTotalCounter,
+  startTimeGauge,
 } from '../utils/prom';
 
 let accountName: string;
@@ -518,6 +519,7 @@ async function main() {
     await main();
     setupCronJobs();
     setupPrometheus();
+    startTimeGauge.set({ account: accountName, client: 'synchronizer' }, Date.now());
   } catch (e) {
     logger.error(e);
   }

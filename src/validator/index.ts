@@ -18,7 +18,8 @@ import {
   warnTotalCounter,
   blockValidateTotalCounter,
   validateLatestBlockGauge,
-  validateLatestTimeGauge
+  validateLatestTimeGauge,
+  startTimeGauge
 } from '../utils/prom';
 
 // Global variables to track job status and store API instances
@@ -206,6 +207,7 @@ async function main() {
     await main();
     setupCronJobs();
     setupPrometheus();
+    startTimeGauge.set({ account: accountName, client: 'validator' }, Date.now());
   } catch (e) {
     logger.error(e);
   }
