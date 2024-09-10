@@ -58,6 +58,13 @@ const validateLatestTimeGauge = new promClient.Gauge({
   labelNames: ['account', 'client'],
 });
 
+const startTimeGauge = new promClient.Gauge({
+  name: 'exsat_node_start_time',
+  help: 'Node start time',
+  labelNames: ['account', 'client'],
+});
+
+
 function createApp() {
   const app = express();
 
@@ -76,6 +83,8 @@ function createApp() {
   register.registerMetric(syncLatestTimeGauge);
   register.registerMetric(validateLatestBlockGauge);
   register.registerMetric(validateLatestTimeGauge);
+  register.registerMetric(startTimeGauge);
+
 
   // Endpoint to expose metrics
   app.get('/metrics', async (req, res) => {
@@ -118,5 +127,6 @@ export {
   syncLatestBlockGauge,
   validateLatestBlockGauge,
   syncLatestTimeGauge,
-  validateLatestTimeGauge
+  validateLatestTimeGauge,
+  startTimeGauge
 };
