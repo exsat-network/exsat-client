@@ -5,7 +5,7 @@ import { envCheck } from '../utils/common';
 import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
 import { Client, ClientType } from '../utils/enumeration';
-import { errorTotalCounter, setupPrometheus, warnTotalCounter, } from '../utils/prom';
+import { errorTotalCounter, setupPrometheus, startTimeGauge, warnTotalCounter, } from '../utils/prom';
 import { BlockOperations } from './blockOperations';
 import { SynchronizerJobs } from './jobs';
 import { AsyncLock } from '../utils/asyncLock';
@@ -99,6 +99,7 @@ async function main() {
 
   setupCronJobs(jobs);
   setupPrometheus();
+  startTimeGauge.set({ account: accountInfo.accountName, client: Client.Synchronizer }, Date.now());
 }
 
 (async () => {

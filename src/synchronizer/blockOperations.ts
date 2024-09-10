@@ -1,4 +1,4 @@
-import { ContractName } from '../utils/enumeration';
+import { Client, ContractName } from '../utils/enumeration';
 import { logger } from '../utils/logger';
 import { blockUploadTotalCounter, syncLatestBlockGauge, syncLatestTimeGauge } from '../utils/prom';
 import ExsatApi from '../utils/exsat-api';
@@ -20,7 +20,7 @@ export class BlockOperations {
     });
     if (result) {
       logger.info(`[${caller}] Init bucket success, height: ${height}, hash: ${hash}, transaction_id: ${result.transaction_id}`);
-      blockUploadTotalCounter.inc({ account: this.accountName, client: 'synchronizer', status: 'init' });
+      blockUploadTotalCounter.inc({ account: this.accountName, client: Client.Synchronizer, status: 'init' });
     }
   }
 
@@ -33,7 +33,7 @@ export class BlockOperations {
     });
     if (result) {
       logger.info(`[${caller}] Delete bucket success, height: ${height}, hash: ${hash}, transaction_id: ${result.transaction_id}`);
-      blockUploadTotalCounter.inc({ account: this.accountName, client: 'synchronizer', status: 'delete' });
+      blockUploadTotalCounter.inc({ account: this.accountName, client: Client.Synchronizer, status: 'delete' });
     }
   }
 
@@ -48,7 +48,7 @@ export class BlockOperations {
     });
     if (result) {
       logger.info(`[${caller}] Push chunk success, height: ${height}, hash: ${hash}, chunk_id: ${chunkId}, transaction_id: ${result.transaction_id}`);
-      blockUploadTotalCounter.inc({ account: this.accountName, client: 'synchronizer', status: 'push' });
+      blockUploadTotalCounter.inc({ account: this.accountName, client: Client.Synchronizer, status: 'push' });
     }
   }
 
@@ -65,13 +65,21 @@ export class BlockOperations {
         const returnValueData = result.processed?.action_traces[0]?.return_value_data;
         if (returnValueData.status === 'verify_pass') {
           logger.info(`[${caller}] Block verify pass, height: ${height}, hash: ${hash}`);
-          syncLatestBlockGauge.set({ account: this.accountName, client: 'synchronizer' }, height);
-          blockUploadTotalCounter.inc({ account: this.accountName, client: 'synchronizer', status: 'verify_pass' });
-          syncLatestTimeGauge.set({ account: this.accountName, client: 'synchronizer' }, Date.now());
+          syncLatestBlockGauge.set({ account: this.accountName, client: Client.Synchronizer }, height);
+          blockUploadTotalCounter.inc({
+            account: this.accountName,
+            client: Client.Synchronizer,
+            status: 'verify_pass'
+          });
+          syncLatestTimeGauge.set({ account: this.accountName, client: Client.Synchronizer }, Date.now());
           break;
         } else if (returnValueData.status === 'verify_fail') {
           logger.info(`[${caller}] delbucket: Block verify fail, height: ${height}, hash: ${hash}, reason: ${returnValueData.reason}`);
-          blockUploadTotalCounter.inc({ account: this.accountName, client: 'synchronizer', status: 'verify_fail' });
+          blockUploadTotalCounter.inc({
+            account: this.accountName,
+            client: Client.Synchronizer,
+            status: 'verify_fail'
+          });
           await this.delbucket(caller, height, hash);
           break;
         }
