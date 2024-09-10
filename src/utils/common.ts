@@ -68,7 +68,7 @@ export async function envCheck(keystoreFile: string) {
     process.exit(1);
   }
   if (CHUNK_SIZE < 102400) {
-    logger.error('The CHUNK_SIZE must be greater than 102400');
+    logger.error('The CHUNK_SIZE must be greater than 102400 in .env file');
     process.exit(1);
   }
 }
