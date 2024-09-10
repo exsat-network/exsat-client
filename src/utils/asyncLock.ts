@@ -1,6 +1,6 @@
 export class AsyncLock {
   private locked = false;
-  private queue: (() => void)[] = [];
+  public queue: (() => void)[] = [];
 
   async acquire(): Promise<void> {
     if (!this.locked) {

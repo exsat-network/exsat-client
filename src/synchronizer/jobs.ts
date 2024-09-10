@@ -53,6 +53,7 @@ export class SynchronizerJobs {
   };
 
   upload = async () => {
+    console.log('uploadLock-----------', this.state.uploadLock.queue.length); //todo
     await this.state.uploadLock.acquire();
     try {
       const caller = 'upload';
@@ -78,7 +79,10 @@ export class SynchronizerJobs {
       const uploadedHeights: number[] = blockbuckets.map(item => item.height);
       logger.info(`[${caller}] all blockbuckets height: ${uploadedHeights.join(', ')}`);
 
-      if (blockbuckets && blockbuckets.length > 0) {
+      if (!blockbuckets || blockbuckets.length === 0) {
+        const nextUploadHeight = getNextUploadHeight(uploadedHeights, chainstate.head_height);
+        await this.uploadBlock(caller, nextUploadHeight);
+      } else {
         const uploadingBlockbucket = blockbuckets.find(item => item.status === BlockStatus.UPLOADING);
         if (uploadingBlockbucket) {
           const {
@@ -142,9 +146,6 @@ export class SynchronizerJobs {
             await sleep(5000);
           }
         }
-      } else {
-        const nextUploadHeight = getNextUploadHeight(uploadedHeights, chainstate.head_height);
-        await this.uploadBlock(caller, nextUploadHeight);
       }
     } finally {
       this.state.uploadLock.release();
