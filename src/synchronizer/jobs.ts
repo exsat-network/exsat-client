@@ -54,7 +54,7 @@ export class SynchronizerJobs {
 
   upload = async () => {
     if (this.state.uploadRunning) {
-      console.log('---------------跳过------------');
+      console.log('------upload---------跳过------------');
       return;
     }
     this.state.uploadRunning = true;
@@ -151,13 +151,14 @@ export class SynchronizerJobs {
         }
       }
     } finally {
+      console.log('----------upload=false----------');
       this.state.uploadRunning = false;
     }
   };
 
   verify = async () => {
     if (this.state.verifyRunning) {
-      console.log('-----verifyRunning----------跳过------------');
+      console.log('-----verifyRunning----------running------------');
       return;
     }
     this.state.verifyRunning = true;
@@ -251,12 +252,13 @@ export class SynchronizerJobs {
       }
     } finally {
       this.state.verifyRunning = false;
+      console.log('-----verifyRunning----------false------------');
     }
   };
 
   parse = async () => {
     if (this.state.parseRunning) {
-      console.log('-----verifyRunning----------跳过------------');
+      console.log('-----parse----------跳过------------');
       return;
     }
     this.state.parseRunning = true;
@@ -312,12 +314,13 @@ export class SynchronizerJobs {
       await sleep();
     } finally {
       this.state.parseRunning = false;
+      console.log('-----parse----------结束 ------------');
     }
   };
 
   forkCheck = async () => {
     if (this.state.forkCheckRunning) {
-      console.log('-----verifyRunning----------跳过------------');
+      console.log('-----forkCheck----------跳过------------');
       return;
     }
     this.state.forkCheckRunning = true;
@@ -384,6 +387,7 @@ export class SynchronizerJobs {
       }
     } finally {
       this.state.forkCheckRunning = false;
+      console.log('-----forkCheckRunning----------结束 ------------');
     }
   };
 }
