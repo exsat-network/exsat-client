@@ -60,7 +60,7 @@ export class ValidatorJobs {
         this.state.startupStatus = await this.state.tableApi!.getStartupStatus();
         if (!this.state.startupStatus) {
           logger.info('The exSat Network has not officially launched yet. Please wait for it to start.');
-          await sleep(60000);
+          await sleep(30000);
           return;
         }
       }

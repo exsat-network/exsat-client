@@ -131,6 +131,7 @@ export class SynchronizerJobs {
         } else {
           if (!verifyBucket) {
             verifyBucket = blockbucket;
+            break;
           }
         }
       }
@@ -282,7 +283,7 @@ export class SynchronizerJobs {
                 //Ignore duplicate transaction
                 await sleep();
               } else {
-                logger.error(`Parse block failed, height=${chainstate.head_height}, stack=${e.stack}`);
+                logger.error(`Parse block failed, chainstate=${JSON.stringify(chainstate)}, stack=${e.stack}`);
                 errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
                 await sleep();
                 break;
@@ -293,7 +294,7 @@ export class SynchronizerJobs {
       }
     } catch (e: any) {
       logger.error('Parse block task error', e);
-      errorTotalCounter.inc({ account: this.state.accountName, client: 'synchronizer' });
+      errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
       await sleep();
     } finally {
       this.state.parseLock.release();
@@ -340,7 +341,7 @@ export class SynchronizerJobs {
         return;
       } else if (blockInfo.error) {
         logger.error(`Get block raw error, height: ${height}, hash: ${hash}`, blockInfo.error);
-        errorTotalCounter.inc({ account: this.state.accountName, client: 'synchronizer' });
+        errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
         return;
       }
       const blockRaw = blockInfo.result;
@@ -360,7 +361,7 @@ export class SynchronizerJobs {
         //Ignore
       } else {
         logger.error(`Fork check block task error, height: ${height}, hash: ${hash}`, e);
-        errorTotalCounter.inc({ account: this.state.accountName, client: 'synchronizer' });
+        errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
         await sleep();
       }
     } finally {
