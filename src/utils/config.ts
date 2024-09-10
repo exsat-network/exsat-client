@@ -1,6 +1,6 @@
-import dotenv from 'dotenv';
+import { reloadEnv } from "./common";
 
-dotenv.config();
+reloadEnv();
 
 // Read the configuration from the .env file and use the default value if there is no configuration
 export const MAX_RETRIES = parseInt(process.env.MAX_RETRIES) || 3;

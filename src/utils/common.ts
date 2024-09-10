@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import { BTC_RPC_URL, EXSAT_RPC_URLS } from './config';
 import { logger } from './logger';
 import { getblockcount } from './bitcoin';
+import path from "node:path";
+import dotenv from "dotenv";
 
 /**
  * Pauses execution for a specified number of milliseconds.
@@ -165,4 +167,48 @@ export function getNextHeight(heightSet) {
     }
   }
   return Math.max(...sortedArray) + 1;
+}
+
+/**
+ * Check if running in Docker.
+ */
+export function isDocker(): boolean {
+  try {
+    // Check for /.dockerenv file
+    if (fs.existsSync('/.dockerenv')) {
+      return true;
+    }
+
+    // Check for /proc/1/cgroup file and look for docker or kubepods
+    const cgroupPath = '/proc/1/cgroup';
+    if (fs.existsSync(cgroupPath)) {
+      const cgroupContent = fs.readFileSync(cgroupPath, 'utf-8');
+      if (
+        cgroupContent.includes('docker') ||
+        cgroupContent.includes('kubepods')
+      ) {
+        return true;
+      }
+    }
+  } catch (err) {
+    console.error('Error checking if running in Docker:', err);
+  }
+
+  return false;
+}
+
+/**
+ * Reload the .env file.
+ */
+export function reloadEnv() {
+  let envFilePath;
+  if (isDocker()) {
+    envFilePath = path.resolve(__dirname, '../../.exsat', '.env');
+  } else {
+    envFilePath = path.resolve(__dirname, '../../', '.env');
+  }
+  if (!fs.existsSync(envFilePath)) {
+    throw new Error('No .env file found');
+  }
+  dotenv.config({ override: true, path: envFilePath });
 }
