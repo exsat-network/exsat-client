@@ -22,7 +22,6 @@ export class SynchronizerState {
   accountName: string = '';
   exsatApi: ExsatApi | null = null;
   tableApi: TableApi | null = null;
-  uploadingHeight: number = 0;
   uploadLock = new AsyncLock();
   verifyLock = new AsyncLock();
   parseLock = new AsyncLock();

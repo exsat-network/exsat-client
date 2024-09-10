@@ -1,6 +1,6 @@
 import { getblock, getblockcount, getblockhash, getChunkMap } from '../utils/bitcoin';
 import { logger } from '../utils/logger';
-import { getErrorMessage, getNextHeight, sleep } from '../utils/common';
+import { getErrorMessage, getNextUploadHeight, sleep } from '../utils/common';
 import { BlockStatus, Client, ContractName, ErrorCode } from '../utils/enumeration';
 import { errorTotalCounter, warnTotalCounter, } from '../utils/prom';
 import { BlockOperations } from './blockOperations';
@@ -11,6 +11,46 @@ import moment from 'moment';
 export class SynchronizerJobs {
   constructor(public state: SynchronizerState, private blockOperations: BlockOperations) {
   }
+
+  uploadBlock = async (caller: string, uploadHeight: number) => {
+    let hash: string = '';
+    try {
+      const blockhashInfo = await getblockhash(uploadHeight);
+      hash = blockhashInfo.result;
+      const blockInfo = await getblock(hash);
+      if (blockInfo.result === null && blockInfo.error?.code === -5) {
+        logger.info(`Block not found, height: ${uploadHeight}, hash: ${hash}`);
+        return;
+      } else if (blockInfo.error) {
+        logger.error(`Get block raw error, height: ${uploadHeight}, hash: ${hash}`, blockInfo.error);
+        errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
+        return;
+      }
+      const blockRaw = blockInfo.result;
+      const chunkMap: Map<number, string> = await getChunkMap(blockRaw);
+      await this.blockOperations.initbucket(caller, uploadHeight, hash, blockRaw.length / 2, chunkMap.size);
+      for (const [chunkId, chunkData] of chunkMap) {
+        await this.blockOperations.pushchunk(caller, uploadHeight, hash, chunkId, chunkData);
+      }
+    } catch (e) {
+      const errorMessage = getErrorMessage(e);
+      if (errorMessage.includes('duplicate transaction')) {
+        //Ignore duplicate transaction
+        await sleep();
+      } else if (errorMessage.startsWith(ErrorCode.Code2005)) {
+        logger.info(`The block has reached consensus, height: ${uploadHeight}, hash: ${hash}`);
+      } else if (errorMessage.startsWith(ErrorCode.Code2006) || errorMessage.startsWith(ErrorCode.Code2012) || errorMessage.startsWith(ErrorCode.Code2019)) {
+        logger.warn(errorMessage);
+        warnTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
+      } else if (errorMessage.startsWith(ErrorCode.Code2008) || errorMessage.startsWith(ErrorCode.Code2013)) {
+        //Ignore
+      } else {
+        logger.error(`Upload block task error, height: ${uploadHeight}, hash: ${hash}`, e);
+        errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
+        await sleep();
+      }
+    }
+  };
 
   upload = async () => {
     await this.state.uploadLock.acquire();
@@ -34,69 +74,79 @@ export class SynchronizerJobs {
         errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
         return;
       }
-      let uploadHeight = chainstate.head_height + 1;
       const blockbuckets = await this.state.tableApi!.getAllBlockbucket(this.state.accountName);
-      const result = blockbuckets.map(obj => obj.height).join(', ');
-      logger.info(`[${caller}] all blockbuckets height: ${result}`);
-      const uploadedHeights = new Set(blockbuckets.map(item => item.height));
+      const uploadedHeights: number[] = blockbuckets.map(item => item.height);
+      logger.info(`[${caller}] all blockbuckets height: ${uploadedHeights.join(', ')}`);
+
       if (blockbuckets && blockbuckets.length > 0) {
+        const uploadingBlockbucket = blockbuckets.find(item => item.status === BlockStatus.UPLOADING);
+        if (uploadingBlockbucket) {
+          const {
+            bucket_id,
+            height,
+            hash,
+            size,
+            uploaded_size,
+            num_chunks,
+            uploaded_num_chunks,
+            chunk_size
+          } = uploadingBlockbucket;
+          const blockInfo = await getblock(hash);
+          if (blockInfo.result === null && blockInfo.error?.code === -5) {
+            logger.info(`delbucket: Block not found, height: ${height}, hash: ${hash}`);
+            await this.blockOperations.delbucket(caller, height, hash);
+            return;
+          } else if (blockInfo.error) {
+            logger.error(`Get block raw error, height: ${height}, hash: ${hash}`, blockInfo.error);
+            errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
+            return;
+          }
+          const blockRaw = blockInfo.result;
+          //Block sharding
+          const chunkMap: Map<number, string> = await getChunkMap(blockRaw);
+          if ((size === uploaded_size && num_chunks !== uploaded_num_chunks)
+            || (size !== uploaded_size && num_chunks === uploaded_num_chunks)
+            || chunk_size !== CHUNK_SIZE) {
+            //Delete the block first, then initialize and re-upload
+            logger.info(`delbucket: Blockbucket size and uploaded_size are inconsistent`);
+            await this.blockOperations.delbucket(caller, height, hash);
+            await this.blockOperations.initbucket(caller, height, hash, blockRaw.length / 2, chunkMap.size);
+          }
+          const newBlockbucket = await this.state.tableApi!.getBlockbucketById(this.state.accountName, bucket_id);
+          if (!newBlockbucket) {
+            return;
+          }
+          for (const item of chunkMap) {
+            const chunkId: number = item[0];
+            const chunkData: string = item[1];
+            if (newBlockbucket.chunk_ids.includes(chunkId)) {
+              continue;
+            }
+            await this.blockOperations.pushchunk(caller, height, hash, chunkId, chunkData);
+          }
+          return;
+        }
         const holdSlots: number = synchronizerInfo.num_slots;
         const usedSlots: number = blockbuckets.length;
-        const minBucket = blockbuckets[0];
-        const maxBucket = blockbuckets[blockbuckets.length - 1];
-        if (usedSlots >= holdSlots) {
-          if (minBucket.height > uploadHeight) {
+        if (usedSlots < holdSlots) {
+          const nextUploadHeight = getNextUploadHeight(uploadedHeights, chainstate.head_height);
+          await this.uploadBlock(caller, nextUploadHeight);
+        } else {
+          const minBucket = blockbuckets[0];
+          const maxBucket = blockbuckets[blockbuckets.length - 1];
+          if (minBucket.height > chainstate.head_height + 1) {
             logger.info(`delbucket: The prev block need reupload, height: ${minBucket.height}, hash: ${minBucket.hash}`);
             await this.blockOperations.delbucket(caller, maxBucket.height, maxBucket.hash);
           } else {
             logger.info(`The number of blockbuckets[${usedSlots}] has reached the upper limit[${holdSlots}], Please purchase more slots or wait for the slots to be released`);
             await sleep(5000);
           }
-          return;
         }
-        if (uploadedHeights.has(uploadHeight)) {
-          uploadHeight = getNextHeight(uploadedHeights);
-        }
-      }
-      const blockhashInfo = await getblockhash(uploadHeight);
-      const hash = blockhashInfo.result;
-      try {
-        const blockInfo = await getblock(hash);
-        if (blockInfo.result === null && blockInfo.error?.code === -5) {
-          logger.info(`Block not found, height: ${uploadHeight}, hash: ${hash}`);
-          return;
-        } else if (blockInfo.error) {
-          logger.error(`Get block raw error, height: ${uploadHeight}, hash: ${hash}`, blockInfo.error);
-          errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
-          return;
-        }
-        const blockRaw = blockInfo.result;
-        const chunkMap: Map<number, string> = await getChunkMap(blockRaw);
-        this.state.uploadingHeight = uploadHeight;
-        await this.blockOperations.initbucket(caller, uploadHeight, hash, blockRaw.length / 2, chunkMap.size);
-        for (const [chunkId, chunkData] of chunkMap) {
-          await this.blockOperations.pushchunk(caller, uploadHeight, hash, chunkId, chunkData);
-        }
-      } catch (e: any) {
-        const errorMessage = getErrorMessage(e);
-        if (errorMessage.includes('duplicate transaction')) {
-          //Ignore duplicate transaction
-          await sleep();
-        } else if (errorMessage.startsWith(ErrorCode.Code2005)) {
-          logger.info(`The block has reached consensus, height: ${uploadHeight}, hash: ${hash}`);
-        } else if (errorMessage.startsWith(ErrorCode.Code2006) || errorMessage.startsWith(ErrorCode.Code2012) || errorMessage.startsWith(ErrorCode.Code2019)) {
-          logger.warn(errorMessage);
-          warnTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
-        } else if (errorMessage.startsWith(ErrorCode.Code2008) || errorMessage.startsWith(ErrorCode.Code2013)) {
-          //Ignore
-        } else {
-          logger.error(`Upload block task error, height: ${uploadHeight}, hash: ${hash}`, e);
-          errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
-          await sleep();
-        }
+      } else {
+        const nextUploadHeight = getNextUploadHeight(uploadedHeights, chainstate.head_height);
+        await this.uploadBlock(caller, nextUploadHeight);
       }
     } finally {
-      this.state.uploadingHeight = 0;
       this.state.uploadLock.release();
     }
   };
@@ -140,59 +190,11 @@ export class SynchronizerJobs {
         return;
       }
 
-      const {
-        bucket_id,
-        height,
-        hash,
-        status,
-        size,
-        uploaded_size,
-        num_chunks,
-        uploaded_num_chunks,
-        chunk_size
-      } = verifyBucket;
+      const { bucket_id, height, hash, status, } = verifyBucket;
       logHeight = height;
       logHash = hash;
       logger.info(`Verify blockbucket, status: ${status}, height: ${height}, hash: ${hash}`);
       switch (status) {
-        case BlockStatus.UPLOADING:
-          if (this.state.uploadingHeight === height) {
-            break;
-          }
-          const blockInfo = await getblock(hash);
-          if (blockInfo.result === null && blockInfo.error?.code === -5) {
-            logger.info(`delbucket: Block not found, height: ${height}, hash: ${hash}`);
-            await this.blockOperations.delbucket(caller, height, hash);
-            break;
-          } else if (blockInfo.error) {
-            logger.error(`Get block raw error, height: ${height}, hash: ${hash}`, blockInfo.error);
-            errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
-            break;
-          }
-          const blockRaw = blockInfo.result;
-          //Block sharding
-          const chunkMap: Map<number, string> = await getChunkMap(blockRaw);
-          if ((size === uploaded_size && num_chunks !== uploaded_num_chunks)
-            || (size !== uploaded_size && num_chunks === uploaded_num_chunks)
-            || chunk_size !== CHUNK_SIZE) {
-            //Delete the block first, then initialize and re-upload
-            logger.info(`delbucket: Blockbucket size and uploaded_size are inconsistent`);
-            await this.blockOperations.delbucket(caller, height, hash);
-            await this.blockOperations.initbucket(caller, height, hash, blockRaw.length / 2, chunkMap.size);
-          }
-          const newBlockbucket = await this.state.tableApi!.getBlockbucketById(this.state.accountName, bucket_id);
-          if (!newBlockbucket) {
-            break;
-          }
-          for (const item of chunkMap) {
-            const chunkId: number = item[0];
-            const chunkData: string = item[1];
-            if (newBlockbucket.chunk_ids.includes(chunkId)) {
-              continue;
-            }
-            await this.blockOperations.pushchunk(caller, height, hash, chunkId, chunkData);
-          }
-          break;
         case BlockStatus.UPLOAD_COMPLETE:
         case BlockStatus.VERIFY_MERKLE:
         case BlockStatus.VERIFY_PARENT_HASH:

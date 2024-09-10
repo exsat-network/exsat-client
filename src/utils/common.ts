@@ -154,15 +154,27 @@ export function getMinMaxBucket(blockbuckets) {
 }
 
 /**
- * Get the next height from a set of heights.
- * @param heightSet
+ * Get the next upload height.
+ * @param currentUploadedHeights
+ * @param headHeight
  */
-export function getNextHeight(heightSet) {
-  const sortedArray: any[] = Array.from(heightSet).sort((a: any, b: any) => a - b);
-  for (let i = 0; i < sortedArray.length - 1; i++) {
-    if (sortedArray[i + 1] !== sortedArray[i] + 1) {
-      return sortedArray[i] + 1;
-    }
+export function getNextUploadHeight(currentUploadedHeights: number[], headHeight: number): number {
+  if (currentUploadedHeights.length === 0) {
+    return headHeight + 1;
   }
-  return Math.max(...sortedArray) + 1;
+  const sortedHeights = [...currentUploadedHeights].sort((a, b) => a - b);
+  if (sortedHeights[0] > headHeight + 1) {
+    return headHeight + 1;
+  }
+  if (sortedHeights[sortedHeights.length - 1] < headHeight) {
+    return headHeight + 1;
+  }
+  let nextUploadHeight = headHeight + 1;
+  while (sortedHeights.includes(nextUploadHeight)) {
+    nextUploadHeight++;
+  }
+  if (nextUploadHeight < sortedHeights[sortedHeights.length - 1]) {
+    return nextUploadHeight;
+  }
+  return sortedHeights[sortedHeights.length - 1] + 1;
 }
