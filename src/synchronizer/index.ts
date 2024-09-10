@@ -22,10 +22,10 @@ export class SynchronizerState {
   accountName: string = '';
   exsatApi: ExsatApi | null = null;
   tableApi: TableApi | null = null;
-  uploadLock = new AsyncLock();
-  verifyLock = new AsyncLock();
-  parseLock = new AsyncLock();
-  forkCheckLock = new AsyncLock();
+  uploadRunning = false;
+  verifyRunning = false;
+  parseRunning = false;
+  forkCheckRunning = false;
 }
 
 async function initializeAccount(): Promise<{ accountInfo: any, password: string }> {
