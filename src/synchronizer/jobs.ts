@@ -44,10 +44,10 @@ export class SynchronizerJobs {
         await sleep();
       } else if (errorMessage.startsWith(ErrorCode.Code2005)) {
         logger.info(`The block has reached consensus, height: ${uploadHeight}, hash: ${hash}`);
-      } else if (errorMessage.startsWith(ErrorCode.Code2006) || errorMessage.startsWith(ErrorCode.Code2012) || errorMessage.startsWith(ErrorCode.Code2019)) {
+      } else if (errorMessage.startsWith(ErrorCode.Code2006) || errorMessage.startsWith(ErrorCode.Code2012)) {
         logger.warn(errorMessage);
         warnTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
-      } else if (errorMessage.startsWith(ErrorCode.Code2008) || errorMessage.startsWith(ErrorCode.Code2013)) {
+      } else if (errorMessage.startsWith(ErrorCode.Code2008) || errorMessage.startsWith(ErrorCode.Code2013) || errorMessage.startsWith(ErrorCode.Code2019)) {
         //Ignore
       } else {
         logger.error(`Upload block task error, height: ${uploadHeight}, hash: ${hash}`, e);
@@ -72,15 +72,9 @@ export class SynchronizerJobs {
         logger.info('No new block found.');
         return;
       }
-      const synchronizerInfo = await this.state.tableApi!.getSynchronizerInfo(this.state.accountName);
-      if (!synchronizerInfo) {
-        logger.error(`Get synchronizer[${this.state.accountName}] info error.`);
-        errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
-        return;
-      }
       const blockbuckets = await this.state.tableApi!.getAllBlockbucket(this.state.accountName);
       const uploadedHeights: number[] = blockbuckets.map(item => item.height);
-      logger.info(`[${caller}] all blockbuckets height: ${uploadedHeights.join(', ')}`);
+      logger.info(`[${caller}] all blockbuckets height: [${uploadedHeights.join(', ')}]`);
 
       if (!blockbuckets || blockbuckets.length === 0) {
         const nextUploadHeight = getNextUploadHeight(uploadedHeights, headHeight);
@@ -133,7 +127,8 @@ export class SynchronizerJobs {
           }
           return;
         }
-        const holdSlots: number = synchronizerInfo.num_slots;
+        const synchronizerInfo = await this.state.tableApi!.getSynchronizerInfo(this.state.accountName);
+        const holdSlots: number = synchronizerInfo!.num_slots;
         const usedSlots: number = blockbuckets.length;
         if (usedSlots < holdSlots) {
           const nextUploadHeight = getNextUploadHeight(uploadedHeights, headHeight);
@@ -142,7 +137,7 @@ export class SynchronizerJobs {
           const minBucket = blockbuckets[0];
           const maxBucket = blockbuckets[blockbuckets.length - 1];
           if (minBucket.height > headHeight + 1) {
-            logger.info(`delbucket: The prev block need reupload, height: ${minBucket.height}, hash: ${minBucket.hash}`);
+            logger.info(`delbucket: The prev block need reupload, delete max bucket, height: ${maxBucket.height}, hash: ${maxBucket.hash}`);
             await this.blockOperations.delbucket(caller, maxBucket.height, maxBucket.hash);
           } else {
             logger.info(`The number of blockbuckets[${usedSlots}] has reached the upper limit[${holdSlots}], Please purchase more slots or wait for the slots to be released`);
