@@ -1,3 +1,8 @@
+export enum Client {
+  Synchronizer = 'synchronizer',
+  Validator = 'validator',
+}
+
 export enum ClientType {
   Synchronizer = 1,
   Validator = 2,
@@ -56,9 +61,11 @@ export enum ErrorCode {
   Code2005 = '2005', //2005:blksync.xsat::initbucket: the block has reached consensus
   Code2008 = '2008', //2008:blksync.xsat::initbucket: cannot init bucket in the current state [verify_pass]
   Code2006 = '2006', //2006:blksync.xsat::initbucket: to become a synchronizer, a block must be produced within 72 hours
+  Code2012 = '2012', //2012:blksync.xsat::pushchunk: [blockbuckets] does not exists
   Code2013 = '2013', //2013:blksync.xsat::pushchunk: cannot push chunk in the current state [verify_merkle]
   Code2017 = '2017', //2017:blksync.xsat::delbucket: [blockbuckets] does not exists
   Code2018 = '2018', //2018:blksync.xsat::verify: you have not uploaded the block data. please upload it first and then verify it
+  Code2019 = '2019', //2019:blksync.xsat::verify: cannot validate block in the current state
   Code2020 = '2020', //2020:blksync.xsat::verify: parent block hash did not reach consensus
   Code2022 = '2022', //2022:blksync.xsat::verify: waiting for miners to produce blocks
 }

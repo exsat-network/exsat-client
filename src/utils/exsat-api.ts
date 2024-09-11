@@ -224,10 +224,10 @@ class ExsatApi {
         process.exit(1);
       }
     } catch (e) {
-      logger.error(`${clientType} client configurations are incorrect, and the startup failed.`, e);
+      logger.error(`${clientType}[${this.accountName}] client configurations are incorrect, and the startup failed.`, e);
       process.exit(1);
     }
-    logger.info(`${clientType} client configurations are correct, and the startup was successful.`);
+    logger.info(`${clientType}[${this.accountName}] client configurations are correct, and the startup was successful.`);
   }
 
   /**

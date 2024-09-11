@@ -4,7 +4,6 @@ import { LOGGER_DIR, LOGGER_MAX_FILES, LOGGER_MAX_SIZE } from './config';
 
 const customFormat = format.combine(
   format.timestamp({ format: 'YYYY-MM-DDTHH:mm:ssZ' }),
-  // format.align(),
   format.errors({ stack: true }),
   format.splat(),
   format.printf(info => `${info.timestamp} ${info.level}: ${info.message}`)
@@ -35,9 +34,5 @@ export function configureLogger(clientType: string) {
   logger.configure({
     transports: [fileTransport],
   });
-
-  // If it is not a production environment, the log is printed in the console
-  if (process.env.NODE_ENV !== 'production') {
-    logger.add(consoleTransport);
-  }
+  logger.add(consoleTransport);
 }
