@@ -1,6 +1,6 @@
 import axios from 'axios';
 import fs from 'node:fs';
-import { BTC_RPC_URL, EXSAT_RPC_URLS } from './config';
+import { BTC_RPC_URL, CHUNK_SIZE, EXSAT_RPC_URLS } from './config';
 import { logger } from './logger';
 import { getblockcount } from './bitcoin';
 import path from "node:path";
@@ -67,6 +67,10 @@ export async function envCheck(keystoreFile: string) {
   const blockcountInfo = await getblockcount();
   if (blockcountInfo.error) {
     logger.error('Failed to get the block count from the Bitcoin network');
+    process.exit(1);
+  }
+  if (CHUNK_SIZE < 102400) {
+    logger.error('The CHUNK_SIZE must be greater than 102400 in .env file');
     process.exit(1);
   }
 }

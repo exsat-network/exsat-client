@@ -364,7 +364,7 @@ const jobs = {
               if (parseResult) {
                 logger.info(`Parse block success, transaction_id: ${parseResult.transaction_id}`);
                 const returnValueDate = parseResult.processed?.action_traces[0]?.return_value_data;
-                if (returnValueDate.status !== 'parsing') {
+                if (returnValueDate.status === 'parsing_completed') {
                   break;
                 }
               }
@@ -374,13 +374,13 @@ const jobs = {
                 processRows = Math.ceil(processRows * 0.618);
               } else if (errorMessage.includes('the transaction was unable to complete by deadline, but it is possible it could have succeeded if it were allowed to run to completion')) {
                 processRows = Math.ceil(processRows * 0.5);
-                logger.warn(`Parse block failed, height=${chainstate.head_height}, message=${e.message}`);
+                logger.warn(`Parse block failed, height=${chainstate.parsing_height}, message=${e.message}`);
                 warnTotalCounter.inc({ account: accountName, client: 'synchronizer' });
               } else if (errorMessage.includes('duplicate transaction')) {
                 //Ignore duplicate transaction
                 await sleep();
               } else {
-                logger.error(`Parse block failed, height=${chainstate.head_height}, stack=${e.stack}`);
+                logger.error(`Parse block failed, chainstate=${JSON.stringify(chainstate)}, stack=${e.stack}`);
                 errorTotalCounter.inc({ account: accountName, client: 'synchronizer' });
                 await sleep();
                 break;

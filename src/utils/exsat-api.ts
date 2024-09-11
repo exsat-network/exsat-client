@@ -192,7 +192,7 @@ class ExsatApi {
         process.exit(1);
       }
       let dataStr = JSON.stringify(data);
-      dataStr = dataStr.length > 150 ? dataStr.substring(0, 150) + '...' : dataStr;
+      dataStr = dataStr.length > 500 ? dataStr.substring(0, 500) + '...' : dataStr;
       logger.info(`Transaction result, account: ${account}, name: ${name}, data: ${dataStr}`, e);
       throw e;
     }
