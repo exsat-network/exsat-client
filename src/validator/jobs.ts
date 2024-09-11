@@ -54,7 +54,10 @@ export class ValidatorJobs {
   }
 
   endorse = async () => {
-    await this.state.endorseLock.acquire();
+    if (this.state.endorseRunning) {
+      return;
+    }
+    this.state.endorseRunning = true;
     try {
       if (!this.state.startupStatus) {
         this.state.startupStatus = await this.state.tableApi!.getStartupStatus();
@@ -78,12 +81,15 @@ export class ValidatorJobs {
         errorTotalCounter.inc({ account: this.state.accountName, client: Client.Validator });
       }
     } finally {
-      this.state.endorseLock.release();
+      this.state.endorseRunning = false;
     }
   };
 
   endorseCheck = async () => {
-    await this.state.endorseCheckLock.acquire();
+    if (this.state.endorseCheckRunning) {
+      return;
+    }
+    this.state.endorseCheckRunning = true;
     try {
       logger.info('Endorse check task is running.');
       const chainstate = await this.state.tableApi!.getChainstate();
@@ -122,7 +128,7 @@ export class ValidatorJobs {
       errorTotalCounter.inc({ account: this.state.accountName, client: Client.Validator });
       await sleep();
     } finally {
-      this.state.endorseCheckLock.release();
+      this.state.endorseCheckRunning = false;
     }
   };
 }

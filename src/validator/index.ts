@@ -7,7 +7,6 @@ import TableApi from '../utils/table-api';
 import { Client, ClientType } from '../utils/enumeration';
 import { errorTotalCounter, setupPrometheus, startTimeGauge, warnTotalCounter } from '../utils/prom';
 import { ValidatorJobs } from './jobs';
-import { AsyncLock } from '../utils/asyncLock';
 import {
   EXSAT_RPC_URLS,
   VALIDATOR_JOBS_ENDORSE,
@@ -21,8 +20,8 @@ export class ValidatorState {
   tableApi: TableApi | null = null;
   lastEndorseHeight: number = 0;
   startupStatus: boolean = false;
-  endorseLock = new AsyncLock();
-  endorseCheckLock = new AsyncLock();
+  endorseRunning: boolean = false;
+  endorseCheckRunning: boolean = false;
 }
 
 async function initializeAccount(): Promise<{ accountInfo: any, password: string }> {

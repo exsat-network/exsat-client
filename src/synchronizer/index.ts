@@ -8,7 +8,6 @@ import { Client, ClientType } from '../utils/enumeration';
 import { errorTotalCounter, setupPrometheus, startTimeGauge, warnTotalCounter, } from '../utils/prom';
 import { BlockOperations } from './blockOperations';
 import { SynchronizerJobs } from './jobs';
-import { AsyncLock } from '../utils/asyncLock';
 import {
   EXSAT_RPC_URLS,
   SYNCHRONIZER_JOBS_BLOCK_FORK_CHECK,

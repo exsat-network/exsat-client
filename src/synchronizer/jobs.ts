@@ -54,7 +54,6 @@ export class SynchronizerJobs {
 
   upload = async () => {
     if (this.state.uploadRunning) {
-      console.log('------upload---------跳过------------');
       return;
     }
     this.state.uploadRunning = true;
@@ -62,13 +61,9 @@ export class SynchronizerJobs {
       const caller = 'upload';
       logger.info('Upload block task is running.');
       const chainstate = await this.state.tableApi!.getChainstate();
-      if (!chainstate) {
-        logger.error('Get chainstate error.');
-        errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
-        return;
-      }
+      const headHeight = chainstate!.head_height;
       const blockcountInfo = await getblockcount();
-      if (chainstate.head_height >= blockcountInfo.result) {
+      if (headHeight >= blockcountInfo.result) {
         logger.info('No new block found.');
         return;
       }
@@ -83,7 +78,7 @@ export class SynchronizerJobs {
       logger.info(`[${caller}] all blockbuckets height: ${uploadedHeights.join(', ')}`);
 
       if (!blockbuckets || blockbuckets.length === 0) {
-        const nextUploadHeight = getNextUploadHeight(uploadedHeights, chainstate.head_height);
+        const nextUploadHeight = getNextUploadHeight(uploadedHeights, headHeight);
         await this.uploadBlock(caller, nextUploadHeight);
       } else {
         const uploadingBlockbucket = blockbuckets.find(item => item.status === BlockStatus.UPLOADING);
@@ -136,12 +131,12 @@ export class SynchronizerJobs {
         const holdSlots: number = synchronizerInfo.num_slots;
         const usedSlots: number = blockbuckets.length;
         if (usedSlots < holdSlots) {
-          const nextUploadHeight = getNextUploadHeight(uploadedHeights, chainstate.head_height);
+          const nextUploadHeight = getNextUploadHeight(uploadedHeights, headHeight);
           await this.uploadBlock(caller, nextUploadHeight);
         } else {
           const minBucket = blockbuckets[0];
           const maxBucket = blockbuckets[blockbuckets.length - 1];
-          if (minBucket.height > chainstate.head_height + 1) {
+          if (minBucket.height > headHeight + 1) {
             logger.info(`delbucket: The prev block need reupload, height: ${minBucket.height}, hash: ${minBucket.hash}`);
             await this.blockOperations.delbucket(caller, maxBucket.height, maxBucket.hash);
           } else {
@@ -150,15 +145,16 @@ export class SynchronizerJobs {
           }
         }
       }
+    } catch (error) {
+      logger.error('Error in upload task:', error);
+      errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
     } finally {
-      console.log('----------upload=false----------');
       this.state.uploadRunning = false;
     }
   };
 
   verify = async () => {
     if (this.state.verifyRunning) {
-      console.log('-----verifyRunning----------running------------');
       return;
     }
     this.state.verifyRunning = true;
@@ -168,11 +164,6 @@ export class SynchronizerJobs {
     try {
       logger.info('Verify block task is running.');
       const chainstate = await this.state.tableApi!.getChainstate();
-      if (!chainstate) {
-        logger.error('Get chainstate error.');
-        errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
-        return;
-      }
       const blockbuckets = await this.state.tableApi!.getAllBlockbucket(this.state.accountName);
       if (!blockbuckets || blockbuckets.length === 0) {
         logger.info('No blockbucket found.');
@@ -183,7 +174,7 @@ export class SynchronizerJobs {
 
       let verifyBucket;
       for (const blockbucket of blockbuckets) {
-        if (chainstate.head_height >= blockbucket.height) {
+        if (chainstate!.head_height >= blockbucket.height) {
           //Delete blocks that have been endorsed
           logger.info(`delbucket: The block has been endorsed, height: ${blockbucket.height}, hash: ${blockbucket.hash}`);
           await this.blockOperations.delbucket(caller, blockbucket.height, blockbucket.hash);
@@ -211,7 +202,7 @@ export class SynchronizerJobs {
           break;
         case BlockStatus.WAITING_MINER_VERIFICATION:
           const consensusBlk = await this.state.tableApi!.getConsensusByBucketId(this.state.accountName, bucket_id);
-          if (consensusBlk || chainstate.irreversible_height >= verifyBucket.height) {
+          if (consensusBlk || chainstate!.irreversible_height >= verifyBucket.height) {
             //The block has been completed by consensus and can be deleted
             logger.info(`delbucket: The block has been completed by consensus, height: ${height}, hash: ${hash}`);
             await this.blockOperations.delbucket(caller, height, hash);
@@ -252,25 +243,18 @@ export class SynchronizerJobs {
       }
     } finally {
       this.state.verifyRunning = false;
-      console.log('-----verifyRunning----------false------------');
     }
   };
 
   parse = async () => {
     if (this.state.parseRunning) {
-      console.log('-----parse----------跳过------------');
       return;
     }
     this.state.parseRunning = true;
     try {
       logger.info('Parse block task is running.');
       const chainstate = await this.state.tableApi!.getChainstate();
-      if (!chainstate) {
-        logger.error('Get chainstate error.');
-        errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
-        return;
-      }
-      for (const item of chainstate.parsing_progress_of) {
+      for (const item of chainstate!.parsing_progress_of) {
         const parseInfo = item.second;
         if (parseInfo.parser === this.state.accountName || moment.utc().isAfter(moment.utc(parseInfo.parse_expiration_time))) {
           let processRows: number = PROCESS_ROWS;
@@ -293,7 +277,7 @@ export class SynchronizerJobs {
                 processRows = Math.ceil(processRows * 0.618);
               } else if (errorMessage.includes('the transaction was unable to complete by deadline, but it is possible it could have succeeded if it were allowed to run to completion')) {
                 processRows = Math.ceil(processRows * 0.5);
-                logger.warn(`Parse block failed, height=${chainstate.head_height}, message=${e.message}`);
+                logger.warn(`Parse block failed, height=${chainstate!.head_height}, message=${e.message}`);
                 warnTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
               } else if (errorMessage.includes('duplicate transaction')) {
                 //Ignore duplicate transaction
@@ -314,13 +298,11 @@ export class SynchronizerJobs {
       await sleep();
     } finally {
       this.state.parseRunning = false;
-      console.log('-----parse----------结束 ------------');
     }
   };
 
   forkCheck = async () => {
     if (this.state.forkCheckRunning) {
-      console.log('-----forkCheck----------跳过------------');
       return;
     }
     this.state.forkCheckRunning = true;
@@ -330,22 +312,18 @@ export class SynchronizerJobs {
       const caller = 'forkCheck';
       logger.info('Fork check task is running.');
       const chainstate = await this.state.tableApi!.getChainstate();
-      if (!chainstate) {
-        logger.error('Get chainstate error.');
-        errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
-        return;
-      }
       const blockcountInfo = await getblockcount();
-      if (chainstate.irreversible_height <= blockcountInfo.result - 6) {
+      if (chainstate!.irreversible_height <= blockcountInfo.result - 6) {
         return;
       }
-      height = chainstate.irreversible_height + 1;
+      height = chainstate!.irreversible_height + 1;
       const blockhashInfo = await getblockhash(height);
       hash = blockhashInfo.result;
       const consensusblk = await this.state.tableApi!.getConsensusByBlockId(BigInt(height), hash);
       if (consensusblk) {
         return;
       }
+      //consensusblk not found, fork occurs
       //Delete all occupied card slots when a fork occurs
       const blockbuckets = await this.state.tableApi!.getAllBlockbucket(this.state.accountName);
       if (blockbuckets && blockbuckets.length > 0) {
@@ -387,7 +365,6 @@ export class SynchronizerJobs {
       }
     } finally {
       this.state.forkCheckRunning = false;
-      console.log('-----forkCheckRunning----------结束 ------------');
     }
   };
 }
