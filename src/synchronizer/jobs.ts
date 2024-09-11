@@ -17,6 +17,11 @@ export class SynchronizerJobs {
     try {
       const blockhashInfo = await getblockhash(uploadHeight);
       hash = blockhashInfo.result;
+      const consensusblk = await this.state.tableApi!.getConsensusByBlockId(BigInt(uploadHeight), hash);
+      if (consensusblk) {
+        logger.info(`[uploadBlock] The block has been completed by consensus, height: ${uploadHeight}, hash: ${hash}`);
+        return;
+      }
       const blockInfo = await getblock(hash);
       if (blockInfo.result === null && blockInfo.error?.code === -5) {
         logger.info(`Block not found, height: ${uploadHeight}, hash: ${hash}`);
