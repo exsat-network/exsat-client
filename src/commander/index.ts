@@ -37,11 +37,9 @@ async function main() {
   let client;
   switch (action) {
     case 'synchronizer':
-      configureLogger('synchronizer_client');
       client = new SynchronizerCommander();
       break;
     case 'validator':
-      configureLogger('validator_client');
       client = new ValidatorCommander();
       break;
     default:
@@ -49,6 +47,7 @@ async function main() {
   }
 
   // Start the selected client
+  configureLogger('commander');
   await client.main();
 }
 
