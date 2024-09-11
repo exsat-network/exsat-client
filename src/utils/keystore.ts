@@ -5,10 +5,10 @@ import { readFileSync } from 'fs';
 import { decryptKeystore } from '@exsat/account-initializer';
 import { logger } from './logger';
 import path from 'node:path';
-import dotenv from 'dotenv';
 import { ClientType } from './enumeration';
 import { SYNCHRONIZER_KEYSTORE_PASSWORD, VALIDATOR_KEYSTORE_PASSWORD } from './config';
 import { password } from "@inquirer/prompts";
+import { reloadEnv } from "./common";
 
 interface Arguments {
   pwd?: string;
@@ -56,14 +56,6 @@ export async function getAccountInfo(keystoreFile: string, password: string) {
   const accountName = keystoreInfo.username.endsWith('.sat') ? keystoreInfo.username : `${keystoreInfo.username}.sat`;
   const privateKey = await decryptKeystore(keystore, password);
   return { accountName, privateKey, publicKey: keystoreInfo.address };
-}
-
-export function reloadEnv() {
-  const envFilePath = path.resolve(__dirname, '../../', '.env');
-  if (!fs.existsSync(envFilePath)) {
-    throw new Error('No .env file found');
-  }
-  dotenv.config({ override: true, path: envFilePath });
 }
 
 export function existKeystore(): boolean {

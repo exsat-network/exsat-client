@@ -62,7 +62,7 @@ export async function updateMenu(versions) {
 
       console.log('\nPlease enter the following command in the terminal to complete the version upgrade:');
       console.log(`git fetch --tags && git checkout -f ${versions.latest} \n`)
-      await input({message:'Press Enter to Continue...'})
+      await input({ message: 'Press Enter to Continue...' })
       process.exit(0);
       break;
     default:
