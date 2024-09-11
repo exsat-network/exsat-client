@@ -50,24 +50,59 @@ export class Version {
     }
   }
 
-  // Check if the code needs to be updated
+  /**
+   * Checks for updates by comparing the latest version with the local version.
+   * If a newer version is found, it retrieves the description of the new version.
+   * @param action Optional parameter for additional actions (not used in this implementation)
+   * @returns An object containing the latest version, current local version, and new version description if an update is available
+   * @throws Error if unable to determine the versions
+   */
   static async checkForUpdates(action?) {
+    // Retrieve the latest version and the local version
     const [latestVersion, localVersion] = await Promise.all([
       this.getLatestVersion(),
       this.getLocalVersion(),
     ]);
 
+    // If unable to retrieve version information, throw an error
     if (!latestVersion || !localVersion) {
       throw new Error('Failed to determine versions');
     }
+
+    // Remove 'v' prefix from the version string if it exists
+    const cleanVersion = (version: string) => version.replace(/^v/, '');
+
+    // Cleaned version numbers
+    const cleanLatestVersion = cleanVersion(latestVersion);
+    const cleanLocalVersion = cleanVersion(localVersion);
+
     let newVersion: string | boolean = false;
-    if (latestVersion !== localVersion) {
-      newVersion = await this.getTagDescription(latestVersion)
+    // Compare version numbers; if the latest version is newer than the local version, get the new version description
+    if (this.isNewerVersion(cleanLatestVersion, cleanLocalVersion)) {
+      newVersion = await this.getTagDescription(latestVersion);
     }
+
+    // Return version information
     return {
       latest: latestVersion,
       current: localVersion,
       newVersion,
     };
+  }
+
+  /**
+   * Compare two version numbers to determine if the latest version is newer than the current version
+   * @param latest The latest version number
+   * @param current The current version number
+   * @returns True if the latest version is newer than the current version, otherwise false
+   */
+  static isNewerVersion(latest: string, current: string): boolean {
+    const latestParts = latest.split('.').map(Number);
+    const currentParts = current.split('.').map(Number);
+    for (let i = 0; i < Math.max(latestParts.length, currentParts.length); i++) {
+      if ((latestParts[i] || 0) > (currentParts[i] || 0)) return true;
+      if ((latestParts[i] || 0) < (currentParts[i] || 0)) return false;
+    }
+    return false;
   }
 }
