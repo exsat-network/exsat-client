@@ -9,6 +9,7 @@ import { errorTotalCounter, setupPrometheus, startTimeGauge, warnTotalCounter } 
 import { ValidatorJobs } from './jobs';
 import {
   EXSAT_RPC_URLS,
+  HEARTBEAT_JOBS,
   VALIDATOR_JOBS_ENDORSE,
   VALIDATOR_JOBS_ENDORSE_CHECK,
   VALIDATOR_KEYSTORE_FILE,
@@ -67,6 +68,7 @@ function setupCronJobs(jobs: ValidatorJobs) {
   const cronJobs = [
     { schedule: VALIDATOR_JOBS_ENDORSE, job: jobs.endorse },
     { schedule: VALIDATOR_JOBS_ENDORSE_CHECK, job: jobs.endorseCheck },
+    { schedule: HEARTBEAT_JOBS, job: jobs.heartbeat },
   ];
 
   cronJobs.forEach(({ schedule, job }) => {

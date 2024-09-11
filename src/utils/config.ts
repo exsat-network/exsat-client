@@ -14,6 +14,8 @@ export const BTC_RPC_URL: string = process.env.BTC_RPC_URL;
 export const BTC_RPC_USERNAME: string = process.env.BTC_RPC_USERNAME;
 export const BTC_RPC_PASSWORD: string = process.env.BTC_RPC_PASSWORD;
 
+export const HEARTBEAT_JOBS = '0 */5 * * * *';
+
 //  Size of each upload chunk (256 KB). Be careful! Modifying this configuration may cause block uploading failure. It must not be less than 100 KB.
 export const CHUNK_SIZE = parseInt(process.env.CHUNK_SIZE) || 262144;
 export const PROCESS_ROWS = parseInt(process.env.PROCESS_ROWS) || 2000;
