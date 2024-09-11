@@ -69,8 +69,18 @@ export class SynchronizerCommander {
 
     const menus = [
       { name: 'Bridge BTC as GAS Fee', value: 'recharge_btc', description: 'Bridge BTC as GAS Fee' },
-      { name: synchronizer?.reward_recipient ? 'Reset Reward Address' : 'Set Reward Address', value: 'set_reward_address', description: 'Set/Reset Reward Address', disabled: !synchronizer },
-      { name: 'Purchase Memory Slot', value: 'purchase_memory_slot', description: 'Purchase Memory Slot', disabled: !synchronizer },
+      {
+        name: synchronizer?.reward_recipient ? 'Reset Reward Address' : 'Set Reward Address',
+        value: 'set_reward_address',
+        description: 'Set/Reset Reward Address',
+        disabled: !synchronizer
+      },
+      {
+        name: 'Purchase Memory Slot',
+        value: 'purchase_memory_slot',
+        description: 'Purchase Memory Slot',
+        disabled: !synchronizer
+      },
       { name: 'Reset BTC RPC Node', value: 'reset_btc_rpc', description: 'Reset BTC RPC Node' },
       { name: 'Export Private Key', value: 'export_private_key', description: 'Export Private Key' },
       { name: 'Remove Account', value: 'remove_account', description: 'Remove Account' },
@@ -95,7 +105,8 @@ export class SynchronizerCommander {
     do {
       action = await select({ message: 'Select An Action', choices: menus, loop: false });
       if (action !== '99') {
-        await (actions[action] || (() => {}))();
+        await (actions[action] || (() => {
+        }))();
       }
     } while (action !== '99');
   }
@@ -323,7 +334,11 @@ export class SynchronizerCommander {
             'Email': checkAccountInfo.email,
           });
           menus = [
-            { name: 'Bridge BTC Used For GAS Fee', value: 'recharge_btc_registry', description: 'Bridge BTC as GAS Fee' },
+            {
+              name: 'Bridge BTC Used For GAS Fee',
+              value: 'recharge_btc_registry',
+              description: 'Bridge BTC as GAS Fee'
+            },
             new Separator(),
             { name: 'Quit', value: 'quit', description: 'Quit' },
           ];
@@ -385,7 +400,8 @@ export class SynchronizerCommander {
       let res;
       do {
         action = await select({ message: 'Select Action:', choices: menus });
-        res = await (actions[action] || (() => {}))();
+        res = await (actions[action] || (() => {
+        }))();
       } while (!res);
     } else {
       logger.info('Reward Address is already set correctly.');
@@ -428,7 +444,8 @@ export class SynchronizerCommander {
       let res;
       do {
         action = await select({ message: 'Select Action:', choices: menus });
-        res = await (actions[action] || (() => {}))();
+        res = await (actions[action] || (() => {
+        }))();
       } while (!res);
     } else {
       logger.info('BTC_RPC_URL is already set correctly.');

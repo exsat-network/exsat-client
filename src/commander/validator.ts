@@ -65,8 +65,18 @@ export class ValidatorCommander {
 
     const menus = [
       { name: 'Bridge BTC as GAS Fee', value: 'recharge_btc', description: 'Bridge BTC as GAS Fee' },
-      { name: 'Reset Reward Address', value: 'set_reward_address', description: 'Set/Reset Reward Address', disabled: !validator },
-      { name: 'Reset Commission Rate', value: 'set_commission_rate', description: 'Set/Reset Reward Address', disabled: !validator },
+      {
+        name: 'Reset Reward Address',
+        value: 'set_reward_address',
+        description: 'Set/Reset Reward Address',
+        disabled: !validator
+      },
+      {
+        name: 'Reset Commission Rate',
+        value: 'set_commission_rate',
+        description: 'Set/Reset Reward Address',
+        disabled: !validator
+      },
       { name: 'Reset BTC RPC Node', value: 'reset_btc_rpc', description: 'Reset BTC RPC Node' },
       { name: 'Export Private Key', value: 'export_private_key', description: 'Export Private Key' },
       { name: 'Remove Account', value: 'remove_account', description: 'Remove Account' },
@@ -91,7 +101,8 @@ export class ValidatorCommander {
     do {
       action = await select({ message: 'Select An Action', choices: menus, loop: false });
       if (action !== '99') {
-        await (actions[action] || (() => {}))();
+        await (actions[action] || (() => {
+        }))();
       }
     } while (action !== '99');
   }
@@ -306,7 +317,11 @@ export class ValidatorCommander {
             'Email': checkAccountInfo.email,
           });
           menus = [
-            { name: 'Bridge BTC Used For GAS Fee', value: 'recharge_btc_registry', description: 'Bridge BTC as GAS Fee' },
+            {
+              name: 'Bridge BTC Used For GAS Fee',
+              value: 'recharge_btc_registry',
+              description: 'Bridge BTC as GAS Fee'
+            },
             new Separator(),
             { name: 'Quit', value: 'quit', description: 'Quit' },
           ];
@@ -367,7 +382,8 @@ export class ValidatorCommander {
       let res;
       do {
         action = await select({ message: 'Select Action:', choices: menus });
-        res = await (actions[action] || (() => {}))();
+        res = await (actions[action] || (() => {
+        }))();
       } while (!res);
     } else {
       logger.info('Reward Address is already set correctly.');
@@ -408,7 +424,8 @@ export class ValidatorCommander {
       let res;
       do {
         action = await select({ message: 'Select Action:', choices: menus });
-        res = await (actions[action] || (() => {}))();
+        res = await (actions[action] || (() => {
+        }))();
       } while (!res);
     } else {
       logger.info('Commission Rate is already set correctly.');
@@ -450,7 +467,8 @@ export class ValidatorCommander {
       let res;
       do {
         action = await select({ message: 'Select Action:', choices: menus });
-        res = await (actions[action] || (() => {}))();
+        res = await (actions[action] || (() => {
+        }))();
       } while (!res);
     } else {
       logger.info('BTC_RPC_URL is already set correctly.');
