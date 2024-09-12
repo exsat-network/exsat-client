@@ -80,7 +80,6 @@ export class BlockOperations {
             client: Client.Synchronizer,
             status: 'verify_fail'
           });
-          await this.delbucket(caller, height, hash);
           break;
         }
       }

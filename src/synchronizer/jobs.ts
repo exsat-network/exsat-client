@@ -149,6 +149,7 @@ export class SynchronizerJobs {
       logger.error('Error in upload task:', error);
       errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
     } finally {
+      logger.info('Upload block task is completed.');
       this.state.uploadRunning = false;
     }
   };
@@ -242,6 +243,7 @@ export class SynchronizerJobs {
         await sleep();
       }
     } finally {
+      logger.info('Verify block task is completed.');
       this.state.verifyRunning = false;
     }
   };
@@ -265,11 +267,12 @@ export class SynchronizerJobs {
                 process_rows: processRows,
               });
               if (parseResult) {
-                logger.info(`Parse block success, transaction_id: ${parseResult.transaction_id}`);
+                logger.info(`Parse block success, parsing_height: ${chainstate!.parsing_height}, status: ${chainstate!.status}, transaction_id: ${parseResult.transaction_id}`);
                 const returnValueDate = parseResult.processed?.action_traces[0]?.return_value_data;
-                if (returnValueDate.status !== 'parsing') {
+                if (returnValueDate.status === 'parsing_completed') {
                   break;
                 }
+                await sleep(500);
               }
             } catch (e: any) {
               const errorMessage = getErrorMessage(e);
@@ -297,6 +300,7 @@ export class SynchronizerJobs {
       errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
       await sleep();
     } finally {
+      logger.info('Parse block task is completed.');
       this.state.parseRunning = false;
     }
   };
@@ -364,6 +368,7 @@ export class SynchronizerJobs {
         await sleep();
       }
     } finally {
+      logger.info('Fork check block task is completed.');
       this.state.forkCheckRunning = false;
     }
   };

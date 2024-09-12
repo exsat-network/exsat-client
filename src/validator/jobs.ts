@@ -75,12 +75,14 @@ export class ValidatorJobs {
       const errorMessage = getErrorMessage(e);
       logger.info(`Endorse task info: ${errorMessage}`);
       if (errorMessage.startsWith(ErrorCode.Code1001) || errorMessage.startsWith(ErrorCode.Code1003)) {
+        await sleep(10000);
         // ignore
       } else {
         logger.error('Endorse task error', e);
         errorTotalCounter.inc({ account: this.state.accountName, client: Client.Validator });
       }
     } finally {
+      logger.info('Endorse task is finished.');
       this.state.endorseRunning = false;
     }
   };
@@ -93,14 +95,8 @@ export class ValidatorJobs {
     try {
       logger.info('Endorse check task is running.');
       const chainstate = await this.state.tableApi!.getChainstate();
-      if (!chainstate) {
-        logger.error('Get chainstate error.');
-        errorTotalCounter.inc({ account: this.state.accountName, client: Client.Validator });
-        return;
-      }
-
       const blockcount = await getblockcount();
-      let startEndorseHeight = chainstate.irreversible_height + 1;
+      let startEndorseHeight = chainstate!.irreversible_height + 1;
       if (this.state.lastEndorseHeight > startEndorseHeight && this.state.lastEndorseHeight < blockcount.result - 6) {
         startEndorseHeight = this.state.lastEndorseHeight;
       }
@@ -116,6 +112,7 @@ export class ValidatorJobs {
           logger.info(`Endorse check task result, height: ${i}, hash: ${hash}, ${errorMessage}`);
           if (errorMessage.startsWith(ErrorCode.Code1002)) {
           } else if (errorMessage.startsWith(ErrorCode.Code1001) || errorMessage.startsWith(ErrorCode.Code1003)) {
+            await sleep(10000);
             return;
           } else {
             logger.error(`Submit endorsement failed, height: ${i}, hash: ${hash}`, e);
@@ -128,6 +125,7 @@ export class ValidatorJobs {
       errorTotalCounter.inc({ account: this.state.accountName, client: Client.Validator });
       await sleep();
     } finally {
+      logger.info("Endorse check task is finished.");
       this.state.endorseCheckRunning = false;
     }
   };
