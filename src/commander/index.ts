@@ -26,8 +26,8 @@ async function main() {
 
   // Define menu options for client selection
   const menus = [
-    { name: 'synchronizer', value: 'synchronizer' },
-    { name: 'validator', value: 'validator' },
+    { name: 'Synchronizer', value: 'synchronizer' },
+    { name: 'Validator', value: 'validator' },
   ];
 
   // Prompt user to select a client to start

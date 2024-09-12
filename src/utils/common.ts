@@ -124,7 +124,7 @@ export function showInfo(info) {
       console.log(`${key}: ${info[key]}`);
     }
   }
-  console.log('-----------------------------------------------\n');
+  console.log('-----------------------------------------------');
 }
 
 /**
