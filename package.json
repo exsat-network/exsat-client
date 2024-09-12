@@ -10,7 +10,7 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@exsat/account-initializer": "^1.0.6",
+    "@exsat/account-initializer": "1.0.10",
     "@inquirer/prompts": "^5.3.8",
     "axios": "^1.7.4",
     "bitcoinjs-lib": "^6.1.6",
