@@ -281,7 +281,6 @@ class ExsatApi {
       return rows;
     });
   }
-
 }
 
 export default ExsatApi;

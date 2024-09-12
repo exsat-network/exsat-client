@@ -6,6 +6,9 @@ RUN apt-get update && apt-get install -y curl \
   && npm install -g yarn \
   && apt-get clean
 
+# Create exsat identity
+RUN touch /exsat.lock
+
 WORKDIR /app
 COPY . /app
 RUN yarn install \

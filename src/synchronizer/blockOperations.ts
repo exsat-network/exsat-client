@@ -19,7 +19,7 @@ export class BlockOperations {
       chunk_size: CHUNK_SIZE
     });
     if (result) {
-      logger.info(`[${caller}] Init bucket success, height: ${height}, hash: ${hash}, transaction_id: ${result.transaction_id}`);
+      logger.info(`[${caller}] initbucket success, height: ${height}, hash: ${hash}, transaction_id: ${result.transaction_id}`);
       blockUploadTotalCounter.inc({ account: this.accountName, client: Client.Synchronizer, status: 'init' });
     }
   }
@@ -32,7 +32,7 @@ export class BlockOperations {
       hash
     });
     if (result) {
-      logger.info(`[${caller}] Delete bucket success, height: ${height}, hash: ${hash}, transaction_id: ${result.transaction_id}`);
+      logger.info(`[${caller}] delbucket success, height: ${height}, hash: ${hash}, transaction_id: ${result.transaction_id}`);
       blockUploadTotalCounter.inc({ account: this.accountName, client: Client.Synchronizer, status: 'delete' });
     }
   }
@@ -47,7 +47,7 @@ export class BlockOperations {
       data: chunkData
     });
     if (result) {
-      logger.info(`[${caller}] Push chunk success, height: ${height}, hash: ${hash}, chunk_id: ${chunkId}, transaction_id: ${result.transaction_id}`);
+      logger.info(`[${caller}] pushchunk success, height: ${height}, hash: ${hash}, chunk_id: ${chunkId}, transaction_id: ${result.transaction_id}`);
       blockUploadTotalCounter.inc({ account: this.accountName, client: Client.Synchronizer, status: 'push' });
     }
   }
@@ -61,7 +61,7 @@ export class BlockOperations {
         hash
       });
       if (result) {
-        logger.info(`[${caller}] Verify block success, height: ${height}, hash: ${hash}, transaction_id: ${result.transaction_id}`);
+        logger.info(`[${caller}] verify success, height: ${height}, hash: ${hash}, transaction_id: ${result.transaction_id}`);
         const returnValueData = result.processed?.action_traces[0]?.return_value_data;
         if (returnValueData.status === 'verify_pass') {
           logger.info(`[${caller}] Block verify pass, height: ${height}, hash: ${hash}`);
@@ -74,7 +74,7 @@ export class BlockOperations {
           syncLatestTimeGauge.set({ account: this.accountName, client: Client.Synchronizer }, Date.now());
           break;
         } else if (returnValueData.status === 'verify_fail') {
-          logger.info(`[${caller}] delbucket: Block verify fail, height: ${height}, hash: ${hash}, reason: ${returnValueData.reason}`);
+          logger.warn(`[${caller}] Block verify fail, delbucket: height: ${height}, hash: ${hash}`);
           blockUploadTotalCounter.inc({
             account: this.accountName,
             client: Client.Synchronizer,
