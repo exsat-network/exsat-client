@@ -193,7 +193,7 @@ class ExsatApi {
         logger.info(`[${this.accountName}] delbucket success, data: ${JSON.stringify(data)}`);
       }
       
-      logger.info(`-------------------result------------${JSON.stringify(result)}`)
+      // logger.info(`-------------------result------------${JSON.stringify(result)}`)
       return result;
     } catch (e: any) {
       if (e instanceof RpcError && e.json?.code === 401 && e.json?.message === 'UnAuthorized') {

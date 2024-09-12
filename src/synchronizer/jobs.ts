@@ -270,6 +270,7 @@ export class SynchronizerJobs {
                 synchronizer: this.state.accountName,
                 process_rows: processRows,
               });
+              logger.info(`--------------------cpu=${parseResult.processed?.receipt.cpu_usage_us} ms`);
               if (parseResult) {
                 logger.info(`Parse block success, parsing_height: ${chainstate!.parsing_height}, status: ${chainstate!.status}, processRows: ${processRows}, transaction_id: ${parseResult.transaction_id}`);
                 const returnValueDate = parseResult.processed?.action_traces[0]?.return_value_data;
