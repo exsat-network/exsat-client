@@ -147,7 +147,7 @@ export class SynchronizerJobs {
       logger.error('Error in upload task:', error);
       errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
     } finally {
-      logger.info('Upload block task is completed.');
+      logger.info('Upload block task is finished.');
       this.state.uploadRunning = false;
     }
   };
@@ -168,9 +168,6 @@ export class SynchronizerJobs {
         logger.info('No blockbucket found.');
         return;
       }
-      const result = blockbuckets.map(obj => obj.height).join(', ');
-      logger.info(`[${caller}] all blockbuckets height: [${result}]`);
-
       let verifyBucket;
       for (const blockbucket of blockbuckets) {
         if (chainstate!.head_height >= blockbucket.height) {
@@ -241,7 +238,7 @@ export class SynchronizerJobs {
         await sleep();
       }
     } finally {
-      logger.info('Verify block task is completed.');
+      logger.info('Verify block task is finished.');
       this.state.verifyRunning = false;
     }
   };
@@ -270,7 +267,6 @@ export class SynchronizerJobs {
                 synchronizer: this.state.accountName,
                 process_rows: processRows,
               });
-              logger.info(`--------------------cpu=${parseResult.processed?.receipt.cpu_usage_us} ms`);
               if (parseResult) {
                 logger.info(`Parse block success, parsing_height: ${chainstate!.parsing_height}, status: ${chainstate!.status}, processRows: ${processRows}, transaction_id: ${parseResult.transaction_id}`);
                 const returnValueDate = parseResult.processed?.action_traces[0]?.return_value_data;
@@ -305,7 +301,7 @@ export class SynchronizerJobs {
       errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
       await sleep();
     } finally {
-      logger.info('Parse block task is completed.');
+      logger.info('Parse block task is finished.');
       this.state.parseRunning = false;
     }
   };
@@ -371,7 +367,7 @@ export class SynchronizerJobs {
         await sleep();
       }
     } finally {
-      logger.info('Fork check block task is completed.');
+      logger.info('Fork check block task is finished.');
       this.state.forkCheckRunning = false;
     }
   };

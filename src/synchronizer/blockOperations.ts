@@ -10,7 +10,6 @@ export class BlockOperations {
 
   // Initializes a new bucket for storing block data.
   async initbucket(caller: string, height: number, hash: string, block_size: number, num_chunks: number) {
-    logger.info(`[${caller}] initbucket, height: ${height}, hash: ${hash}`);
     const result: any = await this.exsatApi.executeAction(ContractName.blksync, 'initbucket', {
       synchronizer: this.accountName,
       height,
@@ -27,7 +26,6 @@ export class BlockOperations {
 
   // Deletes an existing block bucket.
   async delbucket(caller: string, height: number, hash: string) {
-    logger.info(`[${caller}] delbucket, height: ${height}, hash: ${hash}`);
     const result: any = await this.exsatApi.executeAction(ContractName.blksync, 'delbucket', {
       synchronizer: this.accountName,
       height,
@@ -41,7 +39,6 @@ export class BlockOperations {
 
   // Pushes a chunk of block data to the bucket.
   async pushchunk(caller: string, height: number, hash: string, chunkId: number, chunkData: string) {
-    logger.info(`[${caller}] pushchunk, height: ${height}, hash: ${hash}, chunk_id: ${chunkId}`);
     const result: any = await this.exsatApi.executeAction(ContractName.blksync, 'pushchunk', {
       synchronizer: this.accountName,
       height,
@@ -57,7 +54,6 @@ export class BlockOperations {
 
   // Verifies the integrity and status of a block.
   async verifyBlock(caller: string, height: number, hash: string) {
-    logger.info(`[${caller}] verifyBlock, height: ${height}, hash: ${hash}`);
     while (true) {
       const result: any = await this.exsatApi.executeAction(ContractName.blksync, 'verify', {
         synchronizer: this.accountName,
@@ -65,7 +61,7 @@ export class BlockOperations {
         hash
       });
       if (result) {
-        logger.info(`[${caller}] verifyBlock success, height: ${height}, hash: ${hash}, transaction_id: ${result.transaction_id}`);
+        logger.info(`[${caller}] verify success, height: ${height}, hash: ${hash}, transaction_id: ${result.transaction_id}`);
         const returnValueData = result.processed?.action_traces[0]?.return_value_data;
         if (returnValueData.status === 'verify_pass') {
           logger.info(`[${caller}] Block verify pass, height: ${height}, hash: ${hash}`);
@@ -78,11 +74,13 @@ export class BlockOperations {
           syncLatestTimeGauge.set({ account: this.accountName, client: Client.Synchronizer }, Date.now());
           break;
         } else if (returnValueData.status === 'verify_fail') {
+          logger.warn(`[${caller}] Block verify fail, delbucket: height: ${height}, hash: ${hash}`);
           blockUploadTotalCounter.inc({
             account: this.accountName,
             client: Client.Synchronizer,
             status: 'verify_fail'
           });
+          await this.delbucket(caller, height, hash);
           break;
         }
       }
