@@ -9,7 +9,6 @@ RUN apt-get update && apt-get install -y curl \
 # Create exsat identity
 RUN touch /exsat.lock
 
-
 WORKDIR /app
 COPY . /app
 RUN yarn install \
