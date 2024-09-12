@@ -72,10 +72,8 @@ export class SynchronizerJobs {
         logger.info('No new block found.');
         return;
       }
-      const blockbuckets = await this.state.tableApi!.getAllBlockbucket(this.state.accountName);
+      const blockbuckets = await this.state.tableApi!.getAllBlockbucket(caller, this.state.accountName);
       const uploadedHeights: number[] = blockbuckets.map(item => item.height);
-      logger.info(`[${caller}] all blockbuckets height: [${uploadedHeights.join(', ')}]`);
-
       if (!blockbuckets || blockbuckets.length === 0) {
         const nextUploadHeight = getNextUploadHeight(uploadedHeights, headHeight);
         await this.uploadBlock(caller, nextUploadHeight);
@@ -165,13 +163,13 @@ export class SynchronizerJobs {
     try {
       logger.info('Verify block task is running.');
       const chainstate = await this.state.tableApi!.getChainstate();
-      const blockbuckets = await this.state.tableApi!.getAllBlockbucket(this.state.accountName);
+      const blockbuckets = await this.state.tableApi!.getAllBlockbucket(caller, this.state.accountName);
       if (!blockbuckets || blockbuckets.length === 0) {
         logger.info('No blockbucket found.');
         return;
       }
       const result = blockbuckets.map(obj => obj.height).join(', ');
-      logger.info(`[${caller}] all blockbuckets height: ${result}`);
+      logger.info(`[${caller}] all blockbuckets height: [${result}]`);
 
       let verifyBucket;
       for (const blockbucket of blockbuckets) {
@@ -255,19 +253,25 @@ export class SynchronizerJobs {
     this.state.parseRunning = true;
     try {
       logger.info('Parse block task is running.');
-      const chainstate = await this.state.tableApi!.getChainstate();
+      let chainstate = await this.state.tableApi!.getChainstate();
+      let resetRows = false;
       for (const item of chainstate!.parsing_progress_of) {
         const parseInfo = item.second;
         if (parseInfo.parser === this.state.accountName || moment.utc().isAfter(moment.utc(parseInfo.parse_expiration_time))) {
           let processRows: number = PROCESS_ROWS;
           while (true) {
             try {
+              chainstate = await this.state.tableApi!.getChainstate();
+              if (chainstate!.status === BlockStatus.WAITING_MINER_VERIFICATION && processRows < PROCESS_ROWS && !resetRows) {
+                processRows = PROCESS_ROWS;
+                resetRows = true;
+              }
               const parseResult: any = await this.state.exsatApi!.executeAction(ContractName.utxomng, 'processblock', {
                 synchronizer: this.state.accountName,
                 process_rows: processRows,
               });
               if (parseResult) {
-                logger.info(`Parse block success, parsing_height: ${chainstate!.parsing_height}, status: ${chainstate!.status}, transaction_id: ${parseResult.transaction_id}`);
+                logger.info(`Parse block success, parsing_height: ${chainstate!.parsing_height}, status: ${chainstate!.status}, processRows: ${processRows}, transaction_id: ${parseResult.transaction_id}`);
                 const returnValueDate = parseResult.processed?.action_traces[0]?.return_value_data;
                 if (returnValueDate.status === 'parsing_completed') {
                   break;
@@ -329,10 +333,8 @@ export class SynchronizerJobs {
       }
       //consensusblk not found, fork occurs
       //Delete all occupied card slots when a fork occurs
-      const blockbuckets = await this.state.tableApi!.getAllBlockbucket(this.state.accountName);
+      const blockbuckets = await this.state.tableApi!.getAllBlockbucket(caller, this.state.accountName);
       if (blockbuckets && blockbuckets.length > 0) {
-        const result = blockbuckets.map(obj => obj.height).join(', ');
-        logger.info(`forkCheck: all blockbuckets height: ${result}`);
         for (const blockbucket of blockbuckets) {
           logger.info(`delete: Bitcoin fork happen, height: ${blockbucket.height}, hash: ${blockbucket.hash}`);
           await this.blockOperations.delbucket(caller, blockbucket.height, blockbucket.hash);

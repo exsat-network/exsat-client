@@ -1,6 +1,7 @@
 import ExsatApi from './exsat-api';
 import { ContractName, IndexPosition, KeyType } from './enumeration';
 import { computeBlockId } from './key';
+import { logger } from './logger';
 
 class TableApi {
   private exsatApi: ExsatApi;
@@ -130,15 +131,20 @@ class TableApi {
 
   /**
    * Retrieves all block buckets for a given synchronizer.
+   * @param caller
    * @param synchronizer - The synchronizer account name.
    * @returns An array of block buckets.
    */
-  public async getAllBlockbucket(synchronizer: string): Promise<any> {
+  public async getAllBlockbucket(caller: string, synchronizer: string): Promise<any> {
     const rows = await this.exsatApi.getTableRows(ContractName.blksync, synchronizer, 'blockbuckets', {
       fetch_all: true,
     });
     if (rows && rows.length > 0) {
+      const heights: string = rows.map((item: any) => item.height).join(', ');
+      logger.info(`[${caller}] all blockbuckets height: [${heights}]`);
       return rows.sort((a: any, b: any) => a.height - b.height);
+    } else {
+      logger.info(`[${caller}] no blockbuckets found`);
     }
     return rows;
   }
