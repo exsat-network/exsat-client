@@ -262,7 +262,7 @@ export class SynchronizerJobs {
           while (true) {
             try {
               chainstate = await this.state.tableApi!.getChainstate();
-              if (chainstate!.status === BlockStatus.WAITING_MINER_VERIFICATION && processRows < PROCESS_ROWS && !resetRows) {
+              if (chainstate!.status === 5 && processRows < PROCESS_ROWS && !resetRows) {
                 processRows = PROCESS_ROWS;
                 resetRows = true;
               }

@@ -174,7 +174,7 @@ class ExsatApi {
       }];
     try {
       if (name === 'delbucket') {
-        logger.info(`[${this.accountName}] delbucket, data: ${JSON.stringify(data)}`);
+        logger.error(`[${this.accountName}] delbucket, data: ${JSON.stringify(data)}`);
       }
       const result = await this.api.transact({
         actions: [{
@@ -192,6 +192,8 @@ class ExsatApi {
       if (name === 'delbucket') {
         logger.info(`[${this.accountName}] delbucket success, data: ${JSON.stringify(data)}`);
       }
+      
+      logger.info(`-------------------result------------${JSON.stringify(result)}`)
       return result;
     } catch (e: any) {
       if (e instanceof RpcError && e.json?.code === 401 && e.json?.message === 'UnAuthorized') {
