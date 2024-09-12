@@ -26,14 +26,14 @@ export class BlockOperations {
 
   // Deletes an existing block bucket.
   async delbucket(caller: string, height: number, hash: string) {
-    logger.info(`[${caller}] Deleting bucket, height: ${height}, hash: ${hash}`);
+    logger.info(`[${caller}] delbucket, height: ${height}, hash: ${hash}`);
     const result: any = await this.exsatApi.executeAction(ContractName.blksync, 'delbucket', {
       synchronizer: this.accountName,
       height,
       hash
     });
     if (result) {
-      logger.info(`[${caller}] Delete bucket success, height: ${height}, hash: ${hash}, transaction_id: ${result.transaction_id}`);
+      logger.info(`[${caller}] delbucket success, height: ${height}, hash: ${hash}, transaction_id: ${result.transaction_id}`);
       blockUploadTotalCounter.inc({ account: this.accountName, client: Client.Synchronizer, status: 'delete' });
     }
   }

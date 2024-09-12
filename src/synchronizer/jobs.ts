@@ -336,7 +336,7 @@ export class SynchronizerJobs {
       const blockbuckets = await this.state.tableApi!.getAllBlockbucket(caller, this.state.accountName);
       if (blockbuckets && blockbuckets.length > 0) {
         for (const blockbucket of blockbuckets) {
-          logger.info(`delete: Bitcoin fork happen, height: ${blockbucket.height}, hash: ${blockbucket.hash}`);
+          logger.info(`delbucket: Bitcoin fork happen, height: ${blockbucket.height}, hash: ${blockbucket.hash}`);
           await this.blockOperations.delbucket(caller, blockbucket.height, blockbucket.hash);
         }
       }
