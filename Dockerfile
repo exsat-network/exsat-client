@@ -7,8 +7,8 @@ RUN apt-get update && apt-get install -y curl \
   && apt-get clean
 
 # Create exsat identity
-RUN mkdir -p /exsat
-RUN echo "v:0.2.7" > /exsat/config
+RUN touch /exsat.lock
+
 
 WORKDIR /app
 COPY . /app
