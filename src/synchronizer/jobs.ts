@@ -267,11 +267,12 @@ export class SynchronizerJobs {
                 process_rows: processRows,
               });
               if (parseResult) {
-                logger.info(`Parse block success, transaction_id: ${parseResult.transaction_id}`);
+                logger.info(`Parse block success, parsing_height: ${chainstate!.parsing_height}, status: ${chainstate!.status}, transaction_id: ${parseResult.transaction_id}`);
                 const returnValueDate = parseResult.processed?.action_traces[0]?.return_value_data;
                 if (returnValueDate.status === 'parsing_completed') {
                   break;
                 }
+                await sleep(500);
               }
             } catch (e: any) {
               const errorMessage = getErrorMessage(e);
