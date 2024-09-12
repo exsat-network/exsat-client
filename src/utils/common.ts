@@ -188,23 +188,11 @@ export function getNextUploadHeight(currentUploadedHeights: number[], headHeight
 /**
  * Check if running in Docker.
  */
-export function isDocker(): boolean {
+export function isExsatDocker(): boolean {
   try {
     // Check for /.dockerenv file
-    if (fs.existsSync('/.dockerenv')) {
+    if (fs.existsSync('/exsat/config')) {
       return true;
-    }
-
-    // Check for /proc/1/cgroup file and look for docker or kubepods
-    const cgroupPath = '/proc/1/cgroup';
-    if (fs.existsSync(cgroupPath)) {
-      const cgroupContent = fs.readFileSync(cgroupPath, 'utf-8');
-      if (
-        cgroupContent.includes('docker') ||
-        cgroupContent.includes('kubepods')
-      ) {
-        return true;
-      }
     }
   } catch (err) {
     console.error('Error checking if running in Docker:', err);
@@ -218,7 +206,7 @@ export function isDocker(): boolean {
  */
 export function reloadEnv() {
   let envFilePath;
-  if (isDocker()) {
+  if (isExsatDocker()) {
     envFilePath = path.resolve(__dirname, '../../.exsat', '.env');
   } else {
     envFilePath = path.resolve(__dirname, '../../', '.env');

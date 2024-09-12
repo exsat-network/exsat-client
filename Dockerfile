@@ -6,6 +6,10 @@ RUN apt-get update && apt-get install -y curl \
   && npm install -g yarn \
   && apt-get clean
 
+# Create exsat identity
+RUN mkdir -p /exsat
+RUN echo "v:0.2.7" > /exsat/config
+
 WORKDIR /app
 COPY . /app
 RUN yarn install \
