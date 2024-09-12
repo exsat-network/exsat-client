@@ -26,6 +26,7 @@ export class BlockOperations {
 
   // Deletes an existing block bucket.
   async delbucket(caller: string, height: number, hash: string) {
+    logger.info(`[${caller}] Deleting bucket, height: ${height}, hash: ${hash}`);
     const result: any = await this.exsatApi.executeAction(ContractName.blksync, 'delbucket', {
       synchronizer: this.accountName,
       height,
