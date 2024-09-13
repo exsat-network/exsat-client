@@ -46,7 +46,10 @@ export function getConfigPassword(clientType: number) {
 }
 
 export async function getInputPassword(): Promise<string> {
-  const passwordInput = await password({ message: 'Please enter your keystore password (Enter q to exit): ' });
+  const passwordInput = await password({
+    message: 'Please enter your keystore password (Enter q to exit): ',
+    mask: '*'
+  });
   return passwordInput.trim();
 }
 

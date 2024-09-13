@@ -69,6 +69,7 @@
   version "1.0.10"
   resolved "https://registry.npmjs.org/@exsat/account-initializer/-/account-initializer-1.0.10.tgz#1b5e375e0bb7afaed388fc922e94408eccae9b49"
   integrity sha512-T0LIztVrWUt1QyOc0sZ6Rm8iqe5L8uPhe0BSAfLkqWYOyrocW+Rs2DjzZog7rMtb4rVL2ICXMP/X4ozUFe9AxQ==
+
   dependencies:
     "@inquirer/prompts" "^5.1.2"
     "@scure/bip39" "^1.0.0"

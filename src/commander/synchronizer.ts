@@ -17,6 +17,7 @@ import fs from "node:fs";
 import { inputWithCancel } from "../utils/input";
 import { updateEnvFile } from "@exsat/account-initializer/dist/utils";
 import { notAccountMenu, updateMenu } from "./common";
+import { Font } from "../utils/font";
 
 export class SynchronizerCommander {
   private exsatAccountInfo: any;
@@ -119,6 +120,7 @@ export class SynchronizerCommander {
       await retry(async () => {
         const passwordInput = await password({
           message: 'Enter your password to Remove Account\n(5 incorrect passwords will exit the program,Enter "q" to return):',
+          mask: '*'
         });
         if (passwordInput === 'q') {
           return false;
@@ -174,6 +176,7 @@ export class SynchronizerCommander {
     }
     await this.resetRewardAddress(financialAccount);
     logger.info(`Set Reward Account:${financialAccount} successfully`);
+    return true;
   }
 
   /**
@@ -184,7 +187,8 @@ export class SynchronizerCommander {
       synchronizer: this.exsatAccountInfo.accountName,
       financial_account: account,
     };
-    return await this.exsatApi.executeAction('poolreg.xsat', 'setfinacct', data);
+    await this.exsatApi.executeAction('poolreg.xsat', 'setfinacct', data);
+    this.synchronizerInfo = await this.tableApi.getSynchronizerInfo(this.exsatAccountInfo.accountName);
   }
 
   /**
@@ -326,13 +330,21 @@ export class SynchronizerCommander {
         case 'completed':
           this.exsatAccountInfo = { ...this.exsatAccountInfo, ...checkAccountInfo };
           break;
+        case 'failed':
         case 'initial':
+          const statusLabel = checkAccountInfo.status === 'failed' ? Font.colorize('Registration Failed', Font.fgRed) : 'Unregistered, Bridge Gas Fee (BTC) to Register';
           showInfo({
             'Account Name': this.exsatAccountInfo.accountName,
             'Public Key': this.exsatAccountInfo.publicKey,
-            'Account Registration Status': 'Unregistered, Bridge Gas Fee (BTC) to Register',
+            'Account Registration Status': statusLabel,
             'Email': checkAccountInfo.email,
           });
+          if (checkAccountInfo.status === 'failed') {
+            console.log('Your account registration was Failed. \n' +
+              'Possible reasons: the BTC Transaction ID you provided is incorrect, or the BTC transaction has been rolled back. \n' +
+              'Please resubmit the BTC Transaction ID. Thank you.\n' +
+              '-----------------------------------------------')
+          }
           menus = [
             {
               name: 'Bridge BTC Used For GAS Fee',
@@ -387,7 +399,7 @@ export class SynchronizerCommander {
       });
 
       const menus = [
-        { name: 'Set Reward Address ( EVM )', value: 'set_reward_address' },
+        { name: 'Set Reward Address(EVM)', value: 'set_reward_address' },
         new Separator(),
         { name: 'Quit', value: 'quit', description: 'Quit' },
       ];
