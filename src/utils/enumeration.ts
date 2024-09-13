@@ -68,4 +68,5 @@ export enum ErrorCode {
   Code2019 = '2019', //2019:blksync.xsat::verify: cannot validate block in the current state
   Code2020 = '2020', //2020:blksync.xsat::verify: parent block hash did not reach consensus
   Code2022 = '2022', //2022:blksync.xsat::verify: waiting for miners to produce blocks
+  Code4003 = '4003', //4003:utxomng.xsat::processblock: you are not a parser of the current block
 }

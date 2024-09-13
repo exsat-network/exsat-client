@@ -72,10 +72,8 @@ export class SynchronizerJobs {
         logger.info('No new block found.');
         return;
       }
-      const blockbuckets = await this.state.tableApi!.getAllBlockbucket(this.state.accountName);
+      const blockbuckets = await this.state.tableApi!.getAllBlockbucket(caller, this.state.accountName);
       const uploadedHeights: number[] = blockbuckets.map(item => item.height);
-      logger.info(`[${caller}] all blockbuckets height: [${uploadedHeights.join(', ')}]`);
-
       if (!blockbuckets || blockbuckets.length === 0) {
         const nextUploadHeight = getNextUploadHeight(uploadedHeights, headHeight);
         await this.uploadBlock(caller, nextUploadHeight);
@@ -149,6 +147,7 @@ export class SynchronizerJobs {
       logger.error('Error in upload task:', error);
       errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
     } finally {
+      logger.info('Upload block task is finished.');
       this.state.uploadRunning = false;
     }
   };
@@ -164,14 +163,11 @@ export class SynchronizerJobs {
     try {
       logger.info('Verify block task is running.');
       const chainstate = await this.state.tableApi!.getChainstate();
-      const blockbuckets = await this.state.tableApi!.getAllBlockbucket(this.state.accountName);
+      const blockbuckets = await this.state.tableApi!.getAllBlockbucket(caller, this.state.accountName);
       if (!blockbuckets || blockbuckets.length === 0) {
         logger.info('No blockbucket found.');
         return;
       }
-      const result = blockbuckets.map(obj => obj.height).join(', ');
-      logger.info(`[${caller}] all blockbuckets height: ${result}`);
-
       let verifyBucket;
       for (const blockbucket of blockbuckets) {
         if (chainstate!.head_height >= blockbucket.height) {
@@ -230,7 +226,7 @@ export class SynchronizerJobs {
         logger.info(`The block has reached consensus, height: ${logHeight}, hash: ${logHash}`);
       } else if (errorMessage.startsWith(ErrorCode.Code2018)) {
         //Ignore
-      } else if (errorMessage.startsWith(ErrorCode.Code2013)) {
+      } else if (errorMessage.startsWith(ErrorCode.Code2013) || errorMessage.startsWith(ErrorCode.Code2019)) {
         //Ignore
       } else if (errorMessage.startsWith(ErrorCode.Code2020)) {
         //Ignore
@@ -242,6 +238,7 @@ export class SynchronizerJobs {
         await sleep();
       }
     } finally {
+      logger.info('Verify block task is finished.');
       this.state.verifyRunning = false;
     }
   };
@@ -253,23 +250,30 @@ export class SynchronizerJobs {
     this.state.parseRunning = true;
     try {
       logger.info('Parse block task is running.');
-      const chainstate = await this.state.tableApi!.getChainstate();
+      let chainstate = await this.state.tableApi!.getChainstate();
+      let resetRows = false;
       for (const item of chainstate!.parsing_progress_of) {
         const parseInfo = item.second;
         if (parseInfo.parser === this.state.accountName || moment.utc().isAfter(moment.utc(parseInfo.parse_expiration_time))) {
           let processRows: number = PROCESS_ROWS;
           while (true) {
             try {
+              chainstate = await this.state.tableApi!.getChainstate();
+              if (chainstate!.status === 5 && processRows < PROCESS_ROWS && !resetRows) {
+                processRows = PROCESS_ROWS;
+                resetRows = true;
+              }
               const parseResult: any = await this.state.exsatApi!.executeAction(ContractName.utxomng, 'processblock', {
                 synchronizer: this.state.accountName,
                 process_rows: processRows,
               });
               if (parseResult) {
-                logger.info(`Parse block success, transaction_id: ${parseResult.transaction_id}`);
+                logger.info(`Parse block success, parsing_height: ${chainstate!.parsing_height}, status: ${chainstate!.status}, processRows: ${processRows}, transaction_id: ${parseResult.transaction_id}`);
                 const returnValueDate = parseResult.processed?.action_traces[0]?.return_value_data;
-                if (returnValueDate.status !== 'parsing') {
+                if (returnValueDate.status === 'parsing_completed') {
                   break;
                 }
+                await sleep(200);
               }
             } catch (e: any) {
               const errorMessage = getErrorMessage(e);
@@ -277,10 +281,13 @@ export class SynchronizerJobs {
                 processRows = Math.ceil(processRows * 0.618);
               } else if (errorMessage.includes('the transaction was unable to complete by deadline, but it is possible it could have succeeded if it were allowed to run to completion')) {
                 processRows = Math.ceil(processRows * 0.5);
-                logger.warn(`Parse block failed, height=${chainstate!.head_height}, message=${e.message}`);
+                logger.warn(`Parse block failed, height=${chainstate!.head_height}, parsing_height: ${chainstate!.parsing_height}, message=${e.message}`);
                 warnTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
               } else if (errorMessage.includes('duplicate transaction')) {
                 //Ignore duplicate transaction
+                await sleep();
+              } else if (errorMessage.startsWith(ErrorCode.Code4003)) {
+                logger.info(`Parse block failed, height=${chainstate!.head_height}, parsing_height: ${chainstate!.parsing_height}, message=${e.message}`);
                 await sleep();
               } else {
                 logger.error(`Parse block failed, chainstate=${JSON.stringify(chainstate)}, stack=${e.stack}`);
@@ -297,6 +304,7 @@ export class SynchronizerJobs {
       errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
       await sleep();
     } finally {
+      logger.info('Parse block task is finished.');
       this.state.parseRunning = false;
     }
   };
@@ -325,12 +333,10 @@ export class SynchronizerJobs {
       }
       //consensusblk not found, fork occurs
       //Delete all occupied card slots when a fork occurs
-      const blockbuckets = await this.state.tableApi!.getAllBlockbucket(this.state.accountName);
+      const blockbuckets = await this.state.tableApi!.getAllBlockbucket(caller, this.state.accountName);
       if (blockbuckets && blockbuckets.length > 0) {
-        const result = blockbuckets.map(obj => obj.height).join(', ');
-        logger.info(`forkCheck: all blockbuckets height: ${result}`);
         for (const blockbucket of blockbuckets) {
-          logger.info(`delete: Bitcoin fork happen, height: ${blockbucket.height}, hash: ${blockbucket.hash}`);
+          logger.info(`delbucket: Bitcoin fork happen, height: ${blockbucket.height}, hash: ${blockbucket.hash}`);
           await this.blockOperations.delbucket(caller, blockbucket.height, blockbucket.hash);
         }
       }
@@ -364,6 +370,7 @@ export class SynchronizerJobs {
         await sleep();
       }
     } finally {
+      logger.info('Fork check block task is finished.');
       this.state.forkCheckRunning = false;
     }
   };
