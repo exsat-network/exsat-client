@@ -4,6 +4,7 @@ import { SynchronizerCommander } from "./synchronizer";
 import { ValidatorCommander } from "./validator";
 import { Version } from "../utils/version";
 import { updateMenu } from "./common";
+import { Client } from "../utils/enumeration";
 
 /**
  * Main entry point for the application.
@@ -26,21 +27,21 @@ async function main() {
 
   // Define menu options for client selection
   const menus = [
-    { name: 'Synchronizer', value: 'synchronizer' },
-    { name: 'Validator', value: 'validator' },
+    { name: 'Synchronizer', value: Client.Synchronizer },
+    { name: 'Validator', value: Client.Validator },
   ];
 
   // Prompt user to select a client to start
   const action = await select({ message: 'Please select the client to start:', choices: menus });
 
   // Initialize the selected client and configure logger
-  let client;
+  let clientCommander;
   switch (action) {
-    case 'synchronizer':
-      client = new SynchronizerCommander();
+    case Client.Synchronizer:
+      clientCommander = new SynchronizerCommander();
       break;
-    case 'validator':
-      client = new ValidatorCommander();
+    case Client.Validator:
+      clientCommander = new ValidatorCommander();
       break;
     default:
       throw new Error('Invalid client selection');
@@ -48,7 +49,7 @@ async function main() {
 
   // Start the selected client
   configureLogger('commander');
-  await client.main();
+  await clientCommander.main();
 }
 
 // Execute the main function and handle any errors
