@@ -143,12 +143,22 @@ export class SynchronizerJobs {
             return;
           }
           for (const item of chunkMap) {
-            const chunkId: number = item[0];
-            const chunkData: string = item[1];
-            if (newBlockbucket.chunk_ids.includes(chunkId)) {
-              continue;
+            try {
+              const chunkId: number = item[0];
+              const chunkData: string = item[1];
+              if (newBlockbucket.chunk_ids.includes(chunkId)) {
+                continue;
+              }
+              await this.blockOperations.pushchunk(caller, height, hash, chunkId, chunkData);
+            } catch (e) {
+              const errorMessage = getErrorMessage(e);
+              if (errorMessage.includes('duplicate transaction')) {
+                await sleep();
+              } else {
+                logger.error('pushchunk: Error in upload task:', e);
+                errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
+              }
             }
-            await this.blockOperations.pushchunk(caller, height, hash, chunkId, chunkData);
           }
           return;
         }
@@ -178,9 +188,15 @@ export class SynchronizerJobs {
           }
         }
       }
-    } catch (error) {
-      logger.error('Error in upload task:', error);
-      errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
+    } catch (e) {
+      const errorMessage = getErrorMessage(e);
+      if (errorMessage.includes('duplicate transaction')) {
+        //Ignore duplicate transaction
+        await sleep();
+      } else {
+        logger.error('Error in upload task:', e);
+        errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
+      }
     } finally {
       logger.info('Upload block task is finished');
       this.state.uploadRunning = false;
