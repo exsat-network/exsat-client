@@ -22,6 +22,14 @@ export class SynchronizerJobs {
         logger.info(`[uploadBlock] The block has been completed by consensus, height: ${uploadHeight}, hash: ${hash}`);
         return;
       }
+      const blockbuckets = await this.state.tableApi!.getAllBlockbucket(caller, this.state.accountName);
+      if (blockbuckets && blockbuckets.length > 0) {
+        const blockbucket = blockbuckets.find(item => item.height === uploadHeight && item.hash === hash);
+        if (blockbucket) {
+          logger.info(`[uploadBlock] The block has been uploaded, height: ${uploadHeight}, hash: ${hash}`);
+          return;
+        }
+      }
       const blockInfo = await getblock(hash);
       if (blockInfo.result === null && blockInfo.error?.code === -5) {
         logger.info(`Block not found, height: ${uploadHeight}, hash: ${hash}`);
@@ -57,6 +65,18 @@ export class SynchronizerJobs {
     }
   };
 
+  checkForkBlock = async (chainstate: any): Promise<any> => {
+    for (let height = chainstate!.irreversible_height + 1; height < chainstate!.head_height; height++) {
+      const blockhashInfo = await getblockhash(height);
+      const hash = blockhashInfo.result;
+      const consensusblk = await this.state.tableApi!.getConsensusByBlockId(BigInt(height), hash);
+      if (!consensusblk) {
+        return { forkHeight: height, forkHash: hash };
+      }
+    }
+    return { forkHeight: 0, forkHash: null };
+  };
+
   upload = async () => {
     if (this.state.uploadRunning) {
       return;
@@ -66,16 +86,17 @@ export class SynchronizerJobs {
       const caller = 'upload';
       logger.info('Upload block task is running');
       const chainstate = await this.state.tableApi!.getChainstate();
+      const { forkHeight, forkHash } = await this.checkForkBlock(chainstate);
       const headHeight = chainstate!.head_height;
       const blockcountInfo = await getblockcount();
-      if (headHeight >= blockcountInfo.result) {
+      if (forkHeight === 0 && headHeight >= blockcountInfo.result) {
         logger.info('No new block found');
         return;
       }
       const blockbuckets = await this.state.tableApi!.getAllBlockbucket(caller, this.state.accountName);
       const uploadedHeights: number[] = blockbuckets.map(item => item.height);
       if (!blockbuckets || blockbuckets.length === 0) {
-        const nextUploadHeight = getNextUploadHeight(uploadedHeights, headHeight);
+        const nextUploadHeight = getNextUploadHeight(uploadedHeights, headHeight, forkHeight);
         await this.uploadBlock(caller, nextUploadHeight);
       } else {
         const uploadingBlockbucket = blockbuckets.find(item => item.status === BlockStatus.UPLOADING);
@@ -129,12 +150,20 @@ export class SynchronizerJobs {
         const holdSlots: number = synchronizerInfo!.num_slots;
         const usedSlots: number = blockbuckets.length;
         if (usedSlots < holdSlots) {
-          const nextUploadHeight = getNextUploadHeight(uploadedHeights, headHeight);
+          const nextUploadHeight = getNextUploadHeight(uploadedHeights, headHeight, forkHeight);
           await this.uploadBlock(caller, nextUploadHeight);
         } else {
           const minBucket = blockbuckets[0];
           const maxBucket = blockbuckets[blockbuckets.length - 1];
-          if (minBucket.height > headHeight + 1) {
+          if (forkHeight > 0) {
+            logger.info(`delbucket: Bitcoin fork happen, delete all blockbuckets, forkHeight: ${forkHeight}, forkHash: ${forkHash}`);
+            for (const blockbucket of blockbuckets) {
+              if (blockbucket.height !== forkHeight && blockbucket.hash !== forkHash) {
+                logger.info(`delbucket: Bitcoin fork happen, height: ${blockbucket.height}, hash: ${blockbucket.hash}`);
+                await this.blockOperations.delbucket(caller, blockbucket.height, blockbucket.hash);
+              }
+            }
+          } else if (minBucket.height > headHeight + 1) {
             logger.info(`delbucket: The prev block need reupload, delete max bucket, height: ${maxBucket.height}, hash: ${maxBucket.hash}`);
             await this.blockOperations.delbucket(caller, maxBucket.height, maxBucket.hash);
           } else {
@@ -306,78 +335,6 @@ export class SynchronizerJobs {
     } finally {
       logger.info('Parse block task is finished');
       this.state.parseRunning = false;
-    }
-  };
-
-  forkCheck = async () => {
-    if (this.state.forkCheckRunning) {
-      return;
-    }
-    this.state.forkCheckRunning = true;
-    let height: number = 0;
-    let hash: string = '';
-    try {
-      const caller = 'forkCheck';
-      logger.info('Fork check task is running');
-      const chainstate = await this.state.tableApi!.getChainstate();
-      const blockcountInfo = await getblockcount();
-      if (chainstate!.head_height <= blockcountInfo.result - 6) {
-        return;
-      }
-      for (height = chainstate!.irreversible_height + 1; height <= blockcountInfo.result; height++) {
-        const blockhashInfo = await getblockhash(height);
-        hash = blockhashInfo.result;
-        const consensusblk = await this.state.tableApi!.getConsensusByBlockId(BigInt(height), hash);
-        if (consensusblk) {
-          continue;
-        }
-        const blockInfo = await getblock(hash);
-        if (blockInfo.result === null && blockInfo.error?.code === -5) {
-          logger.info(`Block not found, height: ${height}, hash: ${hash}`);
-          return;
-        } else if (blockInfo.error) {
-          logger.error(`Get block raw error, height: ${height}, hash: ${hash}`, blockInfo.error);
-          errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
-          return;
-        }
-        const blockRaw = blockInfo.result;
-        const chunkMap: Map<number, string> = await getChunkMap(blockRaw);
-        //consensusblk not found, fork occurs
-        //Delete all occupied card slots when a fork occurs
-        const blockbuckets = await this.state.tableApi!.getAllBlockbucket(caller, this.state.accountName);
-        if (blockbuckets && blockbuckets.length > 0) {
-          for (const blockbucket of blockbuckets) {
-            if (blockbucket.height === height && blockbucket.hash == hash) {
-              //The fork block already exists, no need to re-upload, and wait for the validator to endorse and verify the block
-              return;
-            } else {
-              logger.info(`delbucket: Bitcoin fork happen, height: ${blockbucket.height}, hash: ${blockbucket.hash}`);
-              await this.blockOperations.delbucket(caller, blockbucket.height, blockbucket.hash);
-            }
-          }
-        }
-        await this.blockOperations.initbucket(caller, height, hash, blockRaw.length / 2, chunkMap.size);
-        for (const item of chunkMap) {
-          await this.blockOperations.pushchunk(caller, height, hash, item[0], item[1]);
-        }
-      }
-    } catch (e: any) {
-      const errorMessage = getErrorMessage(e);
-      if (errorMessage.includes('duplicate transaction')) {
-        //Ignore duplicate transaction
-        await sleep();
-      } else if (errorMessage.startsWith(ErrorCode.Code2005)) {
-        logger.info(`The block has reached consensus, height: ${height}, hash: ${hash}`);
-      } else if (errorMessage.startsWith(ErrorCode.Code2013)) {
-        //Ignore
-      } else {
-        logger.error(`Fork check block task error, height: ${height}, hash: ${hash}`, e);
-        errorTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
-        await sleep();
-      }
-    } finally {
-      logger.info('Fork check block task is finished');
-      this.state.forkCheckRunning = false;
     }
   };
 }
