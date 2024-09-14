@@ -324,7 +324,7 @@ export class SynchronizerJobs {
                 if (returnValueDate.status === 'parsing_completed') {
                   break;
                 }
-                await sleep(200);
+                await sleep(300);
               }
             } catch (e: any) {
               const errorMessage = getErrorMessage(e);
