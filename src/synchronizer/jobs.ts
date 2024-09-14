@@ -71,6 +71,7 @@ export class SynchronizerJobs {
       const hash = blockhashInfo.result;
       const consensusblk = await this.state.tableApi!.getConsensusByBlockId(BigInt(height), hash);
       if (!consensusblk) {
+        logger.warn(`Bitcoin fork happen, height: ${height}, hash: ${hash}`);
         return { forkHeight: height, forkHash: hash };
       }
     }
