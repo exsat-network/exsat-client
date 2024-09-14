@@ -62,12 +62,12 @@ export class ValidatorJobs {
       if (!this.state.startupStatus) {
         this.state.startupStatus = await this.state.tableApi!.getStartupStatus();
         if (!this.state.startupStatus) {
-          logger.info('The exSat Network has not officially launched yet. Please wait for it to start.');
+          logger.info('The exSat Network has not officially launched yet. Please wait for it to start');
           await sleep(30000);
           return;
         }
       }
-      logger.info('Endorse task is running.');
+      logger.info('Endorse task is running');
       const blockcountInfo = await getblockcount();
       const blockhashInfo = await getblockhash(blockcountInfo.result);
       await this.checkAndSubmit(this.state.accountName, blockcountInfo.result, blockhashInfo.result);
@@ -82,7 +82,7 @@ export class ValidatorJobs {
         errorTotalCounter.inc({ account: this.state.accountName, client: Client.Validator });
       }
     } finally {
-      logger.info('Endorse task is finished.');
+      logger.info('Endorse task is finished');
       this.state.endorseRunning = false;
     }
   };
@@ -93,7 +93,7 @@ export class ValidatorJobs {
     }
     this.state.endorseCheckRunning = true;
     try {
-      logger.info('Endorse check task is running.');
+      logger.info('Endorse check task is running');
       const chainstate = await this.state.tableApi!.getChainstate();
       const blockcount = await getblockcount();
       let startEndorseHeight = chainstate!.irreversible_height + 1;
