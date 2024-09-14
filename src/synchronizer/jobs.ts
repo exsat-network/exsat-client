@@ -70,7 +70,7 @@ export class SynchronizerJobs {
     if (chainstate!.head_height <= blockcountInfo.result - 6) {
       return { forkHeight: 0, forkHash: null };
     }
-    for (let height = chainstate!.irreversible_height + 1; height < chainstate!.head_height; height++) {
+    for (let height = chainstate!.irreversible_height + 1; height <= chainstate!.head_height; height++) {
       const blockhashInfo = await getblockhash(height);
       const hash = blockhashInfo.result;
       const consensusblk = await this.state.tableApi!.getConsensusByBlockId(BigInt(height), hash);
