@@ -65,7 +65,7 @@ export class SynchronizerJobs {
     }
   };
 
-  checkForkBlock = async (chainstate: any): Promise<any> => {
+  checkForkBlock = async (chainstate: any): Promise<{ forkHeight: number, forkHash: string }> => {
     for (let height = chainstate!.irreversible_height + 1; height < chainstate!.head_height; height++) {
       const blockhashInfo = await getblockhash(height);
       const hash = blockhashInfo.result;
