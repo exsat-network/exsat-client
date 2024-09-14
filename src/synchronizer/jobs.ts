@@ -170,8 +170,8 @@ export class SynchronizerJobs {
       }
       let verifyBucket;
       for (const blockbucket of blockbuckets) {
-        if (chainstate!.head_height >= blockbucket.height) {
-          //Delete blocks that have been endorsed
+        const consensusblk = await this.state.tableApi!.getConsensusByBlockId(BigInt(blockbucket.height), blockbucket.hash);
+        if (consensusblk || chainstate!.irreversible_height >= blockbucket.height) {
           logger.info(`delbucket: The block has been endorsed, height: ${blockbucket.height}, hash: ${blockbucket.hash}`);
           await this.blockOperations.delbucket(caller, blockbucket.height, blockbucket.hash);
         } else {
