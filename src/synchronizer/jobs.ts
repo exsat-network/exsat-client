@@ -72,6 +72,7 @@ export class SynchronizerJobs {
       const consensusblk = await this.state.tableApi!.getConsensusByBlockId(BigInt(height), hash);
       if (!consensusblk) {
         logger.warn(`Bitcoin fork happen, height: ${height}, hash: ${hash}`);
+        warnTotalCounter.inc({ account: this.state.accountName, client: Client.Synchronizer });
         return { forkHeight: height, forkHash: hash };
       }
     }
