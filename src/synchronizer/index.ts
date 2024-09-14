@@ -10,7 +10,6 @@ import { BlockOperations } from './blockOperations';
 import { SynchronizerJobs } from './jobs';
 import {
   EXSAT_RPC_URLS,
-  SYNCHRONIZER_JOBS_BLOCK_FORK_CHECK,
   SYNCHRONIZER_JOBS_BLOCK_PARSE,
   SYNCHRONIZER_JOBS_BLOCK_UPLOAD,
   SYNCHRONIZER_JOBS_BLOCK_VERIFY,
@@ -24,7 +23,6 @@ export class SynchronizerState {
   uploadRunning = false;
   verifyRunning = false;
   parseRunning = false;
-  forkCheckRunning = false;
 }
 
 async function initializeAccount(): Promise<{ accountInfo: any, password: string }> {
@@ -65,7 +63,6 @@ function setupCronJobs(jobs: SynchronizerJobs) {
     { schedule: SYNCHRONIZER_JOBS_BLOCK_UPLOAD, job: jobs.upload },
     { schedule: SYNCHRONIZER_JOBS_BLOCK_VERIFY, job: jobs.verify },
     { schedule: SYNCHRONIZER_JOBS_BLOCK_PARSE, job: jobs.parse },
-    { schedule: SYNCHRONIZER_JOBS_BLOCK_FORK_CHECK, job: jobs.forkCheck }
   ];
 
   cronJobs.forEach(({ schedule, job }) => {

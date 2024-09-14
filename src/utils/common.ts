@@ -163,8 +163,12 @@ export function getMinMaxBucket(blockbuckets) {
  * Get the next upload height.
  * @param currentUploadedHeights
  * @param headHeight
+ * @param forkHeight
  */
-export function getNextUploadHeight(currentUploadedHeights: number[], headHeight: number): number {
+export function getNextUploadHeight(currentUploadedHeights: number[], headHeight: number, forkHeight: number): number {
+  if (forkHeight > 0) {
+    return forkHeight;
+  }
   if (currentUploadedHeights.length === 0) {
     return headHeight + 1;
   }
