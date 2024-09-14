@@ -66,6 +66,10 @@ export class SynchronizerJobs {
   };
 
   checkForkBlock = async (chainstate: any): Promise<{ forkHeight: number, forkHash: string }> => {
+    const blockcountInfo = await getblockcount();
+    if (chainstate!.head_height <= blockcountInfo.result - 6) {
+      return { forkHeight: 0, forkHash: null };
+    }
     for (let height = chainstate!.irreversible_height + 1; height < chainstate!.head_height; height++) {
       const blockhashInfo = await getblockhash(height);
       const hash = blockhashInfo.result;
