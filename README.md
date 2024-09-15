@@ -3,20 +3,25 @@
 The current Git repository only describes the operations on the client side. If you need complete instructions on how to register and run the Synchronizer and Validator on the exSat hayek testnet, please refer to this link for more comprehensive information: [https://docs.exsat.network/user-guide-for-testnet-hayek](https://docs.exsat.network/user-guide-for-testnet-hayek).
 
 ## Hardware Requirement
+
 Recommended Configuration:
+
 - **CPU**: 2 Cores
 - **RAM**: 4GB
 - **Disk**: 50GB
 
 ## Operation System
+
 Recommend to use Ubuntu system, or other Linux systems.
 
 ## Prerequisites
+
 Ensure the following tools are installed on your system:
+
 - **Git**
   - Check: `git --version`
   - Install: [Git Installation Guide](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
-- **Node.js** (version 20.* or higher)
+- **Node.js** (version 20.0.0 or higher)
   - Check: `node -v`
   - Install: [Node.js Installation Guide](https://nodejs.org/en/download/package-manager)
 - **Yarn**
@@ -27,17 +32,22 @@ Ensure the following tools are installed on your system:
   - Install: `npm install -g pm2`
 
 ## Downloading Client Code and Installing Dependencies
+
 Some commands may need the root account permission to execute, please use sudo as needed.
 
 ### Download the Client
+
 Open a terminal window.  
 Execute the following command to clone the repository :
+
 ```
 https://github.com/exsat-network/exsat-client.git
 ```
 
 ### Configure the Environment Variables
+
 Navigate to the project directory (e.g.exsat-client), Copy the .env.example file to create a new .env file, edit the newly created .env file.
+
 ```
 cp .env.example .env
 vim .env
@@ -130,6 +140,7 @@ Verify that you have copied `.env.example` to `.env` and customized the paramete
 
 Open a terminal window.  
 Navigate to the project directory, Start the client by executing the script:
+
 ```
 yarn start-commander
 or
@@ -140,11 +151,10 @@ yarn start-validator
 
 ### Start the Client with yarn(The keystore password is provided directly)
 
-| Parameter   | Description                                              | Example                                          |
-| ----------- | -------------------------------------------------------- |--------------------------------------------------|
-| `--pwd`     | Provides the password directly.                          | `yarn start-<clientType> --pwd mysecretpassword` |
-| `--pwdfile` | Provides the file path containing the password.          | `yarn start-<clientType> --pwdfile /path/to/password.txt`     |
-
+| Parameter   | Description                                     | Example                                                   |
+| ----------- | ----------------------------------------------- | --------------------------------------------------------- |
+| `--pwd`     | Provides the password directly.                 | `yarn start-<clientType> --pwd mysecretpassword`          |
+| `--pwdfile` | Provides the file path containing the password. | `yarn start-<clientType> --pwdfile /path/to/password.txt` |
 
 ### Start the Client with pm2(The keystore password is configured in the.env file)
 
@@ -163,6 +173,7 @@ Please follow the [documents about synchronizer](https://docs.exsat.network/user
 Please follow the [documents about validator](https://docs.exsat.network/user-guide-for-testnet-nexus/validator) to act as validator.
 
 # Install with Docker
+
 `docker pull exsatnetwork/exsat-client:latest`
 
 ## Run with Docker
@@ -175,16 +186,17 @@ When creating an account, make sure to save your seed phrase carefully. After th
 
 ```shell
 docker run -it --name commander -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=commander exsatnetwork/exsat-client:latest
-````
-
+```
 
 ## Run synchronizer
+
 ```shell
 docker run -d --name synchronizer -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=synchronizer exsatnetwork/exsat-client:latest
 docker logs -f synchronizer
 ```
 
 ## Run validator
+
 ```shell
 docker run -d --name validator -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=validator exsatnetwork/exsat-client:latest
 docker logs -f validator
