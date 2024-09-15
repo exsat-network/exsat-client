@@ -1,8 +1,8 @@
-import { input } from "@inquirer/prompts";
+import { input } from '@inquirer/prompts';
 
 export async function inputWithCancel(
   message: string,
-  validatefn?: (value: string) => boolean | string | Promise<string | boolean>,
+  validatefn?: (value: string) => boolean | string | Promise<string | boolean>
 ) {
   let value = await input({
     message: message,

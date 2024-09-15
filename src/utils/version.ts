@@ -3,7 +3,6 @@ import * as path from 'path';
 import axios from 'axios';
 import process from 'node:process';
 
-
 export class Version {
   private static repoUrl = 'https://github.com/exsat-network/exsat-client';
   private static repoPath = 'exsat-network/exsat-client';
@@ -12,9 +11,7 @@ export class Version {
   // Get the latest version number of the remote warehouse
   static async getLatestVersion(): Promise<string | null> {
     try {
-      const response = await axios.get(
-        `https://api.github.com/repos/${this.repoPath}/releases/latest`,
-      );
+      const response = await axios.get(`https://api.github.com/repos/${this.repoPath}/releases/latest`);
       return response.data.tag_name;
     } catch (error) {
       throw new Error('Failed to fetch latest version:');
@@ -24,14 +21,10 @@ export class Version {
   // Get the description of a specific tag
   static async getTagDescription(tag: string): Promise<string | null> {
     try {
-      const response = await axios.get(
-        `https://api.github.com/repos/${this.repoPath}/releases/tags/${tag}`,
-      );
+      const response = await axios.get(`https://api.github.com/repos/${this.repoPath}/releases/tags/${tag}`);
       return response.data.body || null;
     } catch (error: any) {
-      throw new Error(
-        `Failed to fetch description for tag ${tag}: ${error.message}`,
-      );
+      throw new Error(`Failed to fetch description for tag ${tag}: ${error.message}`);
     }
   }
 
@@ -59,10 +52,7 @@ export class Version {
    */
   static async checkForUpdates(action?) {
     // Retrieve the latest version and the local version
-    const [latestVersion, localVersion] = await Promise.all([
-      this.getLatestVersion(),
-      this.getLocalVersion(),
-    ]);
+    const [latestVersion, localVersion] = await Promise.all([this.getLatestVersion(), this.getLocalVersion()]);
 
     // If unable to retrieve version information, throw an error
     if (!latestVersion || !localVersion) {

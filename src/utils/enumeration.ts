@@ -27,7 +27,7 @@ export enum BlockStatus {
   VERIFY_PARENT_HASH = 4,
   WAITING_MINER_VERIFICATION = 5,
   VERIFY_FAIL = 6,
-  VERIFY_PASS = 7
+  VERIFY_PASS = 7,
 }
 
 export enum IndexPosition {
@@ -40,7 +40,7 @@ export enum IndexPosition {
   Seventh = 'seventh',
   Eighth = 'eighth',
   Ninth = 'ninth',
-  Tenth = 'tenth'
+  Tenth = 'tenth',
 }
 
 export enum KeyType {

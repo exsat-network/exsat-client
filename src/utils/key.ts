@@ -2,7 +2,7 @@
 import crypto from 'crypto';
 import { Name, Checksum160 } from '@wharfkit/antelope';
 
-type Checksum256 = Buffer
+type Checksum256 = Buffer;
 
 /**
  * Compute SHA-256 hash
