@@ -40,6 +40,7 @@ Ubuntu 22.04
    ```
    node -v
    ```
+
 3. If Node.js is installed, the terminal will display the version number, such as `v20.15.1`.
 
 #### Step 2: Verify Node.js Version
@@ -56,12 +57,14 @@ Current version had been tested on Node.js v20.15.1, it's not guaranteed it work
    ```
    sudo apt update
    ```
+
 2. Install Node.js from the NodeSource repository:
 
    ```
    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
    sudo apt install -y nodejs
    ```
+
 3. Verify the installation by checking the Node.js version again:
 
    ```
@@ -79,6 +82,7 @@ Current version had been tested on Node.js v20.15.1, it's not guaranteed it work
    ```
    git --version
    ```
+
 2. If Git is installed, the terminal will display the version number, such as `git version 2.25.1`.
 
 #### Step 2: Install Git if Not Installed
@@ -89,6 +93,7 @@ Current version had been tested on Node.js v20.15.1, it's not guaranteed it work
    sudo apt update
    sudo apt install -y git
    ```
+
 2. Verify the installation by checking the Git version:
 
    ```
@@ -115,6 +120,7 @@ By following these steps, you will ensure that both Node.js (version
    ```
 
    If Yarn is not installed, add the Yarn repository and install it:
+
    ```
    curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
    echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
@@ -167,22 +173,22 @@ Here's an explaination of the parameters for Synchronizers:
 
 ```
    # exSat_RPC
-   # RPC URL for accessing the exSat network. 
+   # RPC URL for accessing the exSat network.
    # This'll have a default config, normally not needed to change it.
    EXSAT_RPC_URLS=["https://chain.exactsat.io"]
-   
+
    # BTC_RPC
    # RPC node of the BTC node.
    # Need to fetch the BTC block data or header from this node.
    BTC_RPC_URLS=[""]
-   
+
    # Synchronizer configuration : jobs scheduler
    JOBS_OTHER_PARSE=*/5 * * * * *
    JOBS_BLOCK_UPLOAD=*/1 * * * * *
-   
-   # Synchronizer configuration : upload chunk size 
+
+   # Synchronizer configuration : upload chunk size
    CHUNK_SIZE=1024*256
-   
+
    # account-initializer service, normally not needed to change it
    ACCOUNT_INITIALIZER_API_BASE_URL=https://registry.exactsat.io
    ACCOUNT_INITIALIZER_API_SECRET=8f235f31-7fe6-47d5-8ed4-5004c953b3f6
@@ -215,18 +221,20 @@ Start the client by executing the script:
 ```sh
 cd synchronizer && yarn start
 ```
-or 
+
+or
+
 ```sh
 cd validator && yarn start
 ```
+
 #### Parameters
 
-| Parameter       | Description                                                            | Example                                                      |
-|-----------------|---------------------------------------------------------------------   |--------------------------------------------------------------|
-| `--pwd`         | Provides the password directly.                                        | `yarn start --pwd mysecretpassword`                          |
-| `--pwdfile`     | Provides the file path containing the password.                        | `yarn start --pwdfile /path/to/password.txt`                 |
-| `--run`         | Directly start the client, skipping the menu operations.               | `yarn start --run`                                           |
-
+| Parameter   | Description                                              | Example                                      |
+| ----------- | -------------------------------------------------------- | -------------------------------------------- |
+| `--pwd`     | Provides the password directly.                          | `yarn start --pwd mysecretpassword`          |
+| `--pwdfile` | Provides the file path containing the password.          | `yarn start --pwdfile /path/to/password.txt` |
+| `--run`     | Directly start the client, skipping the menu operations. | `yarn start --run`                           |
 
 ## Act as Synchronizer
 
@@ -252,38 +260,41 @@ docker pull exsatnetwork/validator:latest
 
 # Run with Docker
 
-When running the client through Docker, it is recommanded to first run it in the foreground interactively to complete account registration and configuration, and then run it in the background for long-term operation. 
+When running the client through Docker, it is recommanded to first run it in the foreground interactively to complete account registration and configuration, and then run it in the background for long-term operation.
 
 When creating an account, make sure to save your seed phrase carefully. After the client generates the private key using the seed phrase, it will save the encrypted private key in a keystore file, and you will choose where to save the keystore file. Be sure to select a path that is mapped to the host machine's storage (e.g. if you're running the docker with the supplied "-v" parameters as below example codes, in the "Choose a directory to save the keystore" step, you could choose the option that save the keystore at "/root/.exsat/synchronizer" or "/root/.exsat/validator"). This way, the keystore file will be saved on the host machine. Otherwise, if you remove the Docker container, the keystore file will be lost, and you will need to regenerate the keystore file by importing the seed phrase.
 
 ## Run synchronizer
+
 ```shell
 mkdir -p $HOME/.exsat/synchronizer
 curl -o $HOME/.exsat/synchronizer/.env https://raw.githubusercontent.com/exsat-network/client_testnet/master/synchronizer/.env.example
 ```
 
 Edit your .env file
+
 ```shell
 vim $HOME/.exsat/synchronizer/.env
 ```
 
 Using Docker interactive commands
+
 ```shell
 docker run -it -v $HOME/.exsat/synchronizer/.env:/app/.env -v $HOME/.exsat/synchronizer/:/root/.exsat exsatnetwork/synchronizer
 ```
 
 Using Docker daemon commands
-Put your password in ```$HOME/.exsat/synchronizer/password```
+Put your password in `$HOME/.exsat/synchronizer/password`
 
 ```shell
 docker run -d -v $HOME/.exsat/synchronizer/.env:/app/.env -v $HOME/.exsat/synchronizer/:/root/.exsat --name synchronizer exsatnetwork/synchronizer  --run --pwdfile /root/.exsat/password
 ```
 
 View logs
+
 ```shell
 docker logs -f synchronizer
 ```
-
 
 ## Run validator
 
@@ -293,17 +304,20 @@ curl -o $HOME/.exsat/validator/.env https://raw.githubusercontent.com/exsat-netw
 ```
 
 Edit your .env file
+
 ```shell
 vim $HOME/.exsat/validator/.env
 ```
 
 Using Docker interactive commands
+
 ```shell
 docker run -it -v $HOME/.exsat/validator/.env:/app/.env -v $HOME/.exsat/validator/:/root/.exsat exsatnetwork/validator
 ```
 
 Using Docker daemon commands
-Put your password in ```$HOME/.exsat/validator/password```
+Put your password in `$HOME/.exsat/validator/password`
+
 ```shell
 docker run -d -v $HOME/.exsat/validator/.env:/app/.env -v $HOME/.exsat/validator/:/root/.exsat --name validator exsatnetwork/validator --run --pwdfile /root/.exsat/password
 ```

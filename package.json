@@ -8,7 +8,7 @@
     "start-synchronizer": "ts-node src/synchronizer/index.ts",
     "start-validator": "ts-node src/validator/index.ts",
     "build": "tsc",
-    "format": "prettier --write src/**/*.ts"
+    "format": "prettier --write ."
   },
   "dependencies": {
     "@exsat/account-initializer": "1.0.10",
