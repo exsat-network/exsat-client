@@ -3,8 +3,8 @@ import fs from 'node:fs';
 import { BTC_RPC_URL, CHUNK_SIZE, EXSAT_RPC_URLS } from './config';
 import { logger } from './logger';
 import { getblockcount } from './bitcoin';
-import path from "node:path";
-import dotenv from "dotenv";
+import path from 'node:path';
+import dotenv from 'dotenv';
 
 /**
  * Pauses execution for a specified number of milliseconds.
@@ -29,14 +29,11 @@ export function getAmountFromQuantity(quantity: string): number {
  * @returns A promise that resolves to the data containing RPC URLs.
  */
 export async function getRpcUrls() {
-  const response = await axios.get(
-    `${process.env.ACCOUNT_INITIALIZER_API_BASE_URL}/api/config/exsat_config`,
-    {
-      headers: {
-        'x-api-key': process.env.ACCOUNT_INITIALIZER_API_SECRET,
-      },
+  const response = await axios.get(`${process.env.ACCOUNT_INITIALIZER_API_BASE_URL}/api/config/exsat_config`, {
+    headers: {
+      'x-api-key': process.env.ACCOUNT_INITIALIZER_API_SECRET,
     },
-  );
+  });
   return response.data;
 }
 
@@ -80,12 +77,7 @@ export async function envCheck(keystoreFile: string) {
  * @param fn
  * @param retries
  */
-export const retry = async (
-  fn: () => Promise<any>,
-  retries = 3,
-  delay = 1000,
-  ft = '',
-): Promise<any> => {
+export const retry = async (fn: () => Promise<any>, retries = 3, delay = 1000, ft = ''): Promise<any> => {
   for (let i = 0; i < retries; i++) {
     try {
       return await fn();
@@ -147,7 +139,8 @@ export function getErrorMessage(e: any): string {
  * @param blockbuckets
  */
 export function getMinMaxBucket(blockbuckets) {
-  let minBucket = blockbuckets[0], maxBucket = blockbuckets[0];
+  let minBucket = blockbuckets[0],
+    maxBucket = blockbuckets[0];
   for (const blockbucket of blockbuckets) {
     if (minBucket.height > blockbucket.height) {
       minBucket = blockbucket;

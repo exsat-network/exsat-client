@@ -11,7 +11,7 @@ import {
   EXSAT_RPC_URLS,
   VALIDATOR_JOBS_ENDORSE,
   VALIDATOR_JOBS_ENDORSE_CHECK,
-  VALIDATOR_KEYSTORE_FILE
+  VALIDATOR_KEYSTORE_FILE,
 } from '../utils/config';
 
 export class ValidatorState {
@@ -24,7 +24,10 @@ export class ValidatorState {
   endorseCheckRunning: boolean = false;
 }
 
-async function initializeAccount(): Promise<{ accountInfo: any, password: string }> {
+async function initializeAccount(): Promise<{
+  accountInfo: any;
+  password: string;
+}> {
   let password = getConfigPassword(ClientType.Validator);
   let accountInfo;
 
@@ -41,7 +44,10 @@ async function initializeAccount(): Promise<{ accountInfo: any, password: string
         accountInfo = await getAccountInfo(VALIDATOR_KEYSTORE_FILE, password);
       } catch (e) {
         logger.warn(e);
-        warnTotalCounter.inc({ account: accountInfo?.accountName, client: Client.Validator });
+        warnTotalCounter.inc({
+          account: accountInfo?.accountName,
+          client: Client.Validator,
+        });
       }
     }
   }
@@ -49,7 +55,7 @@ async function initializeAccount(): Promise<{ accountInfo: any, password: string
   return { accountInfo, password };
 }
 
-async function setupApis(accountInfo: any): Promise<{ exsatApi: ExsatApi, tableApi: TableApi }> {
+async function setupApis(accountInfo: any): Promise<{ exsatApi: ExsatApi; tableApi: TableApi }> {
   const exsatApi = new ExsatApi(accountInfo, EXSAT_RPC_URLS);
   await exsatApi.initialize();
   const tableApi = new TableApi(exsatApi);
@@ -60,7 +66,7 @@ async function setupApis(accountInfo: any): Promise<{ exsatApi: ExsatApi, tableA
 function setupCronJobs(jobs: ValidatorJobs) {
   const cronJobs = [
     { schedule: VALIDATOR_JOBS_ENDORSE, job: jobs.endorse },
-    { schedule: VALIDATOR_JOBS_ENDORSE_CHECK, job: jobs.endorseCheck }
+    { schedule: VALIDATOR_JOBS_ENDORSE_CHECK, job: jobs.endorseCheck },
   ];
 
   cronJobs.forEach(({ schedule, job }) => {
@@ -69,7 +75,10 @@ function setupCronJobs(jobs: ValidatorJobs) {
         await job();
       } catch (error) {
         logger.error(`Unhandled error in ${job.name} job:`, error);
-        errorTotalCounter.inc({ account: jobs.state.accountName, client: Client.Validator });
+        errorTotalCounter.inc({
+          account: jobs.state.accountName,
+          client: Client.Validator,
+        });
       }
     });
   });

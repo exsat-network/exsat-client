@@ -5,7 +5,7 @@ import { envCheck } from '../utils/common';
 import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
 import { Client, ClientType } from '../utils/enumeration';
-import { errorTotalCounter, setupPrometheus, startTimeGauge, warnTotalCounter, } from '../utils/prom';
+import { errorTotalCounter, setupPrometheus, startTimeGauge, warnTotalCounter } from '../utils/prom';
 import { BlockOperations } from './blockOperations';
 import { SynchronizerJobs } from './jobs';
 import {
@@ -13,7 +13,7 @@ import {
   SYNCHRONIZER_JOBS_BLOCK_PARSE,
   SYNCHRONIZER_JOBS_BLOCK_UPLOAD,
   SYNCHRONIZER_JOBS_BLOCK_VERIFY,
-  SYNCHRONIZER_KEYSTORE_FILE
+  SYNCHRONIZER_KEYSTORE_FILE,
 } from '../utils/config';
 
 export class SynchronizerState {
@@ -25,7 +25,10 @@ export class SynchronizerState {
   parseRunning = false;
 }
 
-async function initializeAccount(): Promise<{ accountInfo: any, password: string }> {
+async function initializeAccount(): Promise<{
+  accountInfo: any;
+  password: string;
+}> {
   let password = getConfigPassword(ClientType.Synchronizer);
   let accountInfo;
 
@@ -42,7 +45,10 @@ async function initializeAccount(): Promise<{ accountInfo: any, password: string
         accountInfo = await getAccountInfo(SYNCHRONIZER_KEYSTORE_FILE, password);
       } catch (e) {
         logger.warn(e);
-        warnTotalCounter.inc({ account: accountInfo?.accountName, client: Client.Synchronizer });
+        warnTotalCounter.inc({
+          account: accountInfo?.accountName,
+          client: Client.Synchronizer,
+        });
       }
     }
   }
@@ -50,7 +56,7 @@ async function initializeAccount(): Promise<{ accountInfo: any, password: string
   return { accountInfo, password };
 }
 
-async function setupApis(accountInfo: any): Promise<{ exsatApi: ExsatApi, tableApi: TableApi }> {
+async function setupApis(accountInfo: any): Promise<{ exsatApi: ExsatApi; tableApi: TableApi }> {
   const exsatApi = new ExsatApi(accountInfo, EXSAT_RPC_URLS);
   await exsatApi.initialize();
   const tableApi = new TableApi(exsatApi);
@@ -71,7 +77,10 @@ function setupCronJobs(jobs: SynchronizerJobs) {
         await job();
       } catch (error) {
         logger.error(`Unhandled error in ${job.name} job:`, error);
-        errorTotalCounter.inc({ account: jobs.state.accountName, client: Client.Synchronizer });
+        errorTotalCounter.inc({
+          account: jobs.state.accountName,
+          client: Client.Synchronizer,
+        });
       }
     });
   });
