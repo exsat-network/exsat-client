@@ -167,23 +167,25 @@ Please follow the [documents about validator](https://docs.exsat.network/user-gu
 
 ## Run with Docker
 
-When running the client through Docker, it is recommanded to first run it in the foreground interactively to complete account registration and configuration, and then run it in the background for long-term operation.
+When running the client through Docker, it is recommanded to first run commander in the foreground interactively to complete account registration and configuration, and then run synchronizer or validator in the background for long-term operation.
 
-When creating an account, make sure to save your seed phrase carefully. After the client generates the private key using the seed phrase, it will save the encrypted private key in a keystore file, and you will choose where to save the keystore file. Be sure to select a path that is mapped to the host machine's storage (e.g. if you're running the docker with the supplied "-v" parameters as below example codes, in the "Choose a directory to save the keystore" step, you could choose the option that save the keystore at "/root/.exsat/synchronizer" or "/root/.exsat/validator"). This way, the keystore file will be saved on the host machine. Otherwise, if you remove the Docker container, the keystore file will be lost, and you will need to regenerate the keystore file by importing the seed phrase.
+When creating an account, make sure to save your seed phrase carefully. After the client generates the private key using the seed phrase, it will save the encrypted private key in a keystore file, and you will choose where to save the keystore file. Be sure to select a path that is mapped to the host machine's storage (e.g. if you're running the docker with the supplied "-v" parameters as below example codes, in the "Choose a directory to save the keystore" step, you could choose the option that save the keystore at /root/.exsat). This way, the keystore file will be saved on the host machine. Otherwise, if you remove the Docker container, the keystore file will be lost, and you will need to regenerate the keystore file by importing the seed phrase.
 
 ## Run commander
 
 ```shell
-docker run -it --name commander -v $HOME/.exsat/commander:/app/.exsat -e CLIENT_TYPE=commander exsatnetwork/exsat-client:latest
+docker run -it --name commander -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=commander exsatnetwork/exsat-client:latest
 ````
 
 
 ## Run synchronizer
-`docker run -d --name synchronizer -v $HOME/.exsat/synchronizer:/app/.exsat -e CLIENT_TYPE=synchronizer exsatnetwork/exsat-client:latest`
+```shell
+docker run -d --name synchronizer -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=synchronizer exsatnetwork/exsat-client:latest
+docker logs -f synchronizer
+```
 
 ## Run validator
-`docker run -d --name validator -v $HOME/.exsat/validator:/app/.exsat -e CLIENT_TYPE=validator exsatnetwork/exsat-client:latest`
-
-
-### View logs
-`docker logs -f synchronizer`
+```shell
+docker run -d --name validator -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=validator exsatnetwork/exsat-client:latest
+docker logs -f validator
+```
