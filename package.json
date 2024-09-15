@@ -7,7 +7,8 @@
     "start-commander": "ts-node src/commander/index.ts",
     "start-synchronizer": "ts-node src/synchronizer/index.ts",
     "start-validator": "ts-node src/validator/index.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "format": "prettier --write src/**/*.ts"
   },
   "dependencies": {
     "@exsat/account-initializer": "1.0.10",
@@ -33,6 +34,7 @@
     "@types/config": "^3.3.4",
     "@types/node": "^22.3.0",
     "@types/node-cron": "^3.0.11",
+    "prettier": "^3.3.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.4"
   }

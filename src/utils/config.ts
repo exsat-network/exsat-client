@@ -1,4 +1,4 @@
-import { reloadEnv } from "./common";
+import { reloadEnv } from './common';
 
 reloadEnv();
 
@@ -13,6 +13,8 @@ export const LOGGER_DIR: string = process.env.LOGGER_DIR || 'logs';
 export const BTC_RPC_URL: string = process.env.BTC_RPC_URL;
 export const BTC_RPC_USERNAME: string = process.env.BTC_RPC_USERNAME;
 export const BTC_RPC_PASSWORD: string = process.env.BTC_RPC_PASSWORD;
+
+//  Size of each upload chunk (256 KB). Be careful! Modifying this configuration may cause block uploading failure. It must not be less than 100 KB.
 export const CHUNK_SIZE = parseInt(process.env.CHUNK_SIZE) || 262144;
 export const PROCESS_ROWS = parseInt(process.env.PROCESS_ROWS) || 2000;
 export const SYNCHRONIZER_JOBS_BLOCK_UPLOAD: string = process.env.SYNCHRONIZER_JOBS_BLOCK_UPLOAD || '*/1 * * * * *';
@@ -26,5 +28,6 @@ export const VALIDATOR_JOBS_ENDORSE: string = process.env.VALIDATOR_JOBS_ENDORSE
 export const VALIDATOR_JOBS_ENDORSE_CHECK: string = process.env.VALIDATOR_JOBS_ENDORSE_CHECK || '0 * * * * *';
 export const VALIDATOR_KEYSTORE_FILE: string = process.env.VALIDATOR_KEYSTORE_FILE || '';
 export const VALIDATOR_KEYSTORE_PASSWORD: string = process.env.VALIDATOR_KEYSTORE_PASSWORD || '';
+
 export const PROMETHEUS: boolean = process.env.PROMETHEUS === 'true';
 export const PROMETHEUS_ADDRESS = process.env.PROMETHEUS_ADDRESS || '0.0.0.0:9900';
