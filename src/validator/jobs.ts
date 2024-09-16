@@ -5,21 +5,23 @@ import {
   blockValidateTotalCounter,
   errorTotalCounter,
   validateLatestBlockGauge,
-  validateLatestTimeGauge
+  validateLatestTimeGauge,
 } from '../utils/prom';
 import { ValidatorState } from './index';
 import { getblockcount, getblockhash } from '../utils/bitcoin';
 
 export class ValidatorJobs {
-  constructor(public state: ValidatorState) {
-  }
+  constructor(public state: ValidatorState) {}
 
   // Check if the account is qualified to endorse
-  isEndorserQualified(endorsers: {
-    account: string
-    staking: number
-  }[], accountName: string): boolean {
-    return endorsers.some(endorser => endorser.account === accountName);
+  isEndorserQualified(
+    endorsers: {
+      account: string;
+      staking: number;
+    }[],
+    accountName: string
+  ): boolean {
+    return endorsers.some((endorser) => endorser.account === accountName);
   }
 
   // Check if an endorsement is needed and submit if necessary
@@ -42,14 +44,19 @@ export class ValidatorJobs {
     const result: any = await this.state.exsatApi!.executeAction(ContractName.blkendt, 'endorse', {
       validator,
       height,
-      hash
+      hash,
     });
     if (result && result.transaction_id) {
       this.state.lastEndorseHeight = height;
-      blockValidateTotalCounter.inc({ account: this.state.accountName, client: Client.Validator });
+      blockValidateTotalCounter.inc({
+        account: this.state.accountName,
+        client: Client.Validator,
+      });
       validateLatestBlockGauge.set({ account: this.state.accountName, client: Client.Validator }, height);
       validateLatestTimeGauge.set({ account: this.state.accountName, client: Client.Validator }, Date.now());
-      logger.info(`Submit endorsement success, accountName: ${validator}, height: ${height}, hash: ${hash}, transaction_id: ${result?.transaction_id}`);
+      logger.info(
+        `Submit endorsement success, accountName: ${validator}, height: ${height}, hash: ${hash}, transaction_id: ${result?.transaction_id}`
+      );
     }
   }
 
@@ -79,7 +86,10 @@ export class ValidatorJobs {
         // ignore
       } else {
         logger.error('Endorse task error', e);
-        errorTotalCounter.inc({ account: this.state.accountName, client: Client.Validator });
+        errorTotalCounter.inc({
+          account: this.state.accountName,
+          client: Client.Validator,
+        });
       }
     } finally {
       logger.info('Endorse task is finished');
@@ -116,16 +126,22 @@ export class ValidatorJobs {
             return;
           } else {
             logger.error(`Submit endorsement failed, height: ${i}, hash: ${hash}`, e);
-            errorTotalCounter.inc({ account: this.state.accountName, client: Client.Validator });
+            errorTotalCounter.inc({
+              account: this.state.accountName,
+              client: Client.Validator,
+            });
           }
         }
       }
     } catch (e) {
       logger.error('Endorse check task error', e);
-      errorTotalCounter.inc({ account: this.state.accountName, client: Client.Validator });
+      errorTotalCounter.inc({
+        account: this.state.accountName,
+        client: Client.Validator,
+      });
       await sleep();
     } finally {
-      logger.info("Endorse check task is finished.");
+      logger.info('Endorse check task is finished.');
       this.state.endorseCheckRunning = false;
     }
   };

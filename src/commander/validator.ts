@@ -1,19 +1,19 @@
-import TableApi from "../utils/table-api";
-import ExsatApi from "../utils/exsat-api";
-import { Version } from "../utils/version";
-import { notAccountMenu, updateMenu } from "./common";
-import fs from "node:fs";
-import process from "node:process";
-import { getAccountInfo, getConfigPassword, getInputPassword } from "../utils/keystore";
-import { isValidUrl, reloadEnv, retry, showInfo } from "../utils/common";
-import { confirm, input, password, select, Separator } from "@inquirer/prompts";
-import { chargeBtcForResource, chargeForRegistry, checkUsernameWithBackend } from "@exsat/account-initializer";
-import { EXSAT_RPC_URLS } from "../utils/config";
-import { logger } from "../utils/logger";
-import { inputWithCancel } from "../utils/input";
-import { updateEnvFile } from "@exsat/account-initializer/dist/utils";
-import { ClientType, ContractName } from "../utils/enumeration";
-import { Font } from "../utils/font";
+import TableApi from '../utils/table-api';
+import ExsatApi from '../utils/exsat-api';
+import { Version } from '../utils/version';
+import { notAccountMenu, updateMenu } from './common';
+import fs from 'node:fs';
+import process from 'node:process';
+import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
+import { isValidUrl, reloadEnv, retry, showInfo } from '../utils/common';
+import { confirm, input, password, select, Separator } from '@inquirer/prompts';
+import { chargeBtcForResource, chargeForRegistry, checkUsernameWithBackend } from '@exsat/account-initializer';
+import { EXSAT_RPC_URLS } from '../utils/config';
+import { logger } from '../utils/logger';
+import { inputWithCancel } from '../utils/input';
+import { updateEnvFile } from '@exsat/account-initializer/dist/utils';
+import { ClientType, ContractName } from '../utils/enumeration';
+import { Font } from '../utils/font';
 
 export class ValidatorCommander {
   private exsatAccountInfo: any;
@@ -63,27 +63,43 @@ export class ValidatorCommander {
       'Eligible for Verification': parseFloat(validator.quantity) > 100 ? 'Yes' : 'No, requires min 100 BTC staked',
       'Account Registration Status': 'Registered',
       'Validator Registration Status': 'Registered',
-      'Email': this.exsatAccountInfo.email,
+      Email: this.exsatAccountInfo.email,
     };
     showInfo(showMessageInfo);
 
     const menus = [
-      { name: 'Bridge BTC as GAS Fee', value: 'recharge_btc', description: 'Bridge BTC as GAS Fee' },
+      {
+        name: 'Bridge BTC as GAS Fee',
+        value: 'recharge_btc',
+        description: 'Bridge BTC as GAS Fee',
+      },
       {
         name: 'Reset Reward Address',
         value: 'set_reward_address',
         description: 'Set/Reset Reward Address',
-        disabled: !validator
+        disabled: !validator,
       },
       {
         name: 'Reset Commission Rate',
         value: 'set_commission_rate',
         description: 'Set/Reset Reward Address',
-        disabled: !validator
+        disabled: !validator,
       },
-      { name: 'Reset BTC RPC Node', value: 'reset_btc_rpc', description: 'Reset BTC RPC Node' },
-      { name: 'Export Private Key', value: 'export_private_key', description: 'Export Private Key' },
-      { name: 'Remove Account', value: 'remove_account', description: 'Remove Account' },
+      {
+        name: 'Reset BTC RPC Node',
+        value: 'reset_btc_rpc',
+        description: 'Reset BTC RPC Node',
+      },
+      {
+        name: 'Export Private Key',
+        value: 'export_private_key',
+        description: 'Export Private Key',
+      },
+      {
+        name: 'Remove Account',
+        value: 'remove_account',
+        description: 'Remove Account',
+      },
       new Separator(),
       { name: 'Quit', value: 'quit', description: 'Quit' },
     ];
@@ -103,10 +119,13 @@ export class ValidatorCommander {
 
     let action;
     do {
-      action = await select({ message: 'Select An Action', choices: menus, loop: false });
+      action = await select({
+        message: 'Select An Action',
+        choices: menus,
+        loop: false,
+      });
       if (action !== '99') {
-        await (actions[action] || (() => {
-        }))();
+        await (actions[action] || (() => {}))();
       }
     } while (action !== '99');
   }
@@ -118,7 +137,8 @@ export class ValidatorCommander {
     try {
       await retry(async () => {
         const passwordInput = await password({
-          message: 'Enter your password to Remove Account\n(5 incorrect passwords will exit the program,Enter "q" to return):',
+          message:
+            'Enter your password to Remove Account\n(5 incorrect passwords will exit the program,Enter "q" to return):',
           mask: '*',
         });
         if (passwordInput === 'q') {
@@ -139,22 +159,19 @@ export class ValidatorCommander {
    * Sets the reward address for the validator.
    */
   async setRewardAddress() {
-    const financialAccount = await inputWithCancel(
-      'Enter Reward Address(Input "q" to return):',
-      (input: string) => {
-        if (!/^0x[a-fA-F0-9]{40}$/.test(input)) {
-          return 'Please enter a valid account name.';
-        }
-        return true;
-      },
-    );
+    const financialAccount = await inputWithCancel('Enter Reward Address(Input "q" to return):', (input: string) => {
+      if (!/^0x[a-fA-F0-9]{40}$/.test(input)) {
+        return 'Please enter a valid account name.';
+      }
+      return true;
+    });
     if (!financialAccount) {
       return false;
     }
     const data = {
       validator: this.exsatAccountInfo.accountName,
       financial_account: financialAccount,
-      commission_rate: null
+      commission_rate: null,
     };
     await this.exsatApi.executeAction(ContractName.endrmng, 'config', data);
     logger.info(`Set Reward Account:${financialAccount} successfully`);
@@ -174,7 +191,7 @@ export class ValidatorCommander {
           return 'Please enter a valid integer between 0 and 10000.';
         }
         return true;
-      },
+      }
     );
     if (!commissionRate) {
       return false;
@@ -192,21 +209,26 @@ export class ValidatorCommander {
    * Sets the BTC RPC URL, username, and password.
    */
   async setBtcRpcUrl() {
-    const btcRpcUrl = await inputWithCancel(
-      'Please enter new BTC_RPC_URL(Input "q" to return): ',
-      (input) => {
-        if (!isValidUrl(input)) {
-          return 'Please enter a valid URL';
-        }
-        return true;
-      },
-    );
+    const btcRpcUrl = await inputWithCancel('Please enter new BTC_RPC_URL(Input "q" to return): ', (input) => {
+      if (!isValidUrl(input)) {
+        return 'Please enter a valid URL';
+      }
+      return true;
+    });
     if (!btcRpcUrl) {
       return false;
     }
-    const values: { [key: string]: string } = { BTC_RPC_URL: btcRpcUrl, BTC_RPC_USERNAME: '', BTC_RPC_PASSWORD: '' };
+    const values: { [key: string]: string } = {
+      BTC_RPC_URL: btcRpcUrl,
+      BTC_RPC_USERNAME: '',
+      BTC_RPC_PASSWORD: '',
+    };
 
-    if (await confirm({ message: 'Do You need to configure the username and password?' })) {
+    if (
+      await confirm({
+        message: 'Do You need to configure the username and password?',
+      })
+    ) {
       const rpcUsername = await inputWithCancel('Please enter RPC username(Input "q" to return): ');
       if (!rpcUsername) {
         return false;
@@ -234,7 +256,11 @@ export class ValidatorCommander {
   async resetBtcRpcUrl() {
     const rpcUrl = process.env.BTC_RPC_URL;
     if (rpcUrl) {
-      if (!(await confirm({ message: `Your BTC_RPC_URL:${rpcUrl}\nAre you sure to reset it?` }))) {
+      if (
+        !(await confirm({
+          message: `Your BTC_RPC_URL:${rpcUrl}\nAre you sure to reset it?`,
+        }))
+      ) {
         return;
       }
     }
@@ -293,12 +319,12 @@ export class ValidatorCommander {
         'BTC Balance Used for Gas Fee': btcBalance,
         'Account Registration Status': 'Registered',
         'Validator Registration Status': 'Registering',
-        'Email': this.exsatAccountInfo.email,
+        Email: this.exsatAccountInfo.email,
       });
       console.log(
         'The account has been registered, and a confirmation email has been sent to your inbox. \n' +
-        'Please follow the instructions in the email to complete the Validator registration. \n' +
-        'If you have already followed the instructions, please wait patiently for the next confirmation email.'
+          'Please follow the instructions in the email to complete the Validator registration. \n' +
+          'If you have already followed the instructions, please wait patiently for the next confirmation email.'
       );
       process.exit(0);
     }
@@ -314,39 +340,54 @@ export class ValidatorCommander {
       let menus;
       switch (checkAccountInfo.status) {
         case 'completed':
-          this.exsatAccountInfo = { ...this.exsatAccountInfo, ...checkAccountInfo };
+          this.exsatAccountInfo = {
+            ...this.exsatAccountInfo,
+            ...checkAccountInfo,
+          };
           break;
         case 'failed':
         case 'initial':
-          const statusLabel = checkAccountInfo.status === 'failed' ? Font.colorize('Registration Failed', Font.fgRed) : 'Unregistered, Bridge Gas Fee (BTC) to Register';
+          const statusLabel =
+            checkAccountInfo.status === 'failed'
+              ? Font.colorize('Registration Failed', Font.fgRed)
+              : 'Unregistered, Bridge Gas Fee (BTC) to Register';
 
           showInfo({
             'Account Name': this.exsatAccountInfo.accountName,
             'Public Key': this.exsatAccountInfo.publicKey,
             'Account Registration Status': statusLabel,
-            'Email': checkAccountInfo.email,
+            Email: checkAccountInfo.email,
           });
           if (checkAccountInfo.status === 'failed') {
-            console.log('Your account registration was Failed. \n' +
-              'Possible reasons: the BTC Transaction ID you provided is incorrect, or the BTC transaction has been rolled back. \n' +
-              'Please resubmit the BTC Transaction ID. Thank you.\n' +
-              '-----------------------------------------------')
+            console.log(
+              'Your account registration was Failed. \n' +
+                'Possible reasons: the BTC Transaction ID you provided is incorrect, or the BTC transaction has been rolled back. \n' +
+                'Please resubmit the BTC Transaction ID. Thank you.\n' +
+                '-----------------------------------------------'
+            );
           }
           menus = [
             {
               name: 'Bridge BTC Used For GAS Fee',
               value: 'recharge_btc_registry',
-              description: 'Bridge BTC as GAS Fee'
+              description: 'Bridge BTC as GAS Fee',
             },
             new Separator(),
             { name: 'Quit', value: 'quit', description: 'Quit' },
           ];
-          const action = await select({ message: 'Select Action', choices: menus });
+          const action = await select({
+            message: 'Select Action',
+            choices: menus,
+          });
           if (action === 'quit') {
             process.exit(0);
           }
           if (action === 'recharge_btc_registry') {
-            await chargeForRegistry(this.exsatAccountInfo.accountName, checkAccountInfo.btcAddress, checkAccountInfo.amount);
+            await chargeForRegistry(
+              this.exsatAccountInfo.accountName,
+              checkAccountInfo.btcAddress,
+              checkAccountInfo.amount
+            );
           }
           break;
         case 'charging':
@@ -354,9 +395,11 @@ export class ValidatorCommander {
             'Account Name': this.exsatAccountInfo.accountName,
             'Public Key': this.exsatAccountInfo.publicKey,
             'Account Registration Status': 'Registering',
-            'Email': checkAccountInfo.email,
+            Email: checkAccountInfo.email,
           });
-          console.log('Account registration may take a moment, please wait. \nConfirmation email will be sent to your inbox after the account registration is complete.');
+          console.log(
+            'Account registration may take a moment, please wait. \nConfirmation email will be sent to your inbox after the account registration is complete.'
+          );
           process.exit(0);
           return;
         default:
@@ -381,7 +424,7 @@ export class ValidatorCommander {
         'Reward Address': 'Unset',
         'Account Registration Status': 'Registered',
         'Validator Registration Status': 'Registered',
-        'Email': this.exsatAccountInfo.email,
+        Email: this.exsatAccountInfo.email,
       });
 
       const menus = [
@@ -398,8 +441,7 @@ export class ValidatorCommander {
       let res;
       do {
         action = await select({ message: 'Select Action:', choices: menus });
-        res = await (actions[action] || (() => {
-        }))();
+        res = await (actions[action] || (() => {}))();
       } while (!res);
     } else {
       logger.info('Reward Address is already set correctly.');
@@ -423,7 +465,7 @@ export class ValidatorCommander {
         'Commission Rate': 'Unset',
         'Account Registration Status': 'Registered',
         'Validator Registration Status': 'Registered',
-        'Email': this.exsatAccountInfo.email,
+        Email: this.exsatAccountInfo.email,
       });
 
       const menus = [
@@ -440,8 +482,7 @@ export class ValidatorCommander {
       let res;
       do {
         action = await select({ message: 'Select Action:', choices: menus });
-        res = await (actions[action] || (() => {
-        }))();
+        res = await (actions[action] || (() => {}))();
       } while (!res);
     } else {
       logger.info('Commission Rate is already set correctly.');
@@ -466,7 +507,7 @@ export class ValidatorCommander {
         'BTC PRC Node': 'Unset',
         'Account Registration Status': 'Registered',
         'Validator Registration Status': 'Registered',
-        'Email': this.exsatAccountInfo.email,
+        Email: this.exsatAccountInfo.email,
       };
 
       const menus = [
@@ -483,8 +524,7 @@ export class ValidatorCommander {
       let res;
       do {
         action = await select({ message: 'Select Action:', choices: menus });
-        res = await (actions[action] || (() => {
-        }))();
+        res = await (actions[action] || (() => {}))();
       } while (!res);
     } else {
       logger.info('BTC_RPC_URL is already set correctly.');

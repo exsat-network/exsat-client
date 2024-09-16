@@ -26,10 +26,13 @@ class ExsatApi {
    * @param accountInfo - The account name and private key.
    * @param nodes - List of nodes to connect to.
    */
-  constructor(private accountInfo: {
-    accountName: string;
-    privateKey: string;
-  }, nodes: string[]) {
+  constructor(
+    private accountInfo: {
+      accountName: string;
+      privateKey: string;
+    },
+    nodes: string[]
+  ) {
     this.nodes = nodes;
     this.currentNodeIndex = 0;
     this.accountName = accountInfo.accountName;
@@ -115,9 +118,12 @@ class ExsatApi {
    */
   private async isValidNode(url: string) {
     try {
-      const response = await axios.get(`${url}/v1/chain/get_info`, { timeout: 3000 });
+      const response = await axios.get(`${url}/v1/chain/get_info`, {
+        timeout: 3000,
+      });
       if (response.status === 200 && response.data) {
-        const diffMS: number = moment(response.data.head_block_time).diff(moment().valueOf()) + moment().utcOffset() * 60_000;
+        const diffMS: number =
+          moment(response.data.head_block_time).diff(moment().valueOf()) + moment().utcOffset() * 60_000;
         return Math.abs(diffMS) <= 300_000;
       }
     } catch (e) {
@@ -132,10 +138,7 @@ class ExsatApi {
    * @param retryCount - The current retry attempt count.
    * @returns The result of the operation.
    */
-  private async retryWithExponentialBackoff<T>(
-    operation: () => Promise<T>,
-    retryCount: number = 0
-  ): Promise<T> {
+  private async retryWithExponentialBackoff<T>(operation: () => Promise<T>, retryCount: number = 0): Promise<T> {
     try {
       return await operation();
     } catch (error) {
@@ -145,7 +148,7 @@ class ExsatApi {
 
       const delay = this.retryDelay * Math.pow(2, retryCount);
       logger.warn(`Operation failed, retrying in ${delay}ms...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
 
       const switchResult = await this.switchNode();
       if (!switchResult) {
@@ -168,27 +171,36 @@ class ExsatApi {
       {
         actor: ContractName.res,
         permission: 'active',
-      }, {
+      },
+      {
         actor: this.accountName,
         permission: 'active',
-      }];
+      },
+    ];
     try {
-      const result = await this.api.transact({
-        actions: [{
-          account,
-          name,
-          authorization,
-          data,
-        }]
-      }, {
-        blocksBehind: 3,
-        expireSeconds: 30,
-      });
+      const result = await this.api.transact(
+        {
+          actions: [
+            {
+              account,
+              name,
+              authorization,
+              data,
+            },
+          ],
+        },
+        {
+          blocksBehind: 3,
+          expireSeconds: 30,
+        }
+      );
       // logger.info(`Execute actions: ${this.executeActions++}`);
       return result;
     } catch (e: any) {
       if (e instanceof RpcError && e.json?.code === 401 && e.json?.message === 'UnAuthorized') {
-        logger.error(`The account[${this.accountName}] permissions do not match this rpc node[${this.getCurrentNode()}].`);
+        logger.error(
+          `The account[${this.accountName}] permissions do not match this rpc node[${this.getCurrentNode()}].`
+        );
         process.exit(1);
       }
       let dataStr = JSON.stringify(data);
@@ -205,29 +217,40 @@ class ExsatApi {
   public async checkClient(type: number) {
     const clientType = type === ClientType.Synchronizer ? 'Synchronizer' : 'Validator';
     try {
-      const result = await this.executeAction(ContractName.rescmng, 'checkclient', {
+      const result = (await this.executeAction(ContractName.rescmng, 'checkclient', {
         client: this.accountName,
         type,
-      }) as TransactResult;
+      })) as TransactResult;
       const returnValueData = result?.processed?.action_traces[0]?.return_value_data;
       if (!returnValueData.has_auth) {
-        logger.error(`The account[${this.accountName}] permissions do not match. Please check if the keystore file[${process.env.KEYSTORE_FILE}] has been imported correctly.`);
+        logger.error(
+          `The account[${this.accountName}] permissions do not match. Please check if the keystore file[${process.env.KEYSTORE_FILE}] has been imported correctly.`
+        );
         process.exit(1);
       }
       if (!returnValueData.is_exists) {
-        logger.error(`The account[${this.accountName}] has not been registered as a ${clientType}. Please contact the administrator for verification.`);
+        logger.error(
+          `The account[${this.accountName}] has not been registered as a ${clientType}. Please contact the administrator for verification.`
+        );
         process.exit(1);
       }
       const balance = getAmountFromQuantity(returnValueData.balance);
       if (balance < 0.0001) {
-        logger.error(`The account[${this.accountName}] gas fee balance[${balance}] is insufficient. Please recharge through the menu.`);
+        logger.error(
+          `The account[${this.accountName}] gas fee balance[${balance}] is insufficient. Please recharge through the menu.`
+        );
         process.exit(1);
       }
     } catch (e) {
-      logger.error(`${clientType}[${this.accountName}] client configurations are incorrect, and the startup failed.`, e);
+      logger.error(
+        `${clientType}[${this.accountName}] client configurations are incorrect, and the startup failed.`,
+        e
+      );
       process.exit(1);
     }
-    logger.info(`${clientType}[${this.accountName}] client configurations are correct, and the startup was successful.`);
+    logger.info(
+      `${clientType}[${this.accountName}] client configurations are correct, and the startup was successful.`
+    );
   }
 
   /**
@@ -238,17 +261,22 @@ class ExsatApi {
    * @param options - Query options, including pagination.
    * @returns The rows retrieved from the table.
    */
-  public async getTableRows<T>(code: string, scope: string | number, table: string, options: {
-    limit?: number;
-    lower_bound?: string | number;
-    upper_bound?: string | number;
-    index_position?: string;
-    key_type?: string;
-    reverse?: boolean;
-    fetch_all?: boolean;
-  } = {
-    fetch_all: false
-  }): Promise<T[]> {
+  public async getTableRows<T>(
+    code: string,
+    scope: string | number,
+    table: string,
+    options: {
+      limit?: number;
+      lower_bound?: string | number;
+      upper_bound?: string | number;
+      index_position?: string;
+      key_type?: string;
+      reverse?: boolean;
+      fetch_all?: boolean;
+    } = {
+      fetch_all: false,
+    }
+  ): Promise<T[]> {
     return this.retryWithExponentialBackoff(async () => {
       let rows: T[] = [];
       let lower_bound = options.lower_bound || '';
@@ -266,7 +294,7 @@ class ExsatApi {
           index_position: options.index_position,
           key_type: options.key_type,
           reverse: false,
-          show_payer: false
+          show_payer: false,
         });
 
         rows = rows.concat(result.rows as T[]);
@@ -276,7 +304,6 @@ class ExsatApi {
         } else {
           more = false;
         }
-
       } while (more && options.fetch_all);
       return rows;
     });

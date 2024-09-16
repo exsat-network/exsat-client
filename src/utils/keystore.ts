@@ -7,8 +7,8 @@ import { logger } from './logger';
 import path from 'node:path';
 import { ClientType } from './enumeration';
 import { SYNCHRONIZER_KEYSTORE_PASSWORD, VALIDATOR_KEYSTORE_PASSWORD } from './config';
-import { password } from "@inquirer/prompts";
-import { reloadEnv } from "./common";
+import { password } from '@inquirer/prompts';
+import { reloadEnv } from './common';
 
 interface Arguments {
   pwd?: string;
@@ -18,7 +18,7 @@ interface Arguments {
 export function getConfigPassword(clientType: number) {
   const argv = yargs.options({
     pwd: { type: 'string', describe: 'Password as a command-line argument' },
-    pwdFile: { type: 'string', describe: 'Path to the password file' }
+    pwdFile: { type: 'string', describe: 'Path to the password file' },
   }).argv as Arguments;
 
   let password: string | undefined;
@@ -40,7 +40,7 @@ export function getConfigPassword(clientType: number) {
 
   // Priority 3: Get passwords from environment variables
   if (!password) {
-    password = (clientType === ClientType.Synchronizer ? SYNCHRONIZER_KEYSTORE_PASSWORD : VALIDATOR_KEYSTORE_PASSWORD);
+    password = clientType === ClientType.Synchronizer ? SYNCHRONIZER_KEYSTORE_PASSWORD : VALIDATOR_KEYSTORE_PASSWORD;
   }
   return password;
 }
@@ -48,7 +48,7 @@ export function getConfigPassword(clientType: number) {
 export async function getInputPassword(): Promise<string> {
   const passwordInput = await password({
     message: 'Please enter your keystore password (Enter q to exit): ',
-    mask: '*'
+    mask: '*',
   });
   return passwordInput.trim();
 }

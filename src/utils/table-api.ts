@@ -107,7 +107,6 @@ class TableApi {
       return rows[0].balance;
     }
     return 0;
-
   }
 
   /**
@@ -194,7 +193,7 @@ class TableApi {
   public async getLastConsensusBlock() {
     const rows = await this.exsatApi.getTableRows(ContractName.utxomng, ContractName.utxomng, 'consensusblk', {
       limit: 1,
-      reverse: true
+      reverse: true,
     });
     if (rows && rows.length > 0) {
       return rows[0];
