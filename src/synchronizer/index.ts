@@ -10,6 +10,7 @@ import { BlockOperations } from './blockOperations';
 import { SynchronizerJobs } from './jobs';
 import {
   EXSAT_RPC_URLS,
+  HEARTBEAT_JOBS,
   SYNCHRONIZER_JOBS_BLOCK_PARSE,
   SYNCHRONIZER_JOBS_BLOCK_UPLOAD,
   SYNCHRONIZER_JOBS_BLOCK_VERIFY,
@@ -69,6 +70,7 @@ function setupCronJobs(jobs: SynchronizerJobs) {
     { schedule: SYNCHRONIZER_JOBS_BLOCK_UPLOAD, job: jobs.upload },
     { schedule: SYNCHRONIZER_JOBS_BLOCK_VERIFY, job: jobs.verify },
     { schedule: SYNCHRONIZER_JOBS_BLOCK_PARSE, job: jobs.parse },
+    { schedule: HEARTBEAT_JOBS, job: jobs.heartbeat },
   ];
 
   cronJobs.forEach(({ schedule, job }) => {

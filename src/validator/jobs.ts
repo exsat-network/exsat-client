@@ -1,6 +1,6 @@
 import { logger } from '../utils/logger';
 import { getErrorMessage, sleep } from '../utils/common';
-import { Client, ContractName, ErrorCode } from '../utils/enumeration';
+import { Client, ClientType, ContractName, ErrorCode } from '../utils/enumeration';
 import {
   blockValidateTotalCounter,
   errorTotalCounter,
@@ -144,5 +144,9 @@ export class ValidatorJobs {
       logger.info('Endorse check task is finished.');
       this.state.endorseCheckRunning = false;
     }
+  };
+
+  heartbeat = async () => {
+    await this.state.exsatApi!.heartbeat(ClientType.Validator);
   };
 }

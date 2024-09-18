@@ -1,7 +1,7 @@
 import { getblock, getblockcount, getblockhash, getChunkMap } from '../utils/bitcoin';
 import { logger } from '../utils/logger';
 import { getErrorMessage, getNextUploadHeight, sleep } from '../utils/common';
-import { BlockStatus, Client, ContractName, ErrorCode } from '../utils/enumeration';
+import { BlockStatus, Client, ClientType, ContractName, ErrorCode } from '../utils/enumeration';
 import { errorTotalCounter, warnTotalCounter } from '../utils/prom';
 import { BlockOperations } from './blockOperations';
 import { SynchronizerState } from './index';
@@ -55,7 +55,7 @@ export class SynchronizerJobs {
       if (errorMessage.includes('duplicate transaction')) {
         //Ignore duplicate transaction
         await sleep();
-      } else if (errorMessage.startsWith(ErrorCode.Code2005)) {
+      } else if (errorMessage.startsWith(ErrorCode.Code2005) || errorMessage.startsWith(ErrorCode.Code2009)) {
         logger.info(`The block has reached consensus, height: ${uploadHeight}, hash: ${hash}`);
       } else if (errorMessage.startsWith(ErrorCode.Code2006) || errorMessage.startsWith(ErrorCode.Code2012)) {
         logger.warn(errorMessage);
@@ -393,6 +393,7 @@ export class SynchronizerJobs {
                   `Parse block failed, height=${chainstate!.head_height}, parsing_height: ${chainstate!.parsing_height}, message=${e.message}`
                 );
                 await sleep();
+                break;
               } else {
                 logger.error(`Parse block failed, chainstate=${JSON.stringify(chainstate)}, stack=${e.stack}`);
                 errorTotalCounter.inc({
@@ -417,5 +418,9 @@ export class SynchronizerJobs {
       logger.info('Parse block task is finished');
       this.state.parseRunning = false;
     }
+  };
+
+  heartbeat = async () => {
+    await this.state.exsatApi!.heartbeat(ClientType.Synchronizer);
   };
 }

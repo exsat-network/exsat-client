@@ -8,7 +8,7 @@ import axios from 'axios';
 import moment from 'moment';
 import { TransactResult } from 'eosjs/dist/eosjs-api-interfaces';
 import { getAmountFromQuantity } from './common';
-import { ClientType, ContractName } from './enumeration';
+import { Client, ClientType, ContractName } from './enumeration';
 
 class ExsatApi {
   private api: Api;
@@ -224,33 +224,59 @@ class ExsatApi {
       const returnValueData = result?.processed?.action_traces[0]?.return_value_data;
       if (!returnValueData.has_auth) {
         logger.error(
-          `The account[${this.accountName}] permissions do not match. Please check if the keystore file[${process.env.KEYSTORE_FILE}] has been imported correctly.`
+          `The account[${this.accountName}] permissions do not match. Please check if the keystore file[${process.env.KEYSTORE_FILE}] has been imported correctly`
         );
         process.exit(1);
       }
       if (!returnValueData.is_exists) {
         logger.error(
-          `The account[${this.accountName}] has not been registered as a ${clientType}. Please contact the administrator for verification.`
+          `The account[${this.accountName}] has not been registered as a ${clientType}. Please contact the administrator for verification`
         );
         process.exit(1);
       }
       const balance = getAmountFromQuantity(returnValueData.balance);
       if (balance < 0.0001) {
         logger.error(
-          `The account[${this.accountName}] gas fee balance[${balance}] is insufficient. Please recharge through the menu.`
+          `The account[${this.accountName}] gas fee balance[${balance}] is insufficient. Please recharge through the menu`
         );
         process.exit(1);
       }
     } catch (e) {
-      logger.error(
-        `${clientType}[${this.accountName}] client configurations are incorrect, and the startup failed.`,
-        e
-      );
+      logger.error(`${clientType}[${this.accountName}] client configurations are incorrect, and the startup failed`, e);
       process.exit(1);
     }
-    logger.info(
-      `${clientType}[${this.accountName}] client configurations are correct, and the startup was successful.`
-    );
+    logger.info(`${clientType}[${this.accountName}] client configurations are correct, and the startup was successful`);
+  }
+
+  public async heartbeat(type: number) {
+    const clientType = type === ClientType.Synchronizer ? Client.Synchronizer : Client.Validator;
+    try {
+      const result = (await this.executeAction(ContractName.rescmng, 'checkclient', {
+        client: this.accountName,
+        type,
+      })) as TransactResult;
+      const returnValueData = result?.processed?.action_traces[0]?.return_value_data;
+      if (!returnValueData.has_auth) {
+        logger.error(
+          `The account[${this.accountName}] permissions do not match. Please check if the keystore file[${process.env.KEYSTORE_FILE}] has been imported correctly`
+        );
+        process.exit(1);
+      }
+      if (!returnValueData.is_exists) {
+        logger.error(
+          `The account[${this.accountName}] has not been registered as a ${clientType}. Please contact the administrator for verification`
+        );
+        process.exit(1);
+      }
+      const balance = getAmountFromQuantity(returnValueData.balance);
+      if (balance < 0.0001) {
+        logger.warn(
+          `The account[${this.accountName}] gas fee balance[${balance}] is insufficient. Please recharge through the menu`
+        );
+      }
+    } catch (e) {
+      logger.error(`${clientType}[${this.accountName}] client heartbeat failed`, e);
+    }
   }
 
   /**
