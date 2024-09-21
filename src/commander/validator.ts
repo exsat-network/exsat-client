@@ -14,6 +14,7 @@ import { inputWithCancel } from '../utils/input';
 import { updateEnvFile } from '@exsat/account-initializer/dist/utils';
 import { ClientType, ContractName } from '../utils/enumeration';
 import { Font } from '../utils/font';
+import { changeEmail } from "@exsat/account-initializer/dist/accountInitializer";
 
 export class ValidatorCommander {
   private exsatAccountInfo: any;
@@ -63,7 +64,7 @@ export class ValidatorCommander {
       'Eligible for Verification': parseFloat(validator.quantity) > 100 ? 'Yes' : 'No, requires min 100 BTC staked',
       'Account Registration Status': 'Registered',
       'Validator Registration Status': 'Registered',
-      Email: this.exsatAccountInfo.email,
+      'Email': this.exsatAccountInfo.email,
     };
     showInfo(showMessageInfo);
 
@@ -74,21 +75,26 @@ export class ValidatorCommander {
         description: 'Bridge BTC as GAS Fee',
       },
       {
-        name: 'Reset Reward Address',
+        name: 'Change Reward Address',
         value: 'set_reward_address',
-        description: 'Set/Reset Reward Address',
+        description: 'Set/Change Reward Address',
         disabled: !validator,
       },
       {
-        name: 'Reset Commission Rate',
+        name: 'Change Commission Rate',
         value: 'set_commission_rate',
-        description: 'Set/Reset Reward Address',
+        description: 'Set/Change Reward Address',
         disabled: !validator,
       },
       {
-        name: 'Reset BTC RPC Node',
+        name: 'Change BTC RPC Node',
         value: 'reset_btc_rpc',
-        description: 'Reset BTC RPC Node',
+        description: 'Change BTC RPC Node',
+      },
+      {
+        name: 'Change Email',
+        value: 'change_email',
+        description: 'Change Email',
       },
       {
         name: 'Export Private Key',
@@ -113,6 +119,12 @@ export class ValidatorCommander {
         console.log(`Private Key:${this.exsatAccountInfo.privateKey}`);
         await input({ message: 'Press [enter] to continue' });
       },
+      change_email: async () => {
+        console.log()
+        await changeEmail(accountName, this.exsatAccountInfo.email)
+        console.log()
+        await input({ message: 'Press [enter] to continue' });
+      },
       remove_account: async () => await this.removeKeystore(),
       quit: async () => process.exit(),
     };
@@ -123,6 +135,7 @@ export class ValidatorCommander {
         message: 'Select An Action',
         choices: menus,
         loop: false,
+        pageSize:20,
       });
       if (action !== '99') {
         await (actions[action] || (() => {}))();
@@ -258,7 +271,7 @@ export class ValidatorCommander {
     if (rpcUrl) {
       if (
         !(await confirm({
-          message: `Your BTC_RPC_URL:${rpcUrl}\nAre you sure to reset it?`,
+          message: `Your BTC_RPC_URL:${rpcUrl}\nAre you sure to change it?`,
         }))
       ) {
         return;
@@ -319,7 +332,7 @@ export class ValidatorCommander {
         'BTC Balance Used for Gas Fee': btcBalance,
         'Account Registration Status': 'Registered',
         'Validator Registration Status': 'Registering',
-        Email: this.exsatAccountInfo.email,
+        'Email': this.exsatAccountInfo.email,
       });
       console.log(
         'The account has been registered, and a confirmation email has been sent to your inbox. \n' +
@@ -356,7 +369,7 @@ export class ValidatorCommander {
             'Account Name': this.exsatAccountInfo.accountName,
             'Public Key': this.exsatAccountInfo.publicKey,
             'Account Registration Status': statusLabel,
-            Email: checkAccountInfo.email,
+            'Email': checkAccountInfo.email,
           });
           if (checkAccountInfo.status === 'failed') {
             console.log(
@@ -395,7 +408,7 @@ export class ValidatorCommander {
             'Account Name': this.exsatAccountInfo.accountName,
             'Public Key': this.exsatAccountInfo.publicKey,
             'Account Registration Status': 'Registering',
-            Email: checkAccountInfo.email,
+            'Email': checkAccountInfo.email,
           });
           console.log(
             'Account registration may take a moment, please wait. \nConfirmation email will be sent to your inbox after the account registration is complete.'
@@ -424,7 +437,7 @@ export class ValidatorCommander {
         'Reward Address': 'Unset',
         'Account Registration Status': 'Registered',
         'Validator Registration Status': 'Registered',
-        Email: this.exsatAccountInfo.email,
+        'Email': this.exsatAccountInfo.email,
       });
 
       const menus = [
@@ -465,7 +478,7 @@ export class ValidatorCommander {
         'Commission Rate': 'Unset',
         'Account Registration Status': 'Registered',
         'Validator Registration Status': 'Registered',
-        Email: this.exsatAccountInfo.email,
+        'Email': this.exsatAccountInfo.email,
       });
 
       const menus = [
@@ -507,7 +520,7 @@ export class ValidatorCommander {
         'BTC PRC Node': 'Unset',
         'Account Registration Status': 'Registered',
         'Validator Registration Status': 'Registered',
-        Email: this.exsatAccountInfo.email,
+        'Email': this.exsatAccountInfo.email,
       };
 
       const menus = [

@@ -14,6 +14,7 @@ import { inputWithCancel } from '../utils/input';
 import { updateEnvFile } from '@exsat/account-initializer/dist/utils';
 import { notAccountMenu, updateMenu } from './common';
 import { Font } from '../utils/font';
+import { changeEmail } from "@exsat/account-initializer/dist/accountInitializer";
 
 export class SynchronizerCommander {
   private exsatAccountInfo: any;
@@ -59,7 +60,7 @@ export class SynchronizerCommander {
       'BTC PRC Node': process.env.BTC_RPC_URL ?? '',
       'Account Registration Status': 'Registered',
       'Synchronizer Registration Status': 'Registered',
-      Email: this.exsatAccountInfo.email,
+      'Email': this.exsatAccountInfo.email,
       'Memory Slot': synchronizer.num_slots,
     };
     showInfo(showMessageInfo);
@@ -71,9 +72,9 @@ export class SynchronizerCommander {
         description: 'Bridge BTC as GAS Fee',
       },
       {
-        name: synchronizer?.reward_recipient ? 'Reset Reward Address' : 'Set Reward Address',
+        name: synchronizer?.reward_recipient ? 'Change Reward Address' : 'Set Reward Address',
         value: 'set_reward_address',
-        description: 'Set/Reset Reward Address',
+        description: 'Set/Change Reward Address',
         disabled: !synchronizer,
       },
       {
@@ -83,9 +84,14 @@ export class SynchronizerCommander {
         disabled: !synchronizer,
       },
       {
-        name: 'Reset BTC RPC Node',
+        name: 'Change BTC RPC Node',
         value: 'reset_btc_rpc',
-        description: 'Reset BTC RPC Node',
+        description: 'Change BTC RPC Node',
+      },
+      {
+        name: 'Change Email',
+        value: 'change_email',
+        description: 'Change Email',
       },
       {
         name: 'Export Private Key',
@@ -111,6 +117,12 @@ export class SynchronizerCommander {
         await input({ message: 'Press [enter] to continue' });
       },
       remove_account: async () => await this.removeKeystore(),
+      change_email: async () => {
+        console.log()
+        await changeEmail(accountName, this.exsatAccountInfo.email)
+        console.log()
+        await input({ message: 'Press [enter] to continue' });
+      },
       quit: async () => process.exit(),
     };
 
@@ -120,9 +132,11 @@ export class SynchronizerCommander {
         message: 'Select An Action',
         choices: menus,
         loop: false,
+        pageSize: 20
       });
       if (action !== '99') {
-        await (actions[action] || (() => {}))();
+        await (actions[action] || (() => {
+        }))();
       }
     } while (action !== '99');
   }
@@ -266,7 +280,7 @@ export class SynchronizerCommander {
     if (rpcUrl) {
       if (
         !(await confirm({
-          message: `Your BTC_RPC_URL:${rpcUrl}\nAre you sure to reset it?`,
+          message: `Your BTC_RPC_URL:${rpcUrl}\nAre you sure to change it?`,
         }))
       ) {
         return;
@@ -326,12 +340,12 @@ export class SynchronizerCommander {
         'BTC Balance Used for Gas Fee': btcBalance,
         'Account Registration Status': 'Registered',
         'Synchronizer Registration Status': 'Registering',
-        Email: this.exsatAccountInfo.email,
+        'Email': this.exsatAccountInfo.email,
       });
       console.log(
         'The account has been registered, and a confirmation email has been sent to your inbox. \n' +
-          'Please follow the instructions in the email to complete the Synchronizer registration. \n' +
-          'If you have already followed the instructions, please wait patiently for the next confirmation email.'
+        'Please follow the instructions in the email to complete the Synchronizer registration. \n' +
+        'If you have already followed the instructions, please wait patiently for the next confirmation email.'
       );
       process.exit(0);
     }
@@ -362,14 +376,14 @@ export class SynchronizerCommander {
             'Account Name': this.exsatAccountInfo.accountName,
             'Public Key': this.exsatAccountInfo.publicKey,
             'Account Registration Status': statusLabel,
-            Email: checkAccountInfo.email,
+            'Email': checkAccountInfo.email,
           });
           if (checkAccountInfo.status === 'failed') {
             console.log(
               'Your account registration was Failed. \n' +
-                'Possible reasons: the BTC Transaction ID you provided is incorrect, or the BTC transaction has been rolled back. \n' +
-                'Please resubmit the BTC Transaction ID. Thank you.\n' +
-                '-----------------------------------------------'
+              'Possible reasons: the BTC Transaction ID you provided is incorrect, or the BTC transaction has been rolled back. \n' +
+              'Please resubmit the BTC Transaction ID. Thank you.\n' +
+              '-----------------------------------------------'
             );
           }
           menus = [
@@ -401,7 +415,7 @@ export class SynchronizerCommander {
             'Account Name': this.exsatAccountInfo.accountName,
             'Public Key': this.exsatAccountInfo.publicKey,
             'Account Registration Status': 'Registering',
-            Email: checkAccountInfo.email,
+            'Email': checkAccountInfo.email,
           });
           console.log(
             'Account registration may take a moment, please wait. \nConfirmation email will be sent to your inbox after the account registration is complete.'
@@ -430,7 +444,7 @@ export class SynchronizerCommander {
         'Reward Address': 'Unset',
         'Account Registration Status': 'Registered',
         'Synchronizer Registration Status': 'Registered',
-        Email: this.exsatAccountInfo.email,
+        'Email': this.exsatAccountInfo.email,
         'Memory Slot': synchronizer.num_slots,
       });
 
@@ -448,7 +462,8 @@ export class SynchronizerCommander {
       let res;
       do {
         action = await select({ message: 'Select Action:', choices: menus });
-        res = await (actions[action] || (() => {}))();
+        res = await (actions[action] || (() => {
+        }))();
       } while (!res);
     } else {
       logger.info('Reward Address is already set correctly.');
@@ -473,7 +488,7 @@ export class SynchronizerCommander {
         'BTC PRC Node': 'Unset',
         'Account Registration Status': 'Registered',
         'Synchronizer Registration Status': 'Registered',
-        Email: this.exsatAccountInfo.email,
+        'Email': this.exsatAccountInfo.email,
         'Memory Slot': synchronizer.num_slots,
       };
 
@@ -491,7 +506,8 @@ export class SynchronizerCommander {
       let res;
       do {
         action = await select({ message: 'Select Action:', choices: menus });
-        res = await (actions[action] || (() => {}))();
+        res = await (actions[action] || (() => {
+        }))();
       } while (!res);
     } else {
       logger.info('BTC_RPC_URL is already set correctly.');
