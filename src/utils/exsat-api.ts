@@ -218,9 +218,11 @@ class ExsatApi {
   public async checkClient(type: number) {
     const clientType = type === ClientType.Synchronizer ? 'Synchronizer' : 'Validator';
     try {
+      const version = await Version.getLocalVersion();
       const result = (await this.executeAction(ContractName.rescmng, 'checkclient', {
         client: this.accountName,
         type,
+        version,
       })) as TransactResult;
       const returnValueData = result?.processed?.action_traces[0]?.return_value_data;
       if (!returnValueData.has_auth) {
@@ -251,13 +253,8 @@ class ExsatApi {
 
   public async heartbeat(type: number) {
     const clientType = type === ClientType.Synchronizer ? Client.Synchronizer : Client.Validator;
-    let version = null;
     try {
-      version = await Version.getLocalVersion();
-    } catch (e) {
-      logger.error('Failed to fetch local version from package.json:', e);
-    }
-    try {
+      const version = await Version.getLocalVersion();
       const result = (await this.executeAction(ContractName.rescmng, 'checkclient', {
         client: this.accountName,
         type,
