@@ -81,7 +81,11 @@ export class ValidatorJobs {
     } catch (e) {
       const errorMessage = getErrorMessage(e);
       logger.info(`Endorse task info: ${errorMessage}`);
-      if (errorMessage.startsWith(ErrorCode.Code1001) || errorMessage.startsWith(ErrorCode.Code1003)) {
+      if (
+        errorMessage.startsWith(ErrorCode.Code1001) ||
+        errorMessage.startsWith(ErrorCode.Code1003) ||
+        errorMessage.startsWith(ErrorCode.Code1008)
+      ) {
         await sleep(10000);
         // ignore
       } else {
