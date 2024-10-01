@@ -253,9 +253,9 @@ class ExsatApi {
     const clientType = type === ClientType.Synchronizer ? Client.Synchronizer : Client.Validator;
     let version = null;
     try {
-      version = Version.getLocalVersion();
+      version = await Version.getLocalVersion();
     } catch (e) {
-      logger.warn('Failed to fetch local version from package.json:', e);
+      logger.error('Failed to fetch local version from package.json:', e);
     }
     try {
       const result = (await this.executeAction(ContractName.rescmng, 'checkclient', {
