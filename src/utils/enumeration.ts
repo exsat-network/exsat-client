@@ -58,6 +58,7 @@ export enum ErrorCode {
   Code1001 = '1001', //1001:blkendt.xsat::endorse: the current endorsement status is disabled
   Code1002 = '1002', //1002:blkendt.xsat::endorse: the block has been parsed and does not need to be endorsed
   Code1003 = '1003', //1003:blkendt.xsat::endorse: the endorsement height cannot exceed height
+  Code1008 = '1008', //1008:blkendt.xsat::endorse: the next endorsement time has not yet been reached
   Code2005 = '2005', //2005:blksync.xsat::initbucket: the block has reached consensus
   Code2008 = '2008', //2008:blksync.xsat::initbucket: cannot init bucket in the current state [verify_pass]
   Code2009 = '2009', //2009:blksync.xsat::pushchunk: the block has reached consensus
