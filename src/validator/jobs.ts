@@ -81,7 +81,11 @@ export class ValidatorJobs {
     } catch (e) {
       const errorMessage = getErrorMessage(e);
       logger.info(`Endorse task info: ${errorMessage}`);
-      if (errorMessage.startsWith(ErrorCode.Code1001) || errorMessage.startsWith(ErrorCode.Code1003)) {
+      if (
+        errorMessage.startsWith(ErrorCode.Code1001) ||
+        errorMessage.startsWith(ErrorCode.Code1003) ||
+        errorMessage.startsWith(ErrorCode.Code1008)
+      ) {
         await sleep(10000);
         // ignore
       } else {
@@ -107,9 +111,9 @@ export class ValidatorJobs {
       const chainstate = await this.state.tableApi!.getChainstate();
       const blockcount = await getblockcount();
       let startEndorseHeight = chainstate!.irreversible_height + 1;
-      if (this.state.lastEndorseHeight > startEndorseHeight && this.state.lastEndorseHeight < blockcount.result - 6) {
-        startEndorseHeight = this.state.lastEndorseHeight;
-      }
+      // if (this.state.lastEndorseHeight > startEndorseHeight && this.state.lastEndorseHeight < blockcount.result - 6) {
+      //   startEndorseHeight = this.state.lastEndorseHeight;
+      // }
       for (let i = startEndorseHeight; i <= blockcount.result; i++) {
         let hash: string;
         try {

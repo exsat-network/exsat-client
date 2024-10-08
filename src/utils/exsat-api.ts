@@ -9,6 +9,7 @@ import moment from 'moment';
 import { TransactResult } from 'eosjs/dist/eosjs-api-interfaces';
 import { getAmountFromQuantity } from './common';
 import { Client, ClientType, ContractName } from './enumeration';
+import { Version } from './version';
 
 class ExsatApi {
   private api: Api;
@@ -217,9 +218,11 @@ class ExsatApi {
   public async checkClient(type: number) {
     const clientType = type === ClientType.Synchronizer ? 'Synchronizer' : 'Validator';
     try {
+      const version = await Version.getLocalVersion();
       const result = (await this.executeAction(ContractName.rescmng, 'checkclient', {
         client: this.accountName,
         type,
+        version,
       })) as TransactResult;
       const returnValueData = result?.processed?.action_traces[0]?.return_value_data;
       if (!returnValueData.has_auth) {
@@ -251,9 +254,11 @@ class ExsatApi {
   public async heartbeat(type: number) {
     const clientType = type === ClientType.Synchronizer ? Client.Synchronizer : Client.Validator;
     try {
+      const version = await Version.getLocalVersion();
       const result = (await this.executeAction(ContractName.rescmng, 'checkclient', {
         client: this.accountName,
         type,
+        version,
       })) as TransactResult;
       const returnValueData = result?.processed?.action_traces[0]?.return_value_data;
       if (!returnValueData.has_auth) {
