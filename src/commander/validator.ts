@@ -88,7 +88,7 @@ export class ValidatorCommander {
         disabled: !validator,
       },
       {
-        name: `${validator?.donate_rate?'Change':'Set'} Donation Ratio`,
+        name: `${validator?.donate_rate ? 'Change' : 'Set'} Donation Ratio`,
         value: 'set_donation_ratio',
         description: 'Set/Change Donation Ratio',
         disabled: !validator,
@@ -249,7 +249,7 @@ export class ValidatorCommander {
       donate_rate: ratio,
     };
     await this.exsatApi.executeAction('endrmng.xsat', 'setdonate', data);
-    logger.info(`${Font.fgCyan}${Font.bright}Set Donation Ratio:${ratio} successfully.${Number(ratio)?'Thanks for your support.':''}${Font.reset}\n`);
+    logger.info(`${Font.fgCyan}${Font.bright}Set Donation Ratio:${ratio} successfully.${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`);
     await this.updateValidatorInfo()
 
   }

@@ -79,7 +79,7 @@ export class SynchronizerCommander {
         disabled: !synchronizer,
       },
       {
-        name: `${synchronizer?.donate_rate?'Change':'Set'} Donation Ratio`,
+        name: `${synchronizer?.donate_rate ? 'Change' : 'Set'} Donation Ratio`,
         value: 'set_donation_ratio',
         description: 'Set/Change Donation Ratio',
         disabled: !synchronizer,
@@ -229,7 +229,7 @@ export class SynchronizerCommander {
     };
     await this.exsatApi.executeAction('poolreg.xsat', 'setdonate', data);
     await this.updateSynchronizerInfo();
-    logger.info(`${Font.fgCyan}${Font.bright}Set Donation Ratio:${ratio} successfully.${Number(ratio)?'Thanks for your support.':''}${Font.reset}\n`);
+    logger.info(`${Font.fgCyan}${Font.bright}Set Donation Ratio:${ratio} successfully.${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`);
   }
 
   /**
