@@ -5,7 +5,7 @@ import { logger } from './logger';
 import { getblockcount } from './bitcoin';
 import path from 'node:path';
 import dotenv from 'dotenv';
-import { Font } from "./font";
+import { Font } from './font';
 
 /**
  * Pauses execution for a specified number of milliseconds.
@@ -119,7 +119,6 @@ export function showInfo(info) {
   for (const key in info) {
     if (info.hasOwnProperty(key)) {
       console.log(`${Font.fgCyan}${Font.bright}${key}:${Font.reset}${Font.bright} ${info[key]}${Font.reset}`);
-
     }
   }
   console.log(`${Font.fgCyan}${Font.bright}-----------------------------------------------${Font.reset}`);
