@@ -5,7 +5,7 @@ import { ValidatorCommander } from './validator';
 import { Version } from '../utils/version';
 import { updateMenu } from './common';
 import { Client } from '../utils/enumeration';
-import { showInfo } from "../utils/common";
+import { showInfo } from '../utils/common';
 
 /**
  * Main entry point for the application.
@@ -19,9 +19,10 @@ async function main() {
   }
 
   showInfo({
-    'Please note': 'It is highly recommended that you carefully read the user guide and follow the instructions precisely to avoid any unnecessary issues.',
-    'User Guide': 'https://docs.exsat.network/get-started'
-  })
+    'Please note':
+      'It is highly recommended that you carefully read the user guide and follow the instructions precisely to avoid any unnecessary issues.',
+    'User Guide': 'https://docs.exsat.network/get-started',
+  });
 
   // Define menu options for client selection
   const menus = [

@@ -14,7 +14,7 @@ import { inputWithCancel } from '../utils/input';
 import { updateEnvFile } from '@exsat/account-initializer/dist/utils';
 import { ClientType, ContractName } from '../utils/enumeration';
 import { Font } from '../utils/font';
-import { changeEmail } from "@exsat/account-initializer/dist/accountInitializer";
+import { changeEmail } from '@exsat/account-initializer/dist/accountInitializer';
 
 export class ValidatorCommander {
   private exsatAccountInfo: any;
@@ -65,7 +65,7 @@ export class ValidatorCommander {
       'Eligible for Verification': parseFloat(validator.quantity) > 100 ? 'Yes' : 'No, requires min 100 BTC staked',
       'Account Registration Status': 'Registered',
       'Validator Registration Status': 'Registered',
-      'Email': this.exsatAccountInfo.email,
+      Email: this.exsatAccountInfo.email,
     };
     showInfo(showMessageInfo);
 
@@ -128,9 +128,9 @@ export class ValidatorCommander {
         await input({ message: 'Press [enter] to continue' });
       },
       change_email: async () => {
-        console.log()
-        await changeEmail(accountName, this.exsatAccountInfo.email)
-        console.log()
+        console.log();
+        await changeEmail(accountName, this.exsatAccountInfo.email);
+        console.log();
         await input({ message: 'Press [enter] to continue' });
       },
       remove_account: async () => await this.removeKeystore(),
@@ -146,8 +146,7 @@ export class ValidatorCommander {
         pageSize: 20,
       });
       if (action !== '99') {
-        await (actions[action] || (() => {
-        }))();
+        await (actions[action] || (() => {}))();
       }
     } while (action !== '99');
   }
@@ -197,7 +196,7 @@ export class ValidatorCommander {
     };
     await this.exsatApi.executeAction(ContractName.endrmng, 'config', data);
     logger.info(`Set Reward Account:${financialAccount} successfully`);
-    await this.updateValidatorInfo()
+    await this.updateValidatorInfo();
     return true;
   }
 
@@ -224,10 +223,9 @@ export class ValidatorCommander {
       commission_rate: commissionRatio,
     };
     await this.exsatApi.executeAction(ContractName.endrmng, 'config', data);
-    await this.updateValidatorInfo()
+    await this.updateValidatorInfo();
     logger.info(`${Font.fgCyan}${Font.bright}Set Commission Ratio:${commissionRatio} successfully.${Font.reset}\n`);
   }
-
 
   /**
    * Sets the donation ratio for the validator.
@@ -249,9 +247,10 @@ export class ValidatorCommander {
       donate_rate: ratio,
     };
     await this.exsatApi.executeAction('endrmng.xsat', 'setdonate', data);
-    logger.info(`${Font.fgCyan}${Font.bright}Set Donation Ratio:${ratio} successfully.${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`);
-    await this.updateValidatorInfo()
-
+    logger.info(
+      `${Font.fgCyan}${Font.bright}Set Donation Ratio:${ratio} successfully.${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`
+    );
+    await this.updateValidatorInfo();
   }
 
   /**
@@ -368,12 +367,12 @@ export class ValidatorCommander {
         'BTC Balance Used for Gas Fee': btcBalance,
         'Account Registration Status': 'Registered',
         'Validator Registration Status': 'Registering',
-        'Email': this.exsatAccountInfo.email,
+        Email: this.exsatAccountInfo.email,
       });
       console.log(
         'The account has been registered, and a confirmation email has been sent to your inbox. \n' +
-        'Please follow the instructions in the email to complete the Validator registration. \n' +
-        'If you have already followed the instructions, please wait patiently for the next confirmation email.'
+          'Please follow the instructions in the email to complete the Validator registration. \n' +
+          'If you have already followed the instructions, please wait patiently for the next confirmation email.'
       );
       process.exit(0);
     }
@@ -405,14 +404,14 @@ export class ValidatorCommander {
             'Account Name': this.exsatAccountInfo.accountName,
             'Public Key': this.exsatAccountInfo.publicKey,
             'Account Registration Status': statusLabel,
-            'Email': checkAccountInfo.email,
+            Email: checkAccountInfo.email,
           });
           if (checkAccountInfo.status === 'failed') {
             console.log(
               'Your account registration was Failed. \n' +
-              'Possible reasons: the BTC Transaction ID you provided is incorrect, or the BTC transaction has been rolled back. \n' +
-              'Please resubmit the BTC Transaction ID. Thank you.\n' +
-              `${Font.fgCyan}${Font.bright}-----------------------------------------------${Font.reset}`
+                'Possible reasons: the BTC Transaction ID you provided is incorrect, or the BTC transaction has been rolled back. \n' +
+                'Please resubmit the BTC Transaction ID. Thank you.\n' +
+                `${Font.fgCyan}${Font.bright}-----------------------------------------------${Font.reset}`
             );
           }
           menus = [
@@ -444,7 +443,7 @@ export class ValidatorCommander {
             'Account Name': this.exsatAccountInfo.accountName,
             'Public Key': this.exsatAccountInfo.publicKey,
             'Account Registration Status': 'Registering',
-            'Email': checkAccountInfo.email,
+            Email: checkAccountInfo.email,
           });
           console.log(
             'Account registration may take a moment, please wait. \nConfirmation email will be sent to your inbox after the account registration is complete.'
@@ -473,7 +472,7 @@ export class ValidatorCommander {
         'Reward Address': 'Unset',
         'Account Registration Status': 'Registered',
         'Validator Registration Status': 'Registered',
-        'Email': this.exsatAccountInfo.email,
+        Email: this.exsatAccountInfo.email,
       });
 
       const menus = [
@@ -490,8 +489,7 @@ export class ValidatorCommander {
       let res;
       do {
         action = await select({ message: 'Select Action:', choices: menus });
-        res = await (actions[action] || (() => {
-        }))();
+        res = await (actions[action] || (() => {}))();
       } while (!res);
     } else {
       logger.info('Reward Address is already set correctly.');
@@ -515,7 +513,7 @@ export class ValidatorCommander {
         'Commission Ratio': 'Unset',
         'Account Registration Status': 'Registered',
         'Validator Registration Status': 'Registered',
-        'Email': this.exsatAccountInfo.email,
+        Email: this.exsatAccountInfo.email,
       });
 
       const menus = [
@@ -532,8 +530,7 @@ export class ValidatorCommander {
       let res;
       do {
         action = await select({ message: 'Select Action:', choices: menus });
-        res = await (actions[action] || (() => {
-        }))();
+        res = await (actions[action] || (() => {}))();
       } while (!res);
     } else {
       logger.info('Commission Ratio is already set correctly.');
@@ -558,7 +555,7 @@ export class ValidatorCommander {
         'BTC PRC Node': 'Unset',
         'Account Registration Status': 'Registered',
         'Validator Registration Status': 'Registered',
-        'Email': this.exsatAccountInfo.email,
+        Email: this.exsatAccountInfo.email,
       };
       showInfo(showMessageInfo);
 
@@ -576,8 +573,7 @@ export class ValidatorCommander {
       let res;
       do {
         action = await select({ message: 'Select Action:', choices: menus });
-        res = await (actions[action] || (() => {
-        }))();
+        res = await (actions[action] || (() => {}))();
       } while (!res);
     } else {
       logger.info('BTC_RPC_URL is already set correctly.');
