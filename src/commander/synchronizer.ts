@@ -57,6 +57,7 @@ export class SynchronizerCommander {
       'Public Key': this.exsatAccountInfo.publicKey,
       'BTC Balance Used for Gas Fee': btcBalance,
       'Reward Address': synchronizer.memo ?? synchronizer.reward_recipient,
+      'Donate Rate': `${synchronizer.donate_rate / 100}%` ?? '0%',
       'BTC PRC Node': process.env.BTC_RPC_URL ?? '',
       'Account Registration Status': 'Registered',
       'Synchronizer Registration Status': 'Registered',
@@ -75,6 +76,12 @@ export class SynchronizerCommander {
         name: synchronizer?.reward_recipient ? 'Change Reward Address' : 'Set Reward Address',
         value: 'set_reward_address',
         description: 'Set/Change Reward Address',
+        disabled: !synchronizer,
+      },
+      {
+        name: 'Set Donation Ratio',
+        value: 'set_donation_ratio',
+        description: 'Set/Change Donation Ratio',
         disabled: !synchronizer,
       },
       {
@@ -110,6 +117,7 @@ export class SynchronizerCommander {
     const actions: { [key: string]: () => Promise<any> } = {
       recharge_btc: async () => await chargeBtcForResource(process.env.SYNCHRONIZER_KEYSTORE_FILE),
       set_reward_address: async () => await this.setRewardAddress(),
+      set_donation_ratio: async () => await this.setDonationRatio(),
       purchase_memory_slot: async () => await this.purchaseSlots(),
       reset_btc_rpc: async () => await this.resetBtcRpcUrl(),
       export_private_key: async () => {
@@ -203,6 +211,27 @@ export class SynchronizerCommander {
     return true;
   }
 
+  async setDonationRatio() {
+    const ratio = await inputWithCancel('Enter Donation Ratio(0-10000,Input "q" to return):', (value) => {
+      //Determine whether it is a number between 0-10000
+      const num = Number(value);
+      if (!Number.isInteger(num) || num < 0 || num > 10000) {
+        return 'Please enter a valid number between 0 and 10000';
+      }
+      return true;
+    });
+    if (!ratio) {
+      return false;
+    }
+    const data = {
+      synchronizer: this.exsatAccountInfo.accountName,
+      donate_rate: ratio,
+    };
+    await this.exsatApi.executeAction('poolreg.xsat', 'setdonate', data);
+    await this.updateSynchronizerInfo();
+    logger.info(`Set Donation Ratio:${ratio} successfully`);
+  }
+
   /**
    * Resets the reward address for the synchronizer.
    */
@@ -212,7 +241,7 @@ export class SynchronizerCommander {
       financial_account: account,
     };
     await this.exsatApi.executeAction('poolreg.xsat', 'setfinacct', data);
-    this.synchronizerInfo = await this.tableApi.getSynchronizerInfo(this.exsatAccountInfo.accountName);
+    await this.updateSynchronizerInfo();
   }
 
   /**
@@ -224,7 +253,9 @@ export class SynchronizerCommander {
       receiver: this.exsatAccountInfo.accountName,
       num_slots: slots,
     };
-    return await this.exsatApi.executeAction('poolreg.xsat', 'buyslot', data);
+    await this.exsatApi.executeAction('poolreg.xsat', 'buyslot', data);
+    await this.updateSynchronizerInfo();
+    return true;
   }
 
   /**
@@ -512,5 +543,9 @@ export class SynchronizerCommander {
     } else {
       logger.info('BTC_RPC_URL is already set correctly.');
     }
+  }
+
+  async updateSynchronizerInfo() {
+    this.synchronizerInfo = await this.tableApi.getSynchronizerInfo(this.exsatAccountInfo.accountName);
   }
 }
