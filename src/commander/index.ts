@@ -20,7 +20,7 @@ async function main() {
 
   showInfo({
     'Please note': 'It is highly recommended that you carefully read the user guide and follow the instructions precisely to avoid any unnecessary issues.',
-    'User Guide': 'https://docs.exsat.network/user-guide-for-testnet-hayek'
+    'User Guide': 'https://docs.exsat.network/get-started'
   })
 
   // Define menu options for client selection
