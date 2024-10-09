@@ -58,8 +58,8 @@ export class ValidatorCommander {
       'Public Key': this.exsatAccountInfo.publicKey,
       'BTC Balance Used for Gas Fee': btcBalance,
       'Reward Address': validator.memo ?? validator.reward_recipient,
-      'Commission Rate': `${validator.commission_rate / 100}%` ?? '0%',
-      'Donate Rate': `${validator.donate_rate / 100}%` ?? '0%',
+      'Commission Ratio': `${validator.commission_rate / 100}%` ?? '0%',
+      'Donate Ratio': `${validator.donate_rate / 100}%` ?? '0%',
       'BTC PRC Node': process.env.BTC_RPC_URL ?? '',
       'BTC Staked': validator.quantity,
       'Eligible for Verification': parseFloat(validator.quantity) > 100 ? 'Yes' : 'No, requires min 100 BTC staked',
@@ -82,13 +82,13 @@ export class ValidatorCommander {
         disabled: !validator,
       },
       {
-        name: 'Change Commission Rate',
-        value: 'set_commission_rate',
+        name: 'Change Commission Ratio',
+        value: 'set_commission_ratio',
         description: 'Set/Change Reward Address',
         disabled: !validator,
       },
       {
-        name: 'Set Donation Ratio',
+        name: `${validator?.donate_rate?'Change':'Set'} Donation Ratio`,
         value: 'set_donation_ratio',
         description: 'Set/Change Donation Ratio',
         disabled: !validator,
@@ -120,7 +120,7 @@ export class ValidatorCommander {
     const actions: { [key: string]: () => Promise<any> } = {
       recharge_btc: async () => await chargeBtcForResource(process.env.VALIDATOR_KEYSTORE_FILE),
       set_reward_address: async () => await this.setRewardAddress(),
-      set_commission_rate: async () => await this.setCommissionRate(),
+      set_commission_ratio: async () => await this.setCommissionRatio(),
       set_donation_ratio: async () => await this.setDonationRatio(),
       reset_btc_rpc: async () => await this.resetBtcRpcUrl(),
       export_private_key: async () => {
@@ -202,11 +202,11 @@ export class ValidatorCommander {
   }
 
   /**
-   * Sets the commission rate for the validator.
+   * Sets the commission ratio for the validator.
    */
-  async setCommissionRate() {
-    const commissionRate = await inputWithCancel(
-      'Enter commission rate (0-10000, Input "q" to return):',
+  async setCommissionRatio() {
+    const commissionRatio = await inputWithCancel(
+      'Enter commission ratio (0-10000, Input "q" to return):',
       (input: string) => {
         const number = Number(input);
         if (!Number.isInteger(number) || number < 0 || number > 10000) {
@@ -215,17 +215,17 @@ export class ValidatorCommander {
         return true;
       }
     );
-    if (!commissionRate) {
+    if (!commissionRatio) {
       return false;
     }
     const data = {
       validator: this.exsatAccountInfo.accountName,
       financial_account: null,
-      commission_rate: commissionRate,
+      commission_rate: commissionRatio,
     };
     await this.exsatApi.executeAction(ContractName.endrmng, 'config', data);
     await this.updateValidatorInfo()
-    logger.info(`Set Commission Rate:${commissionRate} successfully`);
+    logger.info(`${Font.fgCyan}${Font.bright}Set Commission Ratio:${commissionRatio} successfully.${Font.reset}\n`);
   }
 
 
@@ -249,7 +249,7 @@ export class ValidatorCommander {
       donate_rate: ratio,
     };
     await this.exsatApi.executeAction('endrmng.xsat', 'setdonate', data);
-    logger.info(`Set Donation Ratio:${ratio} successfully`);
+    logger.info(`${Font.fgCyan}${Font.bright}Set Donation Ratio:${ratio} successfully.${Number(ratio)?'Thanks for your support.':''}${Font.reset}\n`);
     await this.updateValidatorInfo()
 
   }
@@ -412,7 +412,7 @@ export class ValidatorCommander {
               'Your account registration was Failed. \n' +
               'Possible reasons: the BTC Transaction ID you provided is incorrect, or the BTC transaction has been rolled back. \n' +
               'Please resubmit the BTC Transaction ID. Thank you.\n' +
-              '-----------------------------------------------'
+              `${Font.fgCyan}${Font.bright}-----------------------------------------------${Font.reset}`
             );
           }
           menus = [
@@ -499,33 +499,33 @@ export class ValidatorCommander {
   }
 
   /**
-   * Checks if the commission rate is set for the validator.
+   * Checks if the commission ratio is set for the validator.
    */
   async checkCommission() {
     const accountName = this.exsatAccountInfo.accountName;
     const btcBalance = await this.tableApi.getAccountBalance(accountName);
     const validatorInfo = this.validatorInfo;
     if (!validatorInfo.commission_rate) {
-      logger.info('Commission Rate is not set.');
+      logger.info('Commission Ratio is not set.');
       showInfo({
         'Account Name': accountName,
         'Public Key': this.exsatAccountInfo.publicKey,
         'BTC Balance Used for Gas Fee': btcBalance,
         'Reward Address': validatorInfo.memo ?? validatorInfo.reward_recipient,
-        'Commission Rate': 'Unset',
+        'Commission Ratio': 'Unset',
         'Account Registration Status': 'Registered',
         'Validator Registration Status': 'Registered',
         'Email': this.exsatAccountInfo.email,
       });
 
       const menus = [
-        { name: 'Set Commission Rate', value: 'set_commission_rate' },
+        { name: 'Set Commission Ratio', value: 'set_commission_ratio' },
         new Separator(),
         { name: 'Quit', value: 'quit', description: 'Quit' },
       ];
 
       const actions: { [key: string]: () => Promise<any> } = {
-        set_commission_rate: async () => await this.setCommissionRate(),
+        set_commission_ratio: async () => await this.setCommissionRatio(),
         quit: async () => process.exit(0),
       };
       let action;
@@ -536,7 +536,7 @@ export class ValidatorCommander {
         }))();
       } while (!res);
     } else {
-      logger.info('Commission Rate is already set correctly.');
+      logger.info('Commission Ratio is already set correctly.');
     }
   }
 
@@ -560,6 +560,7 @@ export class ValidatorCommander {
         'Validator Registration Status': 'Registered',
         'Email': this.exsatAccountInfo.email,
       };
+      showInfo(showMessageInfo);
 
       const menus = [
         { name: 'Set BTC RPC Node', value: 'set_btc_node' },

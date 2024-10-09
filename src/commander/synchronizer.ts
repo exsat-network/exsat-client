@@ -57,7 +57,7 @@ export class SynchronizerCommander {
       'Public Key': this.exsatAccountInfo.publicKey,
       'BTC Balance Used for Gas Fee': btcBalance,
       'Reward Address': synchronizer.memo ?? synchronizer.reward_recipient,
-      'Donate Rate': `${synchronizer.donate_rate / 100}%` ?? '0%',
+      'Donate Ratio': `${synchronizer.donate_rate / 100}%` ?? '0%',
       'BTC PRC Node': process.env.BTC_RPC_URL ?? '',
       'Account Registration Status': 'Registered',
       'Synchronizer Registration Status': 'Registered',
@@ -79,7 +79,7 @@ export class SynchronizerCommander {
         disabled: !synchronizer,
       },
       {
-        name: 'Set Donation Ratio',
+        name: `${synchronizer?.donate_rate?'Change':'Set'} Donation Ratio`,
         value: 'set_donation_ratio',
         description: 'Set/Change Donation Ratio',
         disabled: !synchronizer,
@@ -229,7 +229,7 @@ export class SynchronizerCommander {
     };
     await this.exsatApi.executeAction('poolreg.xsat', 'setdonate', data);
     await this.updateSynchronizerInfo();
-    logger.info(`Set Donation Ratio:${ratio} successfully`);
+    logger.info(`${Font.fgCyan}${Font.bright}Set Donation Ratio:${ratio} successfully.${Number(ratio)?'Thanks for your support.':''}${Font.reset}\n`);
   }
 
   /**
@@ -414,7 +414,7 @@ export class SynchronizerCommander {
               'Your account registration was Failed. \n' +
               'Possible reasons: the BTC Transaction ID you provided is incorrect, or the BTC transaction has been rolled back. \n' +
               'Please resubmit the BTC Transaction ID. Thank you.\n' +
-              '-----------------------------------------------'
+              `${Font.fgCyan}${Font.bright}-----------------------------------------------${Font.reset}`
             );
           }
           menus = [

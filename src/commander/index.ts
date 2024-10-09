@@ -5,6 +5,7 @@ import { ValidatorCommander } from './validator';
 import { Version } from '../utils/version';
 import { updateMenu } from './common';
 import { Client } from '../utils/enumeration';
+import { showInfo } from "../utils/common";
 
 /**
  * Main entry point for the application.
@@ -17,13 +18,10 @@ async function main() {
     await updateMenu(versions);
   }
 
-  // Display user guide information
-  console.log(
-    '-------------------------------\n' +
-      'Please note: It is highly recommended that you carefully read the user guide and follow the instructions precisely to avoid any unnecessary issues.\n' +
-      'User Guide: https://docs.exsat.network/user-guide-for-testnet-hayek\n' +
-      '-------------------------------'
-  );
+  showInfo({
+    'Please note':'It is highly recommended that you carefully read the user guide and follow the instructions precisely to avoid any unnecessary issues.',
+    'User Guide':'https://docs.exsat.network/user-guide-for-testnet-hayek'
+  })
 
   // Define menu options for client selection
   const menus = [
