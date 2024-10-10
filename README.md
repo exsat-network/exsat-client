@@ -51,7 +51,7 @@ yarn build
 
 ### Configure the Environment Variables
 
-Navigate to the project directory (e.g.exsat-client), Copy the _.env.example_ file to create a new .env file, edit the
+Navigate to the project directory (e.g.exsat-client), copy the _.env.example_ file to create a new .env file, edit the
 newly created _.env_ file.
 
 ```
@@ -88,7 +88,7 @@ SYNCHRONIZER_KEYSTORE_FILE=
 SYNCHRONIZER_KEYSTORE_PASSWORD=
 ```
 
-Save and Close the _.env_ File
+Save and close the _.env_ File
 
 By following these steps, you will have successfully configured the environment variables needed for your project.
 
@@ -101,7 +101,7 @@ Verify that you have copied _.env.example_ to _.env_ and customized the paramete
 ### Start the Client with yarn(The keystore password is configured in the .env file)
 
 Open a terminal window.  
-Navigate to the project directory, Execute different commands based on different roles:
+Navigate to the project directory, execute different commands based on different roles:
 
 - yarn start-commander
 - yarn start-synchronizer
