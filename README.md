@@ -60,7 +60,7 @@ vim .env
 ```
 
 This is a simplified env configuration file for **synchronizer** with testnet. For other configuration items, please
-refer to the *.env.example* file.
+refer to the *.env.example* file for more details.
 
 ```
 # Account Initializer API base URL
