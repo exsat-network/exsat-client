@@ -32,7 +32,7 @@ export async function notAccountMenu(role) {
   };
 
   const action = await select({
-    message: 'Select Action:',
+    message: 'Select Action: ',
     choices: menus,
   });
   await (actions[action] || (() => {}))();
@@ -56,12 +56,12 @@ export async function updateMenu(versions) {
       `${Font.fgCyan}${Font.bright}\n-----------------------------------------------${Font.reset}\n`
   );
   const action = await select({
-    message: 'Select Action:',
+    message: 'Select Action: ',
     choices: menus,
   });
   switch (action) {
     case 'get_upgrade_method':
-      console.log('\nPlease enter the following command in the terminal to complete the version upgrade:');
+      console.log('\nPlease enter the following command in the terminal to complete the version upgrade: ');
       console.log(`git fetch --tags && git checkout -f ${versions.latest} \n`);
       await input({ message: 'Press Enter to Continue...' });
       process.exit(0);

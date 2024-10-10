@@ -32,7 +32,7 @@ async function main() {
 
   // Prompt user to select a client to start
   const action = await select({
-    message: 'Please select the client to start:',
+    message: 'Please select the client to start: ',
     choices: menus,
   });
 
