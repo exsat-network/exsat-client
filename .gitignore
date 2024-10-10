@@ -70,3 +70,5 @@ jspm_packages/
 
 # mac system file
 .DS_Store
+
+/*.bak
