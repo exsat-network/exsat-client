@@ -156,7 +156,7 @@ export class SynchronizerCommander {
       await retry(async () => {
         const passwordInput = await password({
           message:
-            'Enter your password to Remove Account\n(5 incorrect passwords will exit the program,Enter "q" to return):',
+            'Enter your password to Remove Account\n(5 incorrect passwords will exit the program,Enter "q" to return): ',
           mask: '*',
         });
         if (passwordInput === 'q') {
@@ -196,7 +196,7 @@ export class SynchronizerCommander {
    * Sets the reward address for the synchronizer.
    */
   async setRewardAddress() {
-    const financialAccount = await inputWithCancel('Enter Reward Address(Input "q" to return):', (input: string) => {
+    const financialAccount = await inputWithCancel('Enter Reward Address(Input "q" to return): ', (input: string) => {
       if (!/^0x[a-fA-F0-9]{40}$/.test(input)) {
         return 'Please enter a valid account name.';
       }
@@ -211,20 +211,21 @@ export class SynchronizerCommander {
   }
 
   async setDonationRatio() {
-    const ratio = await inputWithCancel('Enter Donation Ratio(0-10000,Input "q" to return):', (value) => {
-      //Determine whether it is a number between 0-10000
-      const num = Number(value);
-      if (!Number.isInteger(num) || num < 0 || num > 10000) {
-        return 'Please enter a valid number between 0 and 10000';
+    const ratio = await inputWithCancel('Enter Donation Ratio(0.00-100.00,Input "q" to return): ', (value) => {
+      //Determine whether it is a number between 0.00-100.00
+      const num = parseFloat(value);
+      // Check if it is a valid number and within the range
+      if (!isNaN(num) && num >= 0 && num <= 100 && /^\d+(\.\d{1,2})?$/.test(value)) {
+        return true;
       }
-      return true;
+      return 'Please enter a valid number between 0.00 and 100.00';
     });
     if (!ratio) {
       return false;
     }
     const data = {
       synchronizer: this.exsatAccountInfo.accountName,
-      donate_rate: ratio,
+      donate_rate: parseFloat(ratio) * 100,
     };
     await this.exsatApi.executeAction('poolreg.xsat', 'setdonate', data);
     await this.updateSynchronizerInfo();
@@ -493,7 +494,7 @@ export class SynchronizerCommander {
       let action;
       let res;
       do {
-        action = await select({ message: 'Select Action:', choices: menus });
+        action = await select({ message: 'Select Action: ', choices: menus });
         res = await (actions[action] || (() => {}))();
       } while (!res);
     } else {
@@ -536,7 +537,7 @@ export class SynchronizerCommander {
       let action;
       let res;
       do {
-        action = await select({ message: 'Select Action:', choices: menus });
+        action = await select({ message: 'Select Action: ', choices: menus });
         res = await (actions[action] || (() => {}))();
       } while (!res);
     } else {

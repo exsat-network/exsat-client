@@ -146,7 +146,8 @@ export class ValidatorCommander {
         pageSize: 20,
       });
       if (action !== '99') {
-        await (actions[action] || (() => {}))();
+        await (actions[action] || (() => {
+        }))();
       }
     } while (action !== '99');
   }
@@ -159,7 +160,7 @@ export class ValidatorCommander {
       await retry(async () => {
         const passwordInput = await password({
           message:
-            'Enter your password to Remove Account\n(5 incorrect passwords will exit the program,Enter "q" to return):',
+            'Enter your password to Remove Account\n(5 incorrect passwords will exit the program,Enter "q" to return): ',
           mask: '*',
         });
         if (passwordInput === 'q') {
@@ -180,7 +181,7 @@ export class ValidatorCommander {
    * Sets the reward address for the validator.
    */
   async setRewardAddress() {
-    const financialAccount = await inputWithCancel('Enter Reward Address(Input "q" to return):', (input: string) => {
+    const financialAccount = await inputWithCancel('Enter Reward Address(Input "q" to return): ', (input: string) => {
       if (!/^0x[a-fA-F0-9]{40}$/.test(input)) {
         return 'Please enter a valid account name.';
       }
@@ -205,13 +206,15 @@ export class ValidatorCommander {
    */
   async setCommissionRatio() {
     const commissionRatio = await inputWithCancel(
-      'Enter commission ratio (0-10000, Input "q" to return):',
-      (input: string) => {
-        const number = Number(input);
-        if (!Number.isInteger(number) || number < 0 || number > 10000) {
-          return 'Please enter a valid integer between 0 and 10000.';
+      'Enter commission ratio (0.00-100.00, Input "q" to return): ',
+      (value: string) => {
+        //Determine whether it is a number between 0.00-100.00
+        const num = parseFloat(value);
+        // Check if it is a valid number and within the range
+        if (!isNaN(num) && num >= 0 && num <= 100 && /^\d+(\.\d{1,2})?$/.test(value)) {
+          return true;
         }
-        return true;
+        return 'Please enter a valid number between 0.00 and 100.00';
       }
     );
     if (!commissionRatio) {
@@ -220,7 +223,7 @@ export class ValidatorCommander {
     const data = {
       validator: this.exsatAccountInfo.accountName,
       financial_account: null,
-      commission_rate: commissionRatio,
+      commission_rate: parseFloat(commissionRatio) * 100,
     };
     await this.exsatApi.executeAction(ContractName.endrmng, 'config', data);
     await this.updateValidatorInfo();
@@ -231,20 +234,21 @@ export class ValidatorCommander {
    * Sets the donation ratio for the validator.
    */
   async setDonationRatio() {
-    const ratio = await inputWithCancel('Enter Donation Ratio(0-10000,Input "q" to return):', (value) => {
-      //Determine whether it is a number between 0-10000
-      const num = Number(value);
-      if (!Number.isInteger(num) || num < 0 || num > 10000) {
-        return 'Please enter a valid number between 0 and 10000';
+    const ratio = await inputWithCancel('Enter Donation Ratio(0.00-100.00,Input "q" to return): ', (value) => {
+      //Determine whether it is a number between 0.00-100.00
+      const num = parseFloat(value);
+      // Check if it is a valid number and within the range
+      if (!isNaN(num) && num >= 0 && num <= 100 && /^\d+(\.\d{1,2})?$/.test(value)) {
+        return true;
       }
-      return true;
+      return 'Please enter a valid number between 0.00 and 100.00';
     });
     if (!ratio) {
       return false;
     }
     const data = {
       validator: this.exsatAccountInfo.accountName,
-      donate_rate: ratio,
+      donate_rate: parseFloat(ratio) * 100,
     };
     await this.exsatApi.executeAction('endrmng.xsat', 'setdonate', data);
     logger.info(
@@ -371,8 +375,8 @@ export class ValidatorCommander {
       });
       console.log(
         'The account has been registered, and a confirmation email has been sent to your inbox. \n' +
-          'Please follow the instructions in the email to complete the Validator registration. \n' +
-          'If you have already followed the instructions, please wait patiently for the next confirmation email.'
+        'Please follow the instructions in the email to complete the Validator registration. \n' +
+        'If you have already followed the instructions, please wait patiently for the next confirmation email.'
       );
       process.exit(0);
     }
@@ -409,9 +413,9 @@ export class ValidatorCommander {
           if (checkAccountInfo.status === 'failed') {
             console.log(
               'Your account registration was Failed. \n' +
-                'Possible reasons: the BTC Transaction ID you provided is incorrect, or the BTC transaction has been rolled back. \n' +
-                'Please resubmit the BTC Transaction ID. Thank you.\n' +
-                `${Font.fgCyan}${Font.bright}-----------------------------------------------${Font.reset}`
+              'Possible reasons: the BTC Transaction ID you provided is incorrect, or the BTC transaction has been rolled back. \n' +
+              'Please resubmit the BTC Transaction ID. Thank you.\n' +
+              `${Font.fgCyan}${Font.bright}-----------------------------------------------${Font.reset}`
             );
           }
           menus = [
@@ -488,8 +492,9 @@ export class ValidatorCommander {
       let action;
       let res;
       do {
-        action = await select({ message: 'Select Action:', choices: menus });
-        res = await (actions[action] || (() => {}))();
+        action = await select({ message: 'Select Action: ', choices: menus });
+        res = await (actions[action] || (() => {
+        }))();
       } while (!res);
     } else {
       logger.info('Reward Address is already set correctly.');
@@ -529,8 +534,9 @@ export class ValidatorCommander {
       let action;
       let res;
       do {
-        action = await select({ message: 'Select Action:', choices: menus });
-        res = await (actions[action] || (() => {}))();
+        action = await select({ message: 'Select Action: ', choices: menus });
+        res = await (actions[action] || (() => {
+        }))();
       } while (!res);
     } else {
       logger.info('Commission Ratio is already set correctly.');
@@ -572,8 +578,9 @@ export class ValidatorCommander {
       let action;
       let res;
       do {
-        action = await select({ message: 'Select Action:', choices: menus });
-        res = await (actions[action] || (() => {}))();
+        action = await select({ message: 'Select Action: ', choices: menus });
+        res = await (actions[action] || (() => {
+        }))();
       } while (!res);
     } else {
       logger.info('BTC_RPC_URL is already set correctly.');
