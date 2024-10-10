@@ -146,7 +146,7 @@ When creating an account, make sure to save your seed phrase carefully. After th
 the seed phrase, it will save the encrypted private key in a keystore file, and you will choose where to save the
 keystore file. Be sure to select a path that is mapped to the host machine's storage (e.g. if you're running the docker
 with the supplied "-v" parameters as below example codes, in the "Choose a directory to save the keystore" step, you
-could choose the option that save the keystore at /root/.exsat). This way, the keystore file will be saved on the host
+could choose the option that save the keystore at /app/.exsat). This way, the keystore file will be saved on the host
 machine. Otherwise, if you remove the Docker container, the keystore file will be lost, and you will need to regenerate
 the keystore file by importing the seed phrase.
 
