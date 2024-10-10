@@ -121,7 +121,7 @@ export class SynchronizerCommander {
       purchase_memory_slot: async () => await this.purchaseSlots(),
       reset_btc_rpc: async () => await this.resetBtcRpcUrl(),
       export_private_key: async () => {
-        console.log(`Private Key:${this.exsatAccountInfo.privateKey}`);
+        console.log(`Private Key: ${this.exsatAccountInfo.privateKey}`);
         await input({ message: 'Press [enter] to continue' });
       },
       remove_account: async () => await this.removeKeystore(),
@@ -189,7 +189,7 @@ export class SynchronizerCommander {
     }
 
     await this.buySlots(parseInt(numberSlots));
-    logger.info(`Buy slots:${numberSlots} successfully`);
+    logger.info(`Buy slots: ${numberSlots} successfully`);
   }
 
   /**
@@ -206,7 +206,7 @@ export class SynchronizerCommander {
       return false;
     }
     await this.resetRewardAddress(financialAccount);
-    logger.info(`Set Reward Account:${financialAccount} successfully`);
+    logger.info(`Set Reward Account: ${financialAccount} successfully`);
     return true;
   }
 
@@ -230,7 +230,7 @@ export class SynchronizerCommander {
     await this.exsatApi.executeAction('poolreg.xsat', 'setdonate', data);
     await this.updateSynchronizerInfo();
     logger.info(
-      `${Font.fgCyan}${Font.bright}Set Donation Ratio:${ratio} successfully.${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`
+      `${Font.fgCyan}${Font.bright}Set Donation Ratio: ${ratio} successfully.${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`
     );
   }
 
@@ -313,7 +313,7 @@ export class SynchronizerCommander {
     if (rpcUrl) {
       if (
         !(await confirm({
-          message: `Your BTC_RPC_URL:${rpcUrl}\nAre you sure to change it?`,
+          message: `Your BTC_RPC_URL: ${rpcUrl}\nAre you sure to change it?`,
         }))
       ) {
         return;

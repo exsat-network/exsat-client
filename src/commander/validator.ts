@@ -124,7 +124,7 @@ export class ValidatorCommander {
       set_donation_ratio: async () => await this.setDonationRatio(),
       reset_btc_rpc: async () => await this.resetBtcRpcUrl(),
       export_private_key: async () => {
-        console.log(`Private Key:${this.exsatAccountInfo.privateKey}`);
+        console.log(`Private Key: ${this.exsatAccountInfo.privateKey}`);
         await input({ message: 'Press [enter] to continue' });
       },
       change_email: async () => {
@@ -196,7 +196,7 @@ export class ValidatorCommander {
       commission_rate: null,
     };
     await this.exsatApi.executeAction(ContractName.endrmng, 'config', data);
-    logger.info(`Set Reward Account:${financialAccount} successfully`);
+    logger.info(`Set Reward Account: ${financialAccount} successfully`);
     await this.updateValidatorInfo();
     return true;
   }
@@ -227,7 +227,7 @@ export class ValidatorCommander {
     };
     await this.exsatApi.executeAction(ContractName.endrmng, 'config', data);
     await this.updateValidatorInfo();
-    logger.info(`${Font.fgCyan}${Font.bright}Set Commission Ratio:${commissionRatio} successfully.${Font.reset}\n`);
+    logger.info(`${Font.fgCyan}${Font.bright}Set Commission Ratio: ${commissionRatio} successfully.${Font.reset}\n`);
   }
 
   /**
@@ -252,7 +252,7 @@ export class ValidatorCommander {
     };
     await this.exsatApi.executeAction('endrmng.xsat', 'setdonate', data);
     logger.info(
-      `${Font.fgCyan}${Font.bright}Set Donation Ratio:${ratio} successfully.${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`
+      `${Font.fgCyan}${Font.bright}Set Donation Ratio: ${ratio} successfully.${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`
     );
     await this.updateValidatorInfo();
   }
@@ -310,7 +310,7 @@ export class ValidatorCommander {
     if (rpcUrl) {
       if (
         !(await confirm({
-          message: `Your BTC_RPC_URL:${rpcUrl}\nAre you sure to change it?`,
+          message: `Your BTC_RPC_URL: ${rpcUrl}\nAre you sure to change it?`,
         }))
       ) {
         return;

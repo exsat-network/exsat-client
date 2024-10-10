@@ -51,7 +51,7 @@ export async function updateMenu(versions) {
   ];
   console.log(
     `${Font.fgCyan}${Font.bright}-----------------------------------------------\n` +
-      `Client Current Version:${Font.reset}${Font.bright} ${versions.current}${Font.reset}\n` +
+      `Client Current Version: ${Font.reset}${Font.bright}${versions.current}${Font.reset}\n` +
       Font.colorize(`Client Latest Version: ${versions.latest}`, Font.fgYellow) +
       `${Font.fgCyan}${Font.bright}\n-----------------------------------------------${Font.reset}\n`
   );
