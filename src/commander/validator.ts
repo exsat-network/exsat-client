@@ -146,8 +146,7 @@ export class ValidatorCommander {
         pageSize: 20,
       });
       if (action !== '99') {
-        await (actions[action] || (() => {
-        }))();
+        await (actions[action] || (() => {}))();
       }
     } while (action !== '99');
   }
@@ -375,8 +374,8 @@ export class ValidatorCommander {
       });
       console.log(
         'The account has been registered, and a confirmation email has been sent to your inbox. \n' +
-        'Please follow the instructions in the email to complete the Validator registration. \n' +
-        'If you have already followed the instructions, please wait patiently for the next confirmation email.'
+          'Please follow the instructions in the email to complete the Validator registration. \n' +
+          'If you have already followed the instructions, please wait patiently for the next confirmation email.'
       );
       process.exit(0);
     }
@@ -413,9 +412,9 @@ export class ValidatorCommander {
           if (checkAccountInfo.status === 'failed') {
             console.log(
               'Your account registration was Failed. \n' +
-              'Possible reasons: the BTC Transaction ID you provided is incorrect, or the BTC transaction has been rolled back. \n' +
-              'Please resubmit the BTC Transaction ID. Thank you.\n' +
-              `${Font.fgCyan}${Font.bright}-----------------------------------------------${Font.reset}`
+                'Possible reasons: the BTC Transaction ID you provided is incorrect, or the BTC transaction has been rolled back. \n' +
+                'Please resubmit the BTC Transaction ID. Thank you.\n' +
+                `${Font.fgCyan}${Font.bright}-----------------------------------------------${Font.reset}`
             );
           }
           menus = [
@@ -493,8 +492,7 @@ export class ValidatorCommander {
       let res;
       do {
         action = await select({ message: 'Select Action: ', choices: menus });
-        res = await (actions[action] || (() => {
-        }))();
+        res = await (actions[action] || (() => {}))();
       } while (!res);
     } else {
       logger.info('Reward Address is already set correctly.');
@@ -535,8 +533,7 @@ export class ValidatorCommander {
       let res;
       do {
         action = await select({ message: 'Select Action: ', choices: menus });
-        res = await (actions[action] || (() => {
-        }))();
+        res = await (actions[action] || (() => {}))();
       } while (!res);
     } else {
       logger.info('Commission Ratio is already set correctly.');
@@ -579,8 +576,7 @@ export class ValidatorCommander {
       let res;
       do {
         action = await select({ message: 'Select Action: ', choices: menus });
-        res = await (actions[action] || (() => {
-        }))();
+        res = await (actions[action] || (() => {}))();
       } while (!res);
     } else {
       logger.info('BTC_RPC_URL is already set correctly.');
