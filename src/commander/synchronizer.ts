@@ -14,6 +14,7 @@ import { inputWithCancel } from '../utils/input';
 import { updateEnvFile } from '@exsat/account-initializer/dist/utils';
 import { notAccountMenu, updateMenu } from './common';
 import { Font } from '../utils/font';
+import { changeEmail } from '@exsat/account-initializer/dist/accountInitializer';
 
 export class SynchronizerCommander {
   private exsatAccountInfo: any;
@@ -56,6 +57,7 @@ export class SynchronizerCommander {
       'Public Key': this.exsatAccountInfo.publicKey,
       'BTC Balance Used for Gas Fee': btcBalance,
       'Reward Address': synchronizer.memo ?? synchronizer.reward_recipient,
+      'Donate Ratio': `${synchronizer.donate_rate / 100}%` ?? '0%',
       'BTC PRC Node': process.env.BTC_RPC_URL ?? '',
       'Account Registration Status': 'Registered',
       'Synchronizer Registration Status': 'Registered',
@@ -71,9 +73,15 @@ export class SynchronizerCommander {
         description: 'Bridge BTC as GAS Fee',
       },
       {
-        name: synchronizer?.reward_recipient ? 'Reset Reward Address' : 'Set Reward Address',
+        name: synchronizer?.reward_recipient ? 'Change Reward Address' : 'Set Reward Address',
         value: 'set_reward_address',
-        description: 'Set/Reset Reward Address',
+        description: 'Set/Change Reward Address',
+        disabled: !synchronizer,
+      },
+      {
+        name: `${synchronizer?.donate_rate ? 'Change' : 'Set'} Donation Ratio`,
+        value: 'set_donation_ratio',
+        description: 'Set/Change Donation Ratio',
         disabled: !synchronizer,
       },
       {
@@ -83,9 +91,14 @@ export class SynchronizerCommander {
         disabled: !synchronizer,
       },
       {
-        name: 'Reset BTC RPC Node',
+        name: 'Change BTC RPC Node',
         value: 'reset_btc_rpc',
-        description: 'Reset BTC RPC Node',
+        description: 'Change BTC RPC Node',
+      },
+      {
+        name: 'Change Email',
+        value: 'change_email',
+        description: 'Change Email',
       },
       {
         name: 'Export Private Key',
@@ -104,13 +117,20 @@ export class SynchronizerCommander {
     const actions: { [key: string]: () => Promise<any> } = {
       recharge_btc: async () => await chargeBtcForResource(process.env.SYNCHRONIZER_KEYSTORE_FILE),
       set_reward_address: async () => await this.setRewardAddress(),
+      set_donation_ratio: async () => await this.setDonationRatio(),
       purchase_memory_slot: async () => await this.purchaseSlots(),
       reset_btc_rpc: async () => await this.resetBtcRpcUrl(),
       export_private_key: async () => {
-        console.log(`Private Key:${this.exsatAccountInfo.privateKey}`);
+        console.log(`Private Key: ${this.exsatAccountInfo.privateKey}`);
         await input({ message: 'Press [enter] to continue' });
       },
       remove_account: async () => await this.removeKeystore(),
+      change_email: async () => {
+        console.log();
+        await changeEmail(accountName, this.exsatAccountInfo.email);
+        console.log();
+        await input({ message: 'Press [enter] to continue' });
+      },
       quit: async () => process.exit(),
     };
 
@@ -120,6 +140,7 @@ export class SynchronizerCommander {
         message: 'Select An Action',
         choices: menus,
         loop: false,
+        pageSize: 20,
       });
       if (action !== '99') {
         await (actions[action] || (() => {}))();
@@ -135,7 +156,7 @@ export class SynchronizerCommander {
       await retry(async () => {
         const passwordInput = await password({
           message:
-            'Enter your password to Remove Account\n(5 incorrect passwords will exit the program,Enter "q" to return):',
+            'Enter your password to remove account\n(5 incorrect passwords will exit the program, Input "q" to return): ',
           mask: '*',
         });
         if (passwordInput === 'q') {
@@ -143,11 +164,11 @@ export class SynchronizerCommander {
         }
         await getAccountInfo(process.env.SYNCHRONIZER_KEYSTORE_FILE, passwordInput);
         fs.unlinkSync(process.env.SYNCHRONIZER_KEYSTORE_FILE);
-        logger.info('Remove Account successfully');
+        logger.info('Remove account successfully');
         process.exit();
       }, 5);
     } catch (e) {
-      logger.error('Invalid Password');
+      logger.error('Invalid password');
       process.exit();
     }
   }
@@ -168,14 +189,14 @@ export class SynchronizerCommander {
     }
 
     await this.buySlots(parseInt(numberSlots));
-    logger.info(`Buy slots:${numberSlots} successfully`);
+    logger.info(`Buy slots: ${numberSlots} successfully`);
   }
 
   /**
    * Sets the reward address for the synchronizer.
    */
   async setRewardAddress() {
-    const financialAccount = await inputWithCancel('Enter Reward Address(Input "q" to return):', (input: string) => {
+    const financialAccount = await inputWithCancel('Enter reward address(Input "q" to return): ', (input: string) => {
       if (!/^0x[a-fA-F0-9]{40}$/.test(input)) {
         return 'Please enter a valid account name.';
       }
@@ -185,8 +206,32 @@ export class SynchronizerCommander {
       return false;
     }
     await this.resetRewardAddress(financialAccount);
-    logger.info(`Set Reward Account:${financialAccount} successfully`);
+    logger.info(`Set reward address: ${financialAccount} successfully`);
     return true;
+  }
+
+  async setDonationRatio() {
+    const ratio = await inputWithCancel('Enter donation ratio(0.00-100.00, Input "q" to return): ', (value) => {
+      //Determine whether it is a number between 0.00-100.00
+      const num = parseFloat(value);
+      // Check if it is a valid number and within the range
+      if (!isNaN(num) && num >= 0 && num <= 100 && /^\d+(\.\d{1,2})?$/.test(value)) {
+        return true;
+      }
+      return 'Please enter a valid number between 0.00 and 100.00';
+    });
+    if (!ratio) {
+      return false;
+    }
+    const data = {
+      synchronizer: this.exsatAccountInfo.accountName,
+      donate_rate: parseFloat(ratio) * 100,
+    };
+    await this.exsatApi.executeAction('poolreg.xsat', 'setdonate', data);
+    await this.updateSynchronizerInfo();
+    logger.info(
+      `${Font.fgCyan}${Font.bright}Set Donation Ratio: ${ratio}% successfully. ${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`
+    );
   }
 
   /**
@@ -198,7 +243,7 @@ export class SynchronizerCommander {
       financial_account: account,
     };
     await this.exsatApi.executeAction('poolreg.xsat', 'setfinacct', data);
-    this.synchronizerInfo = await this.tableApi.getSynchronizerInfo(this.exsatAccountInfo.accountName);
+    await this.updateSynchronizerInfo();
   }
 
   /**
@@ -210,7 +255,9 @@ export class SynchronizerCommander {
       receiver: this.exsatAccountInfo.accountName,
       num_slots: slots,
     };
-    return await this.exsatApi.executeAction('poolreg.xsat', 'buyslot', data);
+    await this.exsatApi.executeAction('poolreg.xsat', 'buyslot', data);
+    await this.updateSynchronizerInfo();
+    return true;
   }
 
   /**
@@ -266,7 +313,7 @@ export class SynchronizerCommander {
     if (rpcUrl) {
       if (
         !(await confirm({
-          message: `Your BTC_RPC_URL:${rpcUrl}\nAre you sure to reset it?`,
+          message: `Your BTC_RPC_URL: ${rpcUrl}\nAre you sure to change it?`,
         }))
       ) {
         return;
@@ -369,7 +416,7 @@ export class SynchronizerCommander {
               'Your account registration was Failed. \n' +
                 'Possible reasons: the BTC Transaction ID you provided is incorrect, or the BTC transaction has been rolled back. \n' +
                 'Please resubmit the BTC Transaction ID. Thank you.\n' +
-                '-----------------------------------------------'
+                `${Font.fgCyan}${Font.bright}-----------------------------------------------${Font.reset}`
             );
           }
           menus = [
@@ -422,7 +469,7 @@ export class SynchronizerCommander {
     const btcBalance = await this.tableApi.getAccountBalance(accountName);
     const synchronizer = this.synchronizerInfo;
     if (!synchronizer.memo) {
-      logger.info('Reward Address is not set.');
+      logger.info('Reward address is not set.');
       showInfo({
         'Account Name': accountName,
         'Public Key': this.exsatAccountInfo.publicKey,
@@ -447,7 +494,7 @@ export class SynchronizerCommander {
       let action;
       let res;
       do {
-        action = await select({ message: 'Select Action:', choices: menus });
+        action = await select({ message: 'Select Action: ', choices: menus });
         res = await (actions[action] || (() => {}))();
       } while (!res);
     } else {
@@ -464,7 +511,7 @@ export class SynchronizerCommander {
     const btcBalance = await this.tableApi.getAccountBalance(accountName);
     const synchronizer = this.synchronizerInfo;
     if (!rpcUrl || !isValidUrl(rpcUrl)) {
-      logger.info('BTC_RPC_URL is not set or not in the correct format.');
+      logger.info('BTC_RPC_URL is not set or is in an incorrect format.');
       const showMessageInfo = {
         'Account Name': accountName,
         'Public Key': this.exsatAccountInfo.publicKey,
@@ -476,6 +523,7 @@ export class SynchronizerCommander {
         Email: this.exsatAccountInfo.email,
         'Memory Slot': synchronizer.num_slots,
       };
+      showInfo(showMessageInfo);
 
       const menus = [
         { name: 'Set BTC RPC Node', value: 'set_btc_node' },
@@ -490,11 +538,15 @@ export class SynchronizerCommander {
       let action;
       let res;
       do {
-        action = await select({ message: 'Select Action:', choices: menus });
+        action = await select({ message: 'Select Action: ', choices: menus });
         res = await (actions[action] || (() => {}))();
       } while (!res);
     } else {
       logger.info('BTC_RPC_URL is already set correctly.');
     }
+  }
+
+  async updateSynchronizerInfo() {
+    this.synchronizerInfo = await this.tableApi.getSynchronizerInfo(this.exsatAccountInfo.accountName);
   }
 }

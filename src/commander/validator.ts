@@ -14,6 +14,7 @@ import { inputWithCancel } from '../utils/input';
 import { updateEnvFile } from '@exsat/account-initializer/dist/utils';
 import { ClientType, ContractName } from '../utils/enumeration';
 import { Font } from '../utils/font';
+import { changeEmail } from '@exsat/account-initializer/dist/accountInitializer';
 
 export class ValidatorCommander {
   private exsatAccountInfo: any;
@@ -57,7 +58,8 @@ export class ValidatorCommander {
       'Public Key': this.exsatAccountInfo.publicKey,
       'BTC Balance Used for Gas Fee': btcBalance,
       'Reward Address': validator.memo ?? validator.reward_recipient,
-      'Commission Rate': `${validator.commission_rate / 100}%` ?? '0%',
+      'Commission Ratio': `${validator.commission_rate / 100}%` ?? '0%',
+      'Donate Ratio': `${validator.donate_rate / 100}%` ?? '0%',
       'BTC PRC Node': process.env.BTC_RPC_URL ?? '',
       'BTC Staked': validator.quantity,
       'Eligible for Verification': parseFloat(validator.quantity) > 100 ? 'Yes' : 'No, requires min 100 BTC staked',
@@ -74,21 +76,32 @@ export class ValidatorCommander {
         description: 'Bridge BTC as GAS Fee',
       },
       {
-        name: 'Reset Reward Address',
+        name: 'Change Reward Address',
         value: 'set_reward_address',
-        description: 'Set/Reset Reward Address',
+        description: 'Set/Change Reward Address',
         disabled: !validator,
       },
       {
-        name: 'Reset Commission Rate',
-        value: 'set_commission_rate',
-        description: 'Set/Reset Reward Address',
+        name: 'Change Commission Ratio',
+        value: 'set_commission_ratio',
+        description: 'Set/Change Reward Address',
         disabled: !validator,
       },
       {
-        name: 'Reset BTC RPC Node',
+        name: `${validator?.donate_rate ? 'Change' : 'Set'} Donation Ratio`,
+        value: 'set_donation_ratio',
+        description: 'Set/Change Donation Ratio',
+        disabled: !validator,
+      },
+      {
+        name: 'Change BTC RPC Node',
         value: 'reset_btc_rpc',
-        description: 'Reset BTC RPC Node',
+        description: 'Change BTC RPC Node',
+      },
+      {
+        name: 'Change Email',
+        value: 'change_email',
+        description: 'Change Email',
       },
       {
         name: 'Export Private Key',
@@ -107,10 +120,17 @@ export class ValidatorCommander {
     const actions: { [key: string]: () => Promise<any> } = {
       recharge_btc: async () => await chargeBtcForResource(process.env.VALIDATOR_KEYSTORE_FILE),
       set_reward_address: async () => await this.setRewardAddress(),
-      set_commission_rate: async () => await this.setCommissionRate(),
+      set_commission_ratio: async () => await this.setCommissionRatio(),
+      set_donation_ratio: async () => await this.setDonationRatio(),
       reset_btc_rpc: async () => await this.resetBtcRpcUrl(),
       export_private_key: async () => {
-        console.log(`Private Key:${this.exsatAccountInfo.privateKey}`);
+        console.log(`Private Key: ${this.exsatAccountInfo.privateKey}`);
+        await input({ message: 'Press [enter] to continue' });
+      },
+      change_email: async () => {
+        console.log();
+        await changeEmail(accountName, this.exsatAccountInfo.email);
+        console.log();
         await input({ message: 'Press [enter] to continue' });
       },
       remove_account: async () => await this.removeKeystore(),
@@ -123,6 +143,7 @@ export class ValidatorCommander {
         message: 'Select An Action',
         choices: menus,
         loop: false,
+        pageSize: 20,
       });
       if (action !== '99') {
         await (actions[action] || (() => {}))();
@@ -138,7 +159,7 @@ export class ValidatorCommander {
       await retry(async () => {
         const passwordInput = await password({
           message:
-            'Enter your password to Remove Account\n(5 incorrect passwords will exit the program,Enter "q" to return):',
+            'Enter your password to remove account\n(5 incorrect passwords will exit the program, Input "q" to return): ',
           mask: '*',
         });
         if (passwordInput === 'q') {
@@ -146,11 +167,11 @@ export class ValidatorCommander {
         }
         await getAccountInfo(process.env.VALIDATOR_KEYSTORE_FILE, passwordInput);
         fs.unlinkSync(process.env.VALIDATOR_KEYSTORE_FILE);
-        logger.info('Remove Account successfully');
+        logger.info('Remove account successfully');
         process.exit();
       }, 5);
     } catch (e) {
-      logger.error('Invalid Password');
+      logger.error('Invalid password');
       process.exit();
     }
   }
@@ -159,7 +180,7 @@ export class ValidatorCommander {
    * Sets the reward address for the validator.
    */
   async setRewardAddress() {
-    const financialAccount = await inputWithCancel('Enter Reward Address(Input "q" to return):', (input: string) => {
+    const financialAccount = await inputWithCancel('Enter reward address(Input "q" to return): ', (input: string) => {
       if (!/^0x[a-fA-F0-9]{40}$/.test(input)) {
         return 'Please enter a valid account name.';
       }
@@ -174,35 +195,65 @@ export class ValidatorCommander {
       commission_rate: null,
     };
     await this.exsatApi.executeAction(ContractName.endrmng, 'config', data);
-    logger.info(`Set Reward Account:${financialAccount} successfully`);
-    this.validatorInfo = await this.tableApi.getValidatorInfo(this.exsatAccountInfo.accountName);
+    logger.info(`Set reward address: ${financialAccount} successfully`);
+    await this.updateValidatorInfo();
     return true;
   }
 
   /**
-   * Sets the commission rate for the validator.
+   * Sets the commission ratio for the validator.
    */
-  async setCommissionRate() {
-    const commissionRate = await inputWithCancel(
-      'Enter commission rate (0-10000, Input "q" to return):',
-      (input: string) => {
-        const number = Number(input);
-        if (!Number.isInteger(number) || number < 0 || number > 10000) {
-          return 'Please enter a valid integer between 0 and 10000.';
+  async setCommissionRatio() {
+    const commissionRatio = await inputWithCancel(
+      'Enter commission ratio (0.00-100.00, Input "q" to return): ',
+      (value: string) => {
+        //Determine whether it is a number between 0.00-100.00
+        const num = parseFloat(value);
+        // Check if it is a valid number and within the range
+        if (!isNaN(num) && num >= 0 && num <= 100 && /^\d+(\.\d{1,2})?$/.test(value)) {
+          return true;
         }
-        return true;
+        return 'Please enter a valid number between 0.00 and 100.00';
       }
     );
-    if (!commissionRate) {
+    if (!commissionRatio) {
       return false;
     }
     const data = {
       validator: this.exsatAccountInfo.accountName,
       financial_account: null,
-      commission_rate: commissionRate,
+      commission_rate: parseFloat(commissionRatio) * 100,
     };
     await this.exsatApi.executeAction(ContractName.endrmng, 'config', data);
-    logger.info(`Set Commission Rate:${commissionRate} successfully`);
+    await this.updateValidatorInfo();
+    logger.info(`${Font.fgCyan}${Font.bright}Set commission ratio: ${commissionRatio}% successfully.${Font.reset}\n`);
+  }
+
+  /**
+   * Sets the donation ratio for the validator.
+   */
+  async setDonationRatio() {
+    const ratio = await inputWithCancel('Enter donation ratio(0.00-100.00, Input "q" to return): ', (value) => {
+      //Determine whether it is a number between 0.00-100.00
+      const num = parseFloat(value);
+      // Check if it is a valid number and within the range
+      if (!isNaN(num) && num >= 0 && num <= 100 && /^\d+(\.\d{1,2})?$/.test(value)) {
+        return true;
+      }
+      return 'Please enter a valid number between 0.00 and 100.00';
+    });
+    if (!ratio) {
+      return false;
+    }
+    const data = {
+      validator: this.exsatAccountInfo.accountName,
+      donate_rate: parseFloat(ratio) * 100,
+    };
+    await this.exsatApi.executeAction('endrmng.xsat', 'setdonate', data);
+    logger.info(
+      `${Font.fgCyan}${Font.bright}Set donation ratio: ${ratio}% successfully. ${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`
+    );
+    await this.updateValidatorInfo();
   }
 
   /**
@@ -258,7 +309,7 @@ export class ValidatorCommander {
     if (rpcUrl) {
       if (
         !(await confirm({
-          message: `Your BTC_RPC_URL:${rpcUrl}\nAre you sure to reset it?`,
+          message: `Your BTC_RPC_URL: ${rpcUrl}\nAre you sure to change it?`,
         }))
       ) {
         return;
@@ -360,10 +411,10 @@ export class ValidatorCommander {
           });
           if (checkAccountInfo.status === 'failed') {
             console.log(
-              'Your account registration was Failed. \n' +
+              'Your account registration was failed. \n' +
                 'Possible reasons: the BTC Transaction ID you provided is incorrect, or the BTC transaction has been rolled back. \n' +
                 'Please resubmit the BTC Transaction ID. Thank you.\n' +
-                '-----------------------------------------------'
+                `${Font.fgCyan}${Font.bright}-----------------------------------------------${Font.reset}`
             );
           }
           menus = [
@@ -416,7 +467,7 @@ export class ValidatorCommander {
     const btcBalance = await this.tableApi.getAccountBalance(accountName);
     const validatorInfo = this.validatorInfo;
     if (!validatorInfo.memo) {
-      logger.info('Reward Address is not set.');
+      logger.info('Reward address is not set.');
       showInfo({
         'Account Name': accountName,
         'Public Key': this.exsatAccountInfo.publicKey,
@@ -440,52 +491,52 @@ export class ValidatorCommander {
       let action;
       let res;
       do {
-        action = await select({ message: 'Select Action:', choices: menus });
+        action = await select({ message: 'Select Action: ', choices: menus });
         res = await (actions[action] || (() => {}))();
       } while (!res);
     } else {
-      logger.info('Reward Address is already set correctly.');
+      logger.info('Reward address is already set correctly.');
     }
   }
 
   /**
-   * Checks if the commission rate is set for the validator.
+   * Checks if the commission ratio is set for the validator.
    */
   async checkCommission() {
     const accountName = this.exsatAccountInfo.accountName;
     const btcBalance = await this.tableApi.getAccountBalance(accountName);
     const validatorInfo = this.validatorInfo;
     if (!validatorInfo.commission_rate) {
-      logger.info('Commission Rate is not set.');
+      logger.info('Commission ratio is not set.');
       showInfo({
         'Account Name': accountName,
         'Public Key': this.exsatAccountInfo.publicKey,
         'BTC Balance Used for Gas Fee': btcBalance,
         'Reward Address': validatorInfo.memo ?? validatorInfo.reward_recipient,
-        'Commission Rate': 'Unset',
+        'Commission Ratio': 'Unset',
         'Account Registration Status': 'Registered',
         'Validator Registration Status': 'Registered',
         Email: this.exsatAccountInfo.email,
       });
 
       const menus = [
-        { name: 'Set Commission Rate', value: 'set_commission_rate' },
+        { name: 'Set Commission Ratio', value: 'set_commission_ratio' },
         new Separator(),
         { name: 'Quit', value: 'quit', description: 'Quit' },
       ];
 
       const actions: { [key: string]: () => Promise<any> } = {
-        set_commission_rate: async () => await this.setCommissionRate(),
+        set_commission_ratio: async () => await this.setCommissionRatio(),
         quit: async () => process.exit(0),
       };
       let action;
       let res;
       do {
-        action = await select({ message: 'Select Action:', choices: menus });
+        action = await select({ message: 'Select Action: ', choices: menus });
         res = await (actions[action] || (() => {}))();
       } while (!res);
     } else {
-      logger.info('Commission Rate is already set correctly.');
+      logger.info('Commission ratio is already set correctly.');
     }
   }
 
@@ -498,7 +549,7 @@ export class ValidatorCommander {
     const btcBalance = await this.tableApi.getAccountBalance(accountName);
     const validatorInfo = this.validatorInfo;
     if (!rpcUrl || !isValidUrl(rpcUrl)) {
-      logger.info('BTC_RPC_URL is not set or not in the correct format.');
+      logger.info('BTC_RPC_URL is not set or is in an incorrect format');
       const showMessageInfo = {
         'Account Name': accountName,
         'Public Key': this.exsatAccountInfo.publicKey,
@@ -509,6 +560,7 @@ export class ValidatorCommander {
         'Validator Registration Status': 'Registered',
         Email: this.exsatAccountInfo.email,
       };
+      showInfo(showMessageInfo);
 
       const menus = [
         { name: 'Set BTC RPC Node', value: 'set_btc_node' },
@@ -523,11 +575,18 @@ export class ValidatorCommander {
       let action;
       let res;
       do {
-        action = await select({ message: 'Select Action:', choices: menus });
+        action = await select({ message: 'Select Action: ', choices: menus });
         res = await (actions[action] || (() => {}))();
       } while (!res);
     } else {
       logger.info('BTC_RPC_URL is already set correctly.');
     }
+  }
+
+  /**
+   * Update the validator info.
+   */
+  async updateValidatorInfo() {
+    this.validatorInfo = await this.tableApi.getValidatorInfo(this.exsatAccountInfo.accountName);
   }
 }

@@ -5,6 +5,7 @@ import { logger } from './logger';
 import { getblockcount } from './bitcoin';
 import path from 'node:path';
 import dotenv from 'dotenv';
+import { Font } from './font';
 
 /**
  * Pauses execution for a specified number of milliseconds.
@@ -109,14 +110,18 @@ export function isValidJson(jsonString: string): boolean {
   }
 }
 
+/**
+ * Print info to the console.
+ * @param info
+ */
 export function showInfo(info) {
-  console.log('-----------------------------------------------');
+  console.log(`${Font.fgCyan}${Font.bright}-----------------------------------------------${Font.reset}`);
   for (const key in info) {
     if (info.hasOwnProperty(key)) {
-      console.log(`${key}: ${info[key]}`);
+      console.log(`${Font.fgCyan}${Font.bright}${key}:${Font.reset}${Font.bright} ${info[key]}${Font.reset}`);
     }
   }
-  console.log('-----------------------------------------------');
+  console.log(`${Font.fgCyan}${Font.bright}-----------------------------------------------${Font.reset}`);
 }
 
 /**
