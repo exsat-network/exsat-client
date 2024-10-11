@@ -107,7 +107,6 @@ class TableApi {
       return rows[0].balance;
     }
     return 0;
-
   }
 
   /**
@@ -176,7 +175,7 @@ class TableApi {
   public async getConsensusByBlockId(height: bigint, hash: string): Promise<any> {
     const blockId = computeBlockId(height, hash);
     const rows = await this.exsatApi.getTableRows(ContractName.utxomng, ContractName.utxomng, 'consensusblk', {
-      index_position: IndexPosition.Tertiary,
+      index_position: IndexPosition.Fifth,
       upper_bound: blockId,
       lower_bound: blockId,
       key_type: KeyType.Sha256,
@@ -194,7 +193,7 @@ class TableApi {
   public async getLastConsensusBlock() {
     const rows = await this.exsatApi.getTableRows(ContractName.utxomng, ContractName.utxomng, 'consensusblk', {
       limit: 1,
-      reverse: true
+      reverse: true,
     });
     if (rows && rows.length > 0) {
       return rows[0];

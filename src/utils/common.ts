@@ -3,8 +3,9 @@ import fs from 'node:fs';
 import { BTC_RPC_URL, CHUNK_SIZE, EXSAT_RPC_URLS } from './config';
 import { logger } from './logger';
 import { getblockcount } from './bitcoin';
-import path from "node:path";
-import dotenv from "dotenv";
+import path from 'node:path';
+import dotenv from 'dotenv';
+import { Font } from './font';
 
 /**
  * Pauses execution for a specified number of milliseconds.
@@ -29,14 +30,11 @@ export function getAmountFromQuantity(quantity: string): number {
  * @returns A promise that resolves to the data containing RPC URLs.
  */
 export async function getRpcUrls() {
-  const response = await axios.get(
-    `${process.env.ACCOUNT_INITIALIZER_API_BASE_URL}/api/config/exsat_config`,
-    {
-      headers: {
-        'x-api-key': process.env.ACCOUNT_INITIALIZER_API_SECRET,
-      },
+  const response = await axios.get(`${process.env.ACCOUNT_INITIALIZER_API_BASE_URL}/api/config/exsat_config`, {
+    headers: {
+      'x-api-key': process.env.ACCOUNT_INITIALIZER_API_SECRET,
     },
-  );
+  });
   return response.data;
 }
 
@@ -80,12 +78,7 @@ export async function envCheck(keystoreFile: string) {
  * @param fn
  * @param retries
  */
-export const retry = async (
-  fn: () => Promise<any>,
-  retries = 3,
-  delay = 1000,
-  ft = '',
-): Promise<any> => {
+export const retry = async (fn: () => Promise<any>, retries = 3, delay = 1000, ft = ''): Promise<any> => {
   for (let i = 0; i < retries; i++) {
     try {
       return await fn();
@@ -117,14 +110,18 @@ export function isValidJson(jsonString: string): boolean {
   }
 }
 
+/**
+ * Print info to the console.
+ * @param info
+ */
 export function showInfo(info) {
-  console.log('-----------------------------------------------');
+  console.log(`${Font.fgCyan}${Font.bright}-----------------------------------------------${Font.reset}`);
   for (const key in info) {
     if (info.hasOwnProperty(key)) {
-      console.log(`${key}: ${info[key]}`);
+      console.log(`${Font.fgCyan}${Font.bright}${key}:${Font.reset}${Font.bright} ${info[key]}${Font.reset}`);
     }
   }
-  console.log('-----------------------------------------------');
+  console.log(`${Font.fgCyan}${Font.bright}-----------------------------------------------${Font.reset}`);
 }
 
 /**
@@ -147,7 +144,8 @@ export function getErrorMessage(e: any): string {
  * @param blockbuckets
  */
 export function getMinMaxBucket(blockbuckets) {
-  let minBucket = blockbuckets[0], maxBucket = blockbuckets[0];
+  let minBucket = blockbuckets[0],
+    maxBucket = blockbuckets[0];
   for (const blockbucket of blockbuckets) {
     if (minBucket.height > blockbucket.height) {
       minBucket = blockbucket;
@@ -163,8 +161,12 @@ export function getMinMaxBucket(blockbuckets) {
  * Get the next upload height.
  * @param currentUploadedHeights
  * @param headHeight
+ * @param forkHeight
  */
-export function getNextUploadHeight(currentUploadedHeights: number[], headHeight: number): number {
+export function getNextUploadHeight(currentUploadedHeights: number[], headHeight: number, forkHeight: number): number {
+  if (forkHeight > 0) {
+    return forkHeight;
+  }
   if (currentUploadedHeights.length === 0) {
     return headHeight + 1;
   }
