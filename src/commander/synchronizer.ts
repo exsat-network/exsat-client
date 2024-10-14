@@ -507,15 +507,12 @@ export class SynchronizerCommander {
    * Checks if the donate setting is set for the synchronizer.
    */
   async checkDonateSetting() {
-    const donate_rate = this.synchronizerInfo.donate_rate;
-    if (!donate_rate) {
-      if (!SET_SYNCHRONIZER_DONATE_RATIO) {
-        console.log(
-          `\n${Font.fgCyan}${Font.bright}You haven't set the donation ratio yet. Please set it first.${Font.reset}`
-        );
-        await this.setDonationRatio();
-        updateEnvFile({ SET_SYNCHRONIZER_DONATE_RATIO: true });
-      }
+    if (!this.synchronizerInfo.donate_rate && !SET_SYNCHRONIZER_DONATE_RATIO) {
+      console.log(
+        `\n${Font.fgCyan}${Font.bright}You haven't set the donation ratio yet. Please set it first.${Font.reset}`
+      );
+      await this.setDonationRatio();
+      updateEnvFile({ SET_SYNCHRONIZER_DONATE_RATIO: true });
     }
     return true;
   }
