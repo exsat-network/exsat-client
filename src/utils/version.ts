@@ -87,12 +87,32 @@ export class Version {
    * @returns True if the latest version is newer than the current version, otherwise false
    */
   static isNewerVersion(latest: string, current: string): boolean {
-    const latestParts = latest.split('.').map(Number);
-    const currentParts = current.split('.').map(Number);
-    for (let i = 0; i < Math.max(latestParts.length, currentParts.length); i++) {
-      if ((latestParts[i] || 0) > (currentParts[i] || 0)) return true;
-      if ((latestParts[i] || 0) < (currentParts[i] || 0)) return false;
-    }
-    return false;
+    const parseVersion = (version: string) => {
+      const [main, pre] = version.split('-');
+      const parts = main.split('.').map(Number);
+      return { parts, pre };
+    };
+
+    const compare = (a: number[], b: number[]) => {
+      for (let i = 0; i < Math.max(a.length, b.length); i++) {
+        const diff = (a[i] || 0) - (b[i] || 0);
+        if (diff !== 0) return diff;
+      }
+      return 0;
+    };
+
+    const latestParsed = parseVersion(latest);
+    const currentParsed = parseVersion(current);
+
+    const mainComparison = compare(latestParsed.parts, currentParsed.parts);
+    if (mainComparison !== 0) return mainComparison > 0;
+
+    const preA = latestParsed.pre || '';
+    const preB = currentParsed.pre || '';
+
+    if (!preA && preB) return true; // No pre-release is newer
+    if (preA && !preB) return false;
+
+    return preA.localeCompare(preB) > 0;
   }
 }
