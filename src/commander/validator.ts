@@ -5,7 +5,7 @@ import { notAccountMenu, updateMenu } from './common';
 import fs from 'node:fs';
 import process from 'node:process';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
-import { isValidUrl, reloadEnv, retry, showInfo } from '../utils/common';
+import { isValidUrl, reloadEnv, retry, showInfo, sleep } from '../utils/common';
 import { confirm, input, password, select, Separator } from '@inquirer/prompts';
 import { chargeBtcForResource, chargeForRegistry, checkUsernameWithBackend } from '@exsat/account-initializer';
 import { EXSAT_RPC_URLS, SET_VALIDATOR_DONATE_RATIO } from '../utils/config';
@@ -601,6 +601,7 @@ export class ValidatorCommander {
    * Update the validator info.
    */
   async updateValidatorInfo() {
+    await sleep(1000);
     this.validatorInfo = await this.tableApi.getValidatorInfo(this.exsatAccountInfo.accountName);
   }
 }

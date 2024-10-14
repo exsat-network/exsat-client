@@ -1,5 +1,5 @@
 import { Version } from '../utils/version';
-import { isValidUrl, reloadEnv, retry, showInfo } from '../utils/common';
+import { isValidUrl, reloadEnv, retry, showInfo, sleep } from '../utils/common';
 import { EXSAT_RPC_URLS, SET_SYNCHRONIZER_DONATE_RATIO } from '../utils/config';
 import { input, password, select, Separator, confirm } from '@inquirer/prompts';
 import { chargeBtcForResource, chargeForRegistry, checkUsernameWithBackend } from '@exsat/account-initializer';
@@ -562,6 +562,7 @@ export class SynchronizerCommander {
   }
 
   async updateSynchronizerInfo() {
+    await sleep(1000);
     this.synchronizerInfo = await this.tableApi.getSynchronizerInfo(this.exsatAccountInfo.accountName);
   }
 }
