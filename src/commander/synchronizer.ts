@@ -1,6 +1,6 @@
 import { Version } from '../utils/version';
 import { isValidUrl, reloadEnv, retry, showInfo } from '../utils/common';
-import { EXSAT_RPC_URLS } from '../utils/config';
+import { EXSAT_RPC_URLS, SET_SYNCHRONIZER_DONATE_RATIO } from '../utils/config';
 import { input, password, select, Separator, confirm } from '@inquirer/prompts';
 import { chargeBtcForResource, chargeForRegistry, checkUsernameWithBackend } from '@exsat/account-initializer';
 import process from 'node:process';
@@ -38,6 +38,7 @@ export class SynchronizerCommander {
     await this.checkAccountRegistrationStatus();
     await this.checkSynchronizerRegistrationStatus();
     await this.checkRewardsAddress();
+    await this.checkDonateSetting();
     await this.checkBtcRpcNode();
 
     // Display the main manager menu
@@ -500,6 +501,23 @@ export class SynchronizerCommander {
     } else {
       logger.info('Reward Address is already set correctly.');
     }
+  }
+
+  /**
+   * Checks if the donate setting is set for the synchronizer.
+   */
+  async checkDonateSetting() {
+    const donate_rate = this.synchronizerInfo.donate_rate;
+    if (!donate_rate) {
+      if (!SET_SYNCHRONIZER_DONATE_RATIO) {
+        console.log(
+          `\n${Font.fgCyan}${Font.bright}You haven't set the donation ratio yet. Please set it first.${Font.reset}`
+        );
+        await this.setDonationRatio();
+        updateEnvFile({ SET_SYNCHRONIZER_DONATE_RATIO: true });
+      }
+    }
+    return true;
   }
 
   /**
