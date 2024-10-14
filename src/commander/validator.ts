@@ -5,10 +5,10 @@ import { notAccountMenu, updateMenu } from './common';
 import fs from 'node:fs';
 import process from 'node:process';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
-import { isValidUrl, reloadEnv, retry, showInfo } from '../utils/common';
+import { isValidUrl, reloadEnv, retry, showInfo, sleep } from '../utils/common';
 import { confirm, input, password, select, Separator } from '@inquirer/prompts';
 import { chargeBtcForResource, chargeForRegistry, checkUsernameWithBackend } from '@exsat/account-initializer';
-import { EXSAT_RPC_URLS } from '../utils/config';
+import { EXSAT_RPC_URLS, SET_VALIDATOR_DONATE_RATIO } from '../utils/config';
 import { logger } from '../utils/logger';
 import { inputWithCancel } from '../utils/input';
 import { updateEnvFile } from '@exsat/account-initializer/dist/utils';
@@ -39,6 +39,7 @@ export class ValidatorCommander {
     await this.checkValidatorRegistrationStatus();
     await this.checkRewardsAddress();
     await this.checkCommission();
+    await this.checkDonateSetting();
     await this.checkBtcRpcNode();
 
     // Display the main manager menu
@@ -541,6 +542,19 @@ export class ValidatorCommander {
   }
 
   /**
+   * Checks if the donate setting is set for the synchronizer.
+   */
+  async checkDonateSetting() {
+    if (!this.validatorInfo.donate_rate && !SET_VALIDATOR_DONATE_RATIO) {
+      console.log(
+        `\n${Font.fgCyan}${Font.bright}You haven't set the donation ratio yet. Please set it first.${Font.reset}`
+      );
+      await this.setDonationRatio();
+      updateEnvFile({ SET_VALIDATOR_DONATE_RATIO: true });
+    }
+    return true;
+  }
+  /**
    * Checks if the BTC RPC URL is set and valid.
    */
   async checkBtcRpcNode() {
@@ -587,6 +601,7 @@ export class ValidatorCommander {
    * Update the validator info.
    */
   async updateValidatorInfo() {
+    await sleep(1000);
     this.validatorInfo = await this.tableApi.getValidatorInfo(this.exsatAccountInfo.accountName);
   }
 }
