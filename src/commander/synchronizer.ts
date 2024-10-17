@@ -438,7 +438,7 @@ export class SynchronizerCommander {
           }
           if (action === 'recharge_btc_registry') {
             await chargeForRegistry(
-              this.exsatAccountInfo.accountName,
+              this.exsatAccountInfo.accountName.substring(0, this.exsatAccountInfo.accountName.length - 4),
               checkAccountInfo.btcAddress,
               checkAccountInfo.amount
             );
