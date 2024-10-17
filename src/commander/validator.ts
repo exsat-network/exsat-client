@@ -1,7 +1,7 @@
 import TableApi from '../utils/table-api';
 import ExsatApi from '../utils/exsat-api';
 import { Version } from '../utils/version';
-import { notAccountMenu, updateMenu } from './common';
+import { checkExsatUrls, notAccountMenu, updateMenu } from './common';
 import fs from 'node:fs';
 import process from 'node:process';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
@@ -324,6 +324,7 @@ export class ValidatorCommander {
    */
   async init() {
     this.exsatAccountInfo = await this.decryptKeystore();
+    await checkExsatUrls();
     this.exsatApi = new ExsatApi(this.exsatAccountInfo, EXSAT_RPC_URLS);
     await this.exsatApi.initialize();
     this.tableApi = new TableApi(this.exsatApi);
@@ -450,7 +451,7 @@ export class ValidatorCommander {
             Email: checkAccountInfo.email,
           });
           console.log(
-            'Account registration may take a moment, please wait. \nConfirmation email will be sent to your inbox after the account registration is complete.'
+            `${Font.fgCyan}${Font.bright}Account registration may take a moment, please wait.\nConfirmation email will be sent to your inbox after the account registration is complete.\nPlease follow the instructions in the email to complete the subsequent Validator registration.\n-----------------------------------------------${Font.reset}`
           );
           process.exit(0);
           return;
