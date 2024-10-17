@@ -6,7 +6,6 @@ import { decryptKeystore } from '@exsat/account-initializer';
 import { logger } from './logger';
 import path from 'node:path';
 import { ClientType } from './enumeration';
-import { SYNCHRONIZER_KEYSTORE_PASSWORD, VALIDATOR_KEYSTORE_PASSWORD } from './config';
 import { password } from '@inquirer/prompts';
 import { reloadEnv } from './common';
 
@@ -40,7 +39,10 @@ export function getConfigPassword(clientType: number) {
 
   // Priority 3: Get passwords from environment variables
   if (!password) {
-    password = clientType === ClientType.Synchronizer ? SYNCHRONIZER_KEYSTORE_PASSWORD : VALIDATOR_KEYSTORE_PASSWORD;
+    password =
+      clientType === ClientType.Synchronizer
+        ? process.env.SYNCHRONIZER_KEYSTORE_PASSWORD
+        : process.env.VALIDATOR_KEYSTORE_PASSWORD;
   }
   return password;
 }
