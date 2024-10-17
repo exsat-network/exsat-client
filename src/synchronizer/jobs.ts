@@ -357,6 +357,7 @@ export class SynchronizerJobs {
               const parseResult: any = await this.state.exsatApi!.executeAction(ContractName.utxomng, 'processblock', {
                 synchronizer: this.state.accountName,
                 process_rows: processRows,
+                nonce: Date.now(),
               });
               if (parseResult) {
                 logger.info(
