@@ -65,23 +65,18 @@
     enabled "2.0.x"
     kuler "^2.0.0"
 
-"@exsat/account-initializer@1.1.7":
-  version "1.1.7"
-  resolved "https://registry.npmjs.org/@exsat/account-initializer/-/account-initializer-1.1.7.tgz#844d22ce4069e48cd497ccfd7de11be78c1531da"
-  integrity sha512-ZdqLYj3b+LQzPiJu173QFRPbyKuy29mOQ4Igd3dFBZCz7Wd2bIQaw1gHBN8EBh6201+K8NHsfSv5+qThZydiOg==
+"@exsat/account-initializer@1.1.8":
+  version "1.1.8"
+  resolved "https://registry.npmjs.org/@exsat/account-initializer/-/account-initializer-1.1.8.tgz#ed37921587404a6cc8a2d94e305fa035b3a10a46"
+  integrity sha512-+cz48H10Uufr4a06tQfM0svYKdXSX7NEMtDxyq/a4jfGPZGXRWfJOmtnrZwE2x60dVLAjrkebdcmLqh3dfU5Ew==
   dependencies:
     "@inquirer/prompts" "^5.1.2"
     "@scure/bip39" "^1.0.0"
-    "@types/crypto-js" "^4.2.2"
-    "@types/fs-extra" "^11.0.4"
-    "@types/json-server" "^0.14.7"
-    "@types/randombytes" "^2.0.3"
-    "@types/scrypt-js" "^3.0.1"
-    "@types/uuid" "^9.0.8"
     "@wharfkit/antelope" "^1.0.0"
     axios "^0.24.0"
     body-parser "^1.20.2"
     crypto-js "^4.0.0"
+    dotenv "^10.0.0"
     ethereum-cryptography "^2.2.0"
     express "^4.19.2"
     fs-extra "^11.2.0"
@@ -606,96 +601,10 @@
     "@tufjs/canonical-json" "2.0.0"
     minimatch "^9.0.4"
 
-"@types/body-parser@*":
-  version "1.19.5"
-  resolved "https://registry.npmjs.org/@types/body-parser/-/body-parser-1.19.5.tgz"
-  integrity sha512-fB3Zu92ucau0iQ0JMCFQE7b/dv8Ot07NI3KaZIkIUNXq82k4eBAqUaneXfleGY9JWskeS9y+u0nXMyspcuQrCg==
-  dependencies:
-    "@types/connect" "*"
-    "@types/node" "*"
-
 "@types/config@^3.3.4":
   version "3.3.4"
   resolved "https://registry.npmjs.org/@types/config/-/config-3.3.4.tgz"
   integrity sha512-qFiTLnWy+TdPSMIXFHP+87lFXFRM4SXjRS+CSB66+56TrpLNw003y1sh7DGaaC1NGesxgKoT5FDy6dyA1Xju/g==
-
-"@types/connect@*":
-  version "3.4.38"
-  resolved "https://registry.npmjs.org/@types/connect/-/connect-3.4.38.tgz"
-  integrity sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug==
-  dependencies:
-    "@types/node" "*"
-
-"@types/crypto-js@^4.2.2":
-  version "4.2.2"
-  resolved "https://registry.npmjs.org/@types/crypto-js/-/crypto-js-4.2.2.tgz"
-  integrity sha512-sDOLlVbHhXpAUAL0YHDUUwDZf3iN4Bwi4W6a0W0b+QcAezUbRtH4FVb+9J4h+XFPW7l/gQ9F8qC7P+Ec4k8QVQ==
-
-"@types/express-serve-static-core@^4.17.33":
-  version "4.19.5"
-  resolved "https://registry.npmjs.org/@types/express-serve-static-core/-/express-serve-static-core-4.19.5.tgz"
-  integrity sha512-y6W03tvrACO72aijJ5uF02FRq5cgDR9lUxddQ8vyF+GvmjJQqbzDcJngEjURc+ZsG31VI3hODNZJ2URj86pzmg==
-  dependencies:
-    "@types/node" "*"
-    "@types/qs" "*"
-    "@types/range-parser" "*"
-    "@types/send" "*"
-
-"@types/express@*":
-  version "4.17.21"
-  resolved "https://registry.npmjs.org/@types/express/-/express-4.17.21.tgz"
-  integrity sha512-ejlPM315qwLpaQlQDTjPdsUFSc6ZsP4AN6AlWnogPjQ7CVi7PYF3YVz+CY3jE2pwYf7E/7HlDAN0rV2GxTG0HQ==
-  dependencies:
-    "@types/body-parser" "*"
-    "@types/express-serve-static-core" "^4.17.33"
-    "@types/qs" "*"
-    "@types/serve-static" "*"
-
-"@types/fs-extra@^11.0.4":
-  version "11.0.4"
-  resolved "https://registry.npmjs.org/@types/fs-extra/-/fs-extra-11.0.4.tgz"
-  integrity sha512-yTbItCNreRooED33qjunPthRcSjERP1r4MqCZc7wv0u2sUkzTFp45tgUfS5+r7FrZPdmCCNflLhVSP/o+SemsQ==
-  dependencies:
-    "@types/jsonfile" "*"
-    "@types/node" "*"
-
-"@types/http-errors@*":
-  version "2.0.4"
-  resolved "https://registry.npmjs.org/@types/http-errors/-/http-errors-2.0.4.tgz"
-  integrity sha512-D0CFMMtydbJAegzOyHjtiKPLlvnm3iTZyZRSZoLq2mRhDdmLfIWOCYPfQJ4cu2erKghU++QvjcUjp/5h7hESpA==
-
-"@types/json-server@^0.14.7":
-  version "0.14.7"
-  resolved "https://registry.npmjs.org/@types/json-server/-/json-server-0.14.7.tgz"
-  integrity sha512-aE1pKwYE3Y3vtj1IHrZVMP+BSeyP+BFgjGAC+iMTFV/yyLnYRFeX1yqTY1Xh0FyTu+xEpRVpeJupdRACuvi1eg==
-  dependencies:
-    "@types/connect" "*"
-    "@types/express" "*"
-    "@types/lowdb" "*"
-
-"@types/jsonfile@*":
-  version "6.1.4"
-  resolved "https://registry.npmjs.org/@types/jsonfile/-/jsonfile-6.1.4.tgz"
-  integrity sha512-D5qGUYwjvnNNextdU59/+fI+spnwtTFmyQP0h+PfIOSkNfpU6AOICUOkm4i0OnSk+NyjdPJrxCDro0sJsWlRpQ==
-  dependencies:
-    "@types/node" "*"
-
-"@types/lodash@*":
-  version "4.17.7"
-  resolved "https://registry.npmjs.org/@types/lodash/-/lodash-4.17.7.tgz"
-  integrity sha512-8wTvZawATi/lsmNu10/j2hk1KEP0IvjubqPE3cu1Xz7xfXXt5oCq3SNUz4fMIP4XGF9Ky+Ue2tBA3hcS7LSBlA==
-
-"@types/lowdb@*":
-  version "1.0.15"
-  resolved "https://registry.npmjs.org/@types/lowdb/-/lowdb-1.0.15.tgz"
-  integrity sha512-xaMNIveDCryK4UvnUJOc2BCOH0lPivdvWHrutsLryo9r9Id3RqZq2RDmT4eddiEPYzu7nJMw6nFIcVifcqjWqg==
-  dependencies:
-    "@types/lodash" "*"
-
-"@types/mime@^1":
-  version "1.3.5"
-  resolved "https://registry.npmjs.org/@types/mime/-/mime-1.3.5.tgz"
-  integrity sha512-/pyBZWSLD2n0dcHE3hq8s8ZvcETHtEuF+3E7XVt0Ig2nvsVQXdghHVcEkIWjy9A0wKfTn97a/PSDYohKIlnP/w==
 
 "@types/mute-stream@^0.0.4":
   version "0.0.4"
@@ -716,56 +625,10 @@
   dependencies:
     undici-types "~6.18.2"
 
-"@types/qs@*":
-  version "6.9.15"
-  resolved "https://registry.npmjs.org/@types/qs/-/qs-6.9.15.tgz"
-  integrity sha512-uXHQKES6DQKKCLh441Xv/dwxOq1TVS3JPUMlEqoEglvlhR6Mxnlew/Xq/LRVHpLyk7iK3zODe1qYHIMltO7XGg==
-
-"@types/randombytes@^2.0.3":
-  version "2.0.3"
-  resolved "https://registry.npmjs.org/@types/randombytes/-/randombytes-2.0.3.tgz"
-  integrity sha512-+NRgihTfuURllWCiIAhm1wsJqzsocnqXM77V/CalsdJIYSRGEHMnritxh+6EsBklshC+clo1KgnN14qgSGeQdw==
-  dependencies:
-    "@types/node" "*"
-
-"@types/range-parser@*":
-  version "1.2.7"
-  resolved "https://registry.npmjs.org/@types/range-parser/-/range-parser-1.2.7.tgz"
-  integrity sha512-hKormJbkJqzQGhziax5PItDUTMAM9uE2XXQmM37dyd4hVM+5aVl7oVxMVUiVQn2oCQFN/LKCZdvSM0pFRqbSmQ==
-
-"@types/scrypt-js@^3.0.1":
-  version "3.0.1"
-  resolved "https://registry.npmjs.org/@types/scrypt-js/-/scrypt-js-3.0.1.tgz"
-  integrity sha512-nIZInEvKE4R6yxpWUe+nbC4loIHPBxUIUWG9SUKdgB/TiCWSzQ+2Mg2JcWt1cqFf0L+c9PH6nu1Z/IQgc0hN9Q==
-  dependencies:
-    scrypt-js "*"
-
-"@types/send@*":
-  version "0.17.4"
-  resolved "https://registry.npmjs.org/@types/send/-/send-0.17.4.tgz"
-  integrity sha512-x2EM6TJOybec7c52BX0ZspPodMsQUd5L6PRwOunVyVUhXiBSKf3AezDL8Dgvgt5o0UfKNfuA0eMLr2wLT4AiBA==
-  dependencies:
-    "@types/mime" "^1"
-    "@types/node" "*"
-
-"@types/serve-static@*":
-  version "1.15.7"
-  resolved "https://registry.npmjs.org/@types/serve-static/-/serve-static-1.15.7.tgz"
-  integrity sha512-W8Ym+h8nhuRwaKPaDw34QUkwsGi6Rc4yYqvKFo5rm2FUEhCFbzVWrxXUxuKK8TASjWsysJY0nsmNCGhCOIsrOw==
-  dependencies:
-    "@types/http-errors" "*"
-    "@types/node" "*"
-    "@types/send" "*"
-
 "@types/triple-beam@^1.3.2":
   version "1.3.5"
   resolved "https://registry.npmjs.org/@types/triple-beam/-/triple-beam-1.3.5.tgz"
   integrity sha512-6WaYesThRMCl19iryMYP7/x2OVgCtbIVflDGFpWnb9irXI3UjYE4AzmYuiUKY1AJstGijoY+MgUszMgRxIYTYw==
-
-"@types/uuid@^9.0.8":
-  version "9.0.8"
-  resolved "https://registry.npmjs.org/@types/uuid/-/uuid-9.0.8.tgz"
-  integrity sha512-jg+97EGIcY9AGHJJRaaPVgetKDsrTgbRjQ5Msgjh/DQKEFl0DtyRr/VCOyD1T2R1MNeWPK/u7JoGhlDZnKBAfA==
 
 "@types/wrap-ansi@^3.0.0":
   version "3.0.0"
@@ -1399,6 +1262,11 @@ dir-glob@^3.0.1:
   integrity sha512-WkrWp9GR4KXfKGYzOLmTuGVi1UWFfws377n9cc55/tb6DuqyF6pcQ5AbiHEshaDpY9v6oaSr2XCDidGmMwdzIA==
   dependencies:
     path-type "^4.0.0"
+
+dotenv@^10.0.0:
+  version "10.0.0"
+  resolved "https://registry.npmjs.org/dotenv/-/dotenv-10.0.0.tgz#3d4227b8fb95f81096cdd2b66653fb2c7085ba81"
+  integrity sha512-rlBi9d8jpv9Sf1klPjNfFAuWDjKLwTIJJ/VxtoTwIR6hnZxcEOQCZg2oIL3MWBYw5GpUDKOEnND7LXTbIpQ03Q==
 
 dotenv@^16.4.5:
   version "16.4.5"
@@ -3187,11 +3055,6 @@ safe-stable-stringify@^2.3.1:
   version "2.1.2"
   resolved "https://registry.npmjs.org/safer-buffer/-/safer-buffer-2.1.2.tgz"
   integrity sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==
-
-scrypt-js@*:
-  version "3.0.1"
-  resolved "https://registry.npmjs.org/scrypt-js/-/scrypt-js-3.0.1.tgz"
-  integrity sha512-cdwTTnqPu0Hyvf5in5asVdZocVDTNRmR7XEcJuIzMjJeSHybHl7vpB66AzwTaIg6CLSbtjcxc8fqcySfnTkccA==
 
 secp256k1@^4.0.0:
   version "4.0.3"
