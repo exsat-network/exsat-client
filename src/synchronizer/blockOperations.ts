@@ -79,6 +79,7 @@ export class BlockOperations {
         synchronizer: this.accountName,
         height,
         hash,
+        nonce: Date.now(),
       });
       if (result) {
         logger.info(
