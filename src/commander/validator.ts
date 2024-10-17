@@ -1,7 +1,7 @@
 import TableApi from '../utils/table-api';
 import ExsatApi from '../utils/exsat-api';
 import { Version } from '../utils/version';
-import { notAccountMenu, updateMenu } from './common';
+import { checkExsatUrls, notAccountMenu, updateMenu } from './common';
 import fs from 'node:fs';
 import process from 'node:process';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
@@ -324,6 +324,7 @@ export class ValidatorCommander {
    */
   async init() {
     this.exsatAccountInfo = await this.decryptKeystore();
+    await checkExsatUrls();
     this.exsatApi = new ExsatApi(this.exsatAccountInfo, EXSAT_RPC_URLS);
     await this.exsatApi.initialize();
     this.tableApi = new TableApi(this.exsatApi);

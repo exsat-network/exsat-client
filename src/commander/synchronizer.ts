@@ -12,7 +12,7 @@ import TableApi from '../utils/table-api';
 import fs from 'node:fs';
 import { inputWithCancel } from '../utils/input';
 import { updateEnvFile } from '@exsat/account-initializer/dist/utils';
-import { notAccountMenu, updateMenu } from './common';
+import { checkExsatUrls, notAccountMenu, updateMenu } from './common';
 import { Font } from '../utils/font';
 import { changeEmail } from '@exsat/account-initializer/dist/accountInitializer';
 
@@ -328,6 +328,7 @@ export class SynchronizerCommander {
    */
   async init() {
     this.exsatAccountInfo = await this.decryptKeystore();
+    await checkExsatUrls();
     this.exsatApi = new ExsatApi(this.exsatAccountInfo, EXSAT_RPC_URLS);
     await this.exsatApi.initialize();
     this.tableApi = new TableApi(this.exsatApi);
