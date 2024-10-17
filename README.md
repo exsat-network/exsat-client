@@ -66,9 +66,6 @@ refer to the _.env.example_ file for more details.
 # Account Initializer API base URL
 ACCOUNT_INITIALIZER_API_BASE_URL=https://registst3.exactsat.io
 
-# Secret key for Account Initializer API
-ACCOUNT_INITIALIZER_API_SECRET=f1a033d7-3d59-4c9b-b9e7-fb897b91a8fb
-
 # ExSat RPC URLs configurations
 EXSAT_RPC_URLS=["https://chain-tst3.exactsat.io"]
 

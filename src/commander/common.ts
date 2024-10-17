@@ -2,6 +2,8 @@ import { input, select, Separator } from '@inquirer/prompts';
 import { importFromMnemonic, importFromPrivateKey, initializeAccount } from '@exsat/account-initializer';
 import process from 'node:process';
 import { Font } from '../utils/font';
+import { EXSAT_RPC_URLS } from '../utils/config';
+import { getRpcUrls } from '../utils/common';
 
 export async function notAccountMenu(role) {
   const menus = [
@@ -68,5 +70,15 @@ export async function updateMenu(versions) {
       break;
     default:
       return;
+  }
+}
+
+export async function checkExsatUrls() {
+  if (EXSAT_RPC_URLS.length === 0) {
+    const result = await getRpcUrls();
+    if (result && result.status === 'success' && result.info?.exsat_rpc) {
+      // @ts-ignore
+      EXSAT_RPC_URLS = result.info.exsat_rpc;
+    }
   }
 }

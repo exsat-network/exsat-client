@@ -65,10 +65,10 @@
     enabled "2.0.x"
     kuler "^2.0.0"
 
-"@exsat/account-initializer@1.1.8":
-  version "1.1.8"
-  resolved "https://registry.npmjs.org/@exsat/account-initializer/-/account-initializer-1.1.8.tgz#ed37921587404a6cc8a2d94e305fa035b3a10a46"
-  integrity sha512-+cz48H10Uufr4a06tQfM0svYKdXSX7NEMtDxyq/a4jfGPZGXRWfJOmtnrZwE2x60dVLAjrkebdcmLqh3dfU5Ew==
+"@exsat/account-initializer@~1.1.14":
+  version "1.1.14"
+  resolved "https://registry.npmjs.org/@exsat/account-initializer/-/account-initializer-1.1.14.tgz#e6035441ffb628fc973227fd5bd9aa3df062e7c2"
+  integrity sha512-2lnSYaEBN7z/2tnXKNuE9brHiu508RM/sRz4d0RLoDpx+ZJoafxxChJtGu08APuEkCxGjBW5iiC/xbjA5SS9pg==
   dependencies:
     "@inquirer/prompts" "^5.1.2"
     "@scure/bip39" "^1.0.0"
