@@ -69,7 +69,7 @@ export class Version {
     let newVersion: string | boolean = false;
     // Compare version numbers; if the latest version is newer than the local version, get the new version description
     if (this.isNewerVersion(cleanLatestVersion, cleanLocalVersion)) {
-      newVersion = await this.getTagDescription(latestVersion);
+      newVersion = (await this.getTagDescription(latestVersion)) ?? true;
     }
 
     // Return version information

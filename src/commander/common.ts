@@ -63,8 +63,10 @@ export async function updateMenu(versions) {
   });
   switch (action) {
     case 'get_upgrade_method':
-      console.log('\nPlease enter the following command in the terminal to complete the version upgrade: ');
-      console.log(`git fetch --tags && git checkout -f ${versions.latest} \n`);
+      console.log(
+        `\n${Font.fgCyan}${Font.bright}Please enter the following command in the terminal to complete the version upgrade: ${Font.reset}`
+      );
+      console.log(`${Font.bright}git fetch --tags && git checkout -f ${versions.latest} ${Font.reset}\n`);
       await input({ message: 'Press Enter to Continue...' });
       process.exit(0);
       break;
