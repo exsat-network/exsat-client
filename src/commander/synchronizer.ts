@@ -138,7 +138,7 @@ export class SynchronizerCommander {
     let action;
     do {
       action = await select({
-        message: 'Select An Action',
+        message: 'Select an Action',
         choices: menus,
         loop: false,
         pageSize: 20,
@@ -372,7 +372,7 @@ export class SynchronizerCommander {
             { name: 'Quit', value: 'quit', description: 'Quit' },
           ];
           const action = await select({
-            message: 'Select Action',
+            message: 'Select an Action',
             choices: menus,
           });
           if (action === 'quit') {
@@ -437,7 +437,7 @@ export class SynchronizerCommander {
       let action;
       let res;
       do {
-        action = await select({ message: 'Select Action: ', choices: menus });
+        action = await select({ message: 'Select an Action: ', choices: menus });
         res = await (actions[action] || (() => {}))();
       } while (!res);
     } else {
@@ -495,7 +495,7 @@ export class SynchronizerCommander {
       let action;
       let res;
       do {
-        action = await select({ message: 'Select Action: ', choices: menus });
+        action = await select({ message: 'Select an Action: ', choices: menus });
         res = await (actions[action] || (() => {}))();
       } while (!res);
     } else {

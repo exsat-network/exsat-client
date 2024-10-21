@@ -46,7 +46,7 @@ export async function notAccountMenu(role) {
   };
 
   const action = await select({
-    message: 'Select Action: ',
+    message: 'Select an Action: ',
     choices: menus,
   });
   let res;
@@ -73,7 +73,7 @@ export async function updateMenu(versions, isDocker, role) {
       `${Font.fgCyan}${Font.bright}\n-----------------------------------------------${Font.reset}\n`
   );
   const action = await select({
-    message: 'Select Action: ',
+    message: 'Select an Action: ',
     choices: menus,
   });
   switch (action) {

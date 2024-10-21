@@ -155,7 +155,7 @@ export class ValidatorCommander {
     let action;
     do {
       action = await select({
-        message: 'Select An Action',
+        message: 'Select an Action',
         choices: menus,
         loop: false,
         pageSize: 20,
@@ -456,7 +456,7 @@ export class ValidatorCommander {
             { name: 'Quit', value: 'quit', description: 'Quit' },
           ];
           const action = await select({
-            message: 'Select Action',
+            message: 'Select an Action',
             choices: menus,
           });
           if (action === 'quit') {
@@ -520,7 +520,7 @@ export class ValidatorCommander {
       let action;
       let res;
       do {
-        action = await select({ message: 'Select Action: ', choices: menus });
+        action = await select({ message: 'Select an Action: ', choices: menus });
         res = await (actions[action] || (() => {}))();
       } while (!res);
     } else {
@@ -561,7 +561,7 @@ export class ValidatorCommander {
       let action;
       let res;
       do {
-        action = await select({ message: 'Select Action: ', choices: menus });
+        action = await select({ message: 'Select an Action: ', choices: menus });
         res = await (actions[action] || (() => {}))();
       } while (!res);
     } else {
@@ -618,7 +618,7 @@ export class ValidatorCommander {
       let action;
       let res;
       do {
-        action = await select({ message: 'Select Action: ', choices: menus });
+        action = await select({ message: 'Select an Action: ', choices: menus });
         res = await (actions[action] || (() => {}))();
       } while (!res);
     } else {
