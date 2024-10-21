@@ -200,6 +200,37 @@ class TableApi {
     }
     return null;
   }
+
+  /**
+   * Retrieves the become validator quatos.
+   * @returns The become validator quatos data or null if not found.
+   */
+  public async getActivateValidatorQuatos() {
+    const rows = await this.exsatApi.getTableRows(ContractName.compete, ContractName.compete, 'globals', {
+      limit: 1,
+    });
+    if (rows && rows.length > 0) {
+      return rows[0];
+    }
+    return null;
+  }
+
+  /**
+   * Retrieves the validator acticed info.
+   * @param validator
+   */
+  public async getValidatorActivatedInfo(validator) {
+    const rows = await this.exsatApi.getTableRows(ContractName.compete, ContractName.compete, 'activations', {
+      limit: 1,
+      lower_bound: validator,
+      upper_bound: validator,
+      key_type: 'name',
+    });
+    if (rows && rows.length > 0) {
+      return rows[0];
+    }
+    return null;
+  }
 }
 
 export default TableApi;

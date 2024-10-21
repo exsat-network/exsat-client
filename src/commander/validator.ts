@@ -1,11 +1,10 @@
 import TableApi from '../utils/table-api';
 import ExsatApi from '../utils/exsat-api';
-import { Version } from '../utils/version';
-import { checkExsatUrls, notAccountMenu, updateMenu } from './common';
+import { checkExsatUrls, notAccountMenu } from './common';
 import fs from 'node:fs';
 import process from 'node:process';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
-import { isValidUrl, reloadEnv, retry, showInfo, sleep } from '../utils/common';
+import { getErrorMessage, isValidUrl, reloadEnv, retry, showInfo, sleep } from '../utils/common';
 import { confirm, input, password, select, Separator } from '@inquirer/prompts';
 import { chargeBtcForResource, chargeForRegistry, checkUsernameWithBackend } from '@exsat/account-initializer';
 import { EXSAT_RPC_URLS, SET_VALIDATOR_DONATE_RATIO } from '../utils/config';
@@ -53,8 +52,9 @@ export class ValidatorCommander {
     const accountName = this.exsatAccountInfo.accountName;
     const btcBalance = await this.tableApi.getAccountBalance(accountName);
     const validator = this.validatorInfo;
+    const activedInfo = await this.getValidatedInfo();
 
-    const showMessageInfo = {
+    let showMessageInfo: any = {
       'Account Name': accountName,
       'Public Key': this.exsatAccountInfo.publicKey,
       'BTC Balance Used for Gas Fee': btcBalance,
@@ -70,7 +70,7 @@ export class ValidatorCommander {
     };
     showInfo(showMessageInfo);
 
-    const menus = [
+    let menus = [
       {
         name: 'Bridge BTC as GAS Fee',
         value: 'recharge_btc',
@@ -118,6 +118,14 @@ export class ValidatorCommander {
       { name: 'Quit', value: 'quit', description: 'Quit' },
     ];
 
+    if (!activedInfo) {
+      menus.unshift({
+        name: 'Compete to win a Validator quota',
+        value: 'activate_validator',
+        description: 'To activate validator',
+      });
+    }
+
     const actions: { [key: string]: () => Promise<any> } = {
       recharge_btc: async () => await chargeBtcForResource(process.env.VALIDATOR_KEYSTORE_FILE),
       set_reward_address: async () => await this.setRewardAddress(),
@@ -133,6 +141,12 @@ export class ValidatorCommander {
         await changeEmail(accountName, this.exsatAccountInfo.email);
         console.log();
         await input({ message: 'Press [enter] to continue' });
+      },
+      activate_validator: async () => {
+        const res = await this.toActivateValidator();
+        if (res) {
+          menus.shift();
+        }
       },
       remove_account: async () => await this.removeKeystore(),
       quit: async () => process.exit(),
@@ -251,7 +265,7 @@ export class ValidatorCommander {
       validator: this.exsatAccountInfo.accountName,
       donate_rate: parseFloat(ratio) * 100,
     };
-    await this.exsatApi.executeAction('endrmng.xsat', 'setdonate', data);
+    await this.exsatApi.executeAction(ContractName.endrmng, 'setdonate', data);
     logger.info(
       `${Font.fgCyan}${Font.bright}Set donation ratio: ${ratio}% successfully. ${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`
     );
@@ -319,6 +333,75 @@ export class ValidatorCommander {
       }
     }
     return await this.setBtcRpcUrl();
+  }
+
+  async toActivateValidator() {
+    const activateValidatorQuotas: any = await this.tableApi.getActivateValidatorQuatos();
+    if (activateValidatorQuotas.total_quotas <= activateValidatorQuotas.total_activations) {
+      if (activateValidatorQuotas.total_quotas === 0) {
+        console.log("The competition hasn't started yet. Please wait.");
+      } else {
+        console.log('The number of quotas has been used up. Please wait for the next round.');
+      }
+      await input({ message: 'Press [enter] to continue' });
+      return false;
+    }
+    if (
+      !(await confirm({
+        message: 'Please confirm to start participating in the competition.',
+      }))
+    ) {
+      return false;
+    }
+    do {
+      try {
+        const res = await this.activeValidator();
+        console.log('Congratulations on securing a quota and becoming a validator.');
+        await input({ message: 'Press [enter] to continue' });
+        return true;
+      } catch (e) {
+        const errorMessage = getErrorMessage(e);
+        // network error or timeout
+        if (errorMessage.includes('round has not started yet')) {
+          const menu = [
+            {
+              name: 'retry active',
+              value: 'retry',
+            },
+            {
+              name: 'quit',
+              value: 'quit',
+            },
+          ];
+          const action = await select({ choices: menu, message: 'Please select an action:' });
+          if (action === 'quit') {
+            return false;
+          }
+        } else {
+          logger.error(errorMessage);
+          return false;
+        }
+      }
+    } while (true);
+  }
+
+  async activeValidator() {
+    console.log('Competing for a quota...');
+    return await this.exsatApi.executeAction(ContractName.compete, 'activate', {
+      validator: this.exsatAccountInfo.accountName,
+    });
+  }
+
+  async getValidatedInfo(): Promise<any> {
+    return await this.tableApi.getValidatorActivatedInfo(this.exsatAccountInfo.accountName);
+  }
+
+  async checkActovateValidatorQuotas() {
+    const activateValidatorQuotas: any = await this.tableApi.getActivateValidatorQuatos();
+    if (activateValidatorQuotas.total_quotas <= activateValidatorQuotas.total_activations) {
+      return false;
+    }
+    return true;
   }
 
   /**
@@ -557,6 +640,7 @@ export class ValidatorCommander {
     }
     return true;
   }
+
   /**
    * Checks if the BTC RPC URL is set and valid.
    */
