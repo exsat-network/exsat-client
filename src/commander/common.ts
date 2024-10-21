@@ -28,7 +28,15 @@ export async function notAccountMenu(role) {
   ];
   //
   const actions: { [key: string]: () => Promise<any> } = {
-    create_account: async () => await initializeAccount(role),
+    create_account: async () => {
+      const res = await initializeAccount(role);
+      if (res) {
+        console.log(
+          `${Font.fgCyan}${Font.bright}Account registration may take a moment, please wait.\nConfirmation email will be sent to your inbox after the account registration is complete.\nPlease follow the instructions in the email to complete the subsequent Synchronizer registration.\n-----------------------------------------------${Font.reset}`
+        );
+        process.exit(0);
+      }
+    },
     import_seed_phrase: async () => await importFromMnemonic(role),
     import_private_key: async () => await importFromPrivateKey(role),
     quit: async () => process.exit(0),
@@ -38,7 +46,10 @@ export async function notAccountMenu(role) {
     message: 'Select Action: ',
     choices: menus,
   });
-  await (actions[action] || (() => {}))();
+  let res;
+  do {
+    res = await (actions[action] || (() => {}))();
+  } while (!res);
 }
 
 export async function updateMenu(versions, isDocker, role) {
