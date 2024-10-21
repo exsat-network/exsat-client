@@ -205,7 +205,7 @@ class TableApi {
    * Retrieves the become validator quatos.
    * @returns The become validator quatos data or null if not found.
    */
-  public async getActivateValidatorQuatos() {
+  public async getActivateValidatorQuotas() {
     const rows = await this.exsatApi.getTableRows(ContractName.compete, ContractName.compete, 'globals', {
       limit: 1,
     });

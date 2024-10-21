@@ -278,7 +278,7 @@ export class ValidatorCommander {
    * @returns {Promise<boolean>}
    */
   async toActivateValidator() {
-    const activateValidatorQuotas: any = await this.tableApi.getActivateValidatorQuatos();
+    const activateValidatorQuotas: any = await this.tableApi.getActivateValidatorQuotas();
     if (!activateValidatorQuotas || activateValidatorQuotas.total_quotas == 0) {
       console.log(Font.importMessageCyan("The competition hasn't started yet. Please wait."));
       await input({ message: 'Press [enter] to continue' });
@@ -340,7 +340,7 @@ export class ValidatorCommander {
   }
 
   async checkActovateValidatorQuotas() {
-    const activateValidatorQuotas: any = await this.tableApi.getActivateValidatorQuatos();
+    const activateValidatorQuotas: any = await this.tableApi.getActivateValidatorQuotas();
     if (activateValidatorQuotas.total_quotas <= activateValidatorQuotas.total_activations) {
       return false;
     }
