@@ -279,18 +279,19 @@ export class ValidatorCommander {
    */
   async toActivateValidator() {
     const activateValidatorQuotas: any = await this.tableApi.getActivateValidatorQuatos();
+    if (!activateValidatorQuotas || activateValidatorQuotas.total_quotas == 0) {
+      console.log(Font.importMessageCyan("The competition hasn't started yet. Please wait."));
+      await input({ message: 'Press [enter] to continue' });
+      return false;
+    }
     if (activateValidatorQuotas.total_quotas <= activateValidatorQuotas.total_activations) {
-      if (activateValidatorQuotas.total_quotas === 0) {
-        console.log("The competition hasn't started yet. Please wait.");
-      } else {
-        console.log('The number of quotas has been used up. Please wait for the next round.');
-      }
+      console.log(Font.importMessageCyan('The number of quotas has been used up. Please wait for the next round.'));
       await input({ message: 'Press [enter] to continue' });
       return false;
     }
     if (
       !(await confirm({
-        message: 'Please confirm to start participating in the competition.',
+        message: Font.importMessageCyan('Please confirm to start participating in the competition.'),
       }))
     ) {
       return false;
@@ -298,7 +299,7 @@ export class ValidatorCommander {
     do {
       try {
         const res = await this.activeValidator();
-        console.log('Congratulations on securing a quota and becoming a validator.');
+        console.log(Font.importMessageCyan('Congratulations on securing a quota and becoming a validator.'));
         await input({ message: 'Press [enter] to continue' });
         return true;
       } catch (e) {
@@ -328,7 +329,7 @@ export class ValidatorCommander {
   }
 
   async activeValidator() {
-    console.log('Competing for a quota...');
+    console.log(Font.importMessageCyan('Competing for a quota...'));
     return await this.exsatApi.executeAction(ContractName.compete, 'activate', {
       validator: this.exsatAccountInfo.accountName,
     });

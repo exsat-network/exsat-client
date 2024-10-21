@@ -28,4 +28,11 @@ export class Font {
   static colorize(text: string, color: string): string {
     return `${color}${text}${this.reset}`;
   }
+
+  static importMessageCyan(text: string) {
+    return `${this.fgCyan}${this.bright}${text}${this.reset}`;
+  }
+  static importMessageWhite(text: string) {
+    return `${this.bright}${text}${this.reset}`;
+  }
 }
