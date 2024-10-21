@@ -11,7 +11,7 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@exsat/account-initializer": "^1.2.0",
+    "@exsat/account-initializer": "^1.2.1-rc1",
     "@inquirer/prompts": "^5.3.8",
     "axios": "^1.7.4",
     "bitcoinjs-lib": "^6.1.6",

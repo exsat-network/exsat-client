@@ -12,7 +12,7 @@ import { EXSAT_RPC_URLS, SET_VALIDATOR_DONATE_RATIO } from '../utils/config';
 import { logger } from '../utils/logger';
 import { inputWithCancel } from '../utils/input';
 import { updateEnvFile } from '@exsat/account-initializer/dist/utils';
-import { ClientType, ContractName } from '../utils/enumeration';
+import { Client, ClientType, ContractName } from '../utils/enumeration';
 import { Font } from '../utils/font';
 import { changeEmail } from '@exsat/account-initializer/dist/accountInitializer';
 
@@ -29,7 +29,7 @@ export class ValidatorCommander {
   async main() {
     // Check if keystore exists
     while (!fs.existsSync(process.env.VALIDATOR_KEYSTORE_FILE)) {
-      await notAccountMenu('Validator');
+      await notAccountMenu(Client.Validator);
       reloadEnv();
     }
 
@@ -228,6 +228,7 @@ export class ValidatorCommander {
     await this.exsatApi.executeAction(ContractName.endrmng, 'config', data);
     await this.updateValidatorInfo();
     logger.info(`${Font.fgCyan}${Font.bright}Set commission ratio: ${commissionRatio}% successfully.${Font.reset}\n`);
+    return true;
   }
 
   /**
@@ -255,6 +256,7 @@ export class ValidatorCommander {
       `${Font.fgCyan}${Font.bright}Set donation ratio: ${ratio}% successfully. ${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`
     );
     await this.updateValidatorInfo();
+    return true;
   }
 
   /**
@@ -316,7 +318,7 @@ export class ValidatorCommander {
         return;
       }
     }
-    await this.setBtcRpcUrl();
+    return await this.setBtcRpcUrl();
   }
 
   /**

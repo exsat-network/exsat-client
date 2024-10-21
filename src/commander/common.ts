@@ -3,7 +3,8 @@ import { importFromMnemonic, importFromPrivateKey, initializeAccount } from '@ex
 import process from 'node:process';
 import { Font } from '../utils/font';
 import { EXSAT_RPC_URLS } from '../utils/config';
-import { getRpcUrls } from '../utils/common';
+import { getRpcUrls, isExsatDocker } from '../utils/common';
+import { Client } from '../utils/enumeration';
 
 export async function notAccountMenu(role) {
   const menus = [
@@ -40,11 +41,15 @@ export async function notAccountMenu(role) {
   await (actions[action] || (() => {}))();
 }
 
-export async function updateMenu(versions) {
+export async function updateMenu(versions, isDocker, role) {
   const menus = [
     {
       name: 'Get Upgrade Method',
       value: 'get_upgrade_method',
+    },
+    {
+      name: 'Method',
+      value: 'get_docker_upgrade',
     },
     {
       name: 'Skip',
@@ -63,10 +68,16 @@ export async function updateMenu(versions) {
   });
   switch (action) {
     case 'get_upgrade_method':
-      console.log(
-        `\n${Font.fgCyan}${Font.bright}Please enter the following command in the terminal to complete the version upgrade: ${Font.reset}`
-      );
-      console.log(`${Font.bright}git fetch --tags && git checkout -f ${versions.latest} ${Font.reset}\n`);
+      if (isDocker) {
+        console.log(
+          `\n${Font.fgCyan}${Font.bright}Please exit the Docker container and follow the instructions in the documentation to upgrade your Docker: ${role == Client.Synchronizer ? 'http://synchronzier' : 'http://validator'}${Font.reset}`
+        );
+      } else {
+        console.log(
+          `\n${Font.fgCyan}${Font.bright}Please enter the following command in the terminal to complete the version upgrade: ${Font.reset}`
+        );
+        console.log(`${Font.bright}git fetch --tags && git checkout -f ${versions.latest} ${Font.reset}\n`);
+      }
       await input({ message: 'Press Enter to Continue...' });
       process.exit(0);
       break;

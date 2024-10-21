@@ -98,7 +98,7 @@ class TableApi {
    * get account balance
    */
   public async getAccountBalance(account: string): Promise<any> {
-    const rows: any[] = await this.exsatApi.getTableRows(ContractName.rescmng, account, 'accounts', {
+    const rows: any[] = await this.exsatApi.getTableRows(ContractName.rescmng, ContractName.rescmng, 'accounts', {
       limit: 1,
       lower_bound: account,
       upper_bound: account,

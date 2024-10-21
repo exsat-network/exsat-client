@@ -5,7 +5,7 @@ import { input, password, select, Separator, confirm } from '@inquirer/prompts';
 import { chargeBtcForResource, chargeForRegistry, checkUsernameWithBackend } from '@exsat/account-initializer';
 import process from 'node:process';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
-import { ClientType } from '../utils/enumeration';
+import { Client, ClientType } from '../utils/enumeration';
 import { logger } from '../utils/logger';
 import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
@@ -29,7 +29,7 @@ export class SynchronizerCommander {
   async main() {
     // Check if keystore exists
     while (!fs.existsSync(process.env.SYNCHRONIZER_KEYSTORE_FILE)) {
-      await notAccountMenu('Synchronizer');
+      await notAccountMenu(Client.Synchronizer);
       reloadEnv();
     }
 
@@ -233,6 +233,7 @@ export class SynchronizerCommander {
     logger.info(
       `${Font.fgCyan}${Font.bright}Set Donation Ratio: ${ratio}% successfully. ${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`
     );
+    return true;
   }
 
   /**
@@ -245,6 +246,7 @@ export class SynchronizerCommander {
     };
     await this.exsatApi.executeAction('poolreg.xsat', 'setfinacct', data);
     await this.updateSynchronizerInfo();
+    return true;
   }
 
   /**
@@ -320,7 +322,7 @@ export class SynchronizerCommander {
         return;
       }
     }
-    await this.setBtcRpcUrl();
+    return await this.setBtcRpcUrl();
   }
 
   /**
@@ -378,9 +380,10 @@ export class SynchronizerCommander {
         Email: this.exsatAccountInfo.email,
       });
       console.log(
-        'The account has been registered, and a confirmation email has been sent to your inbox. \n' +
+        `${Font.fgCyan}${Font.bright}The account has been registered, and a confirmation email has been sent to your inbox.\n` +
           'Please follow the instructions in the email to complete the Synchronizer registration. \n' +
-          'If you have already followed the instructions, please wait patiently for the next confirmation email.'
+          'If you have already followed the instructions, please wait patiently for the next confirmation email.\n' +
+          `-----------------------------------------------${Font.reset}`
       );
       process.exit(0);
     }
