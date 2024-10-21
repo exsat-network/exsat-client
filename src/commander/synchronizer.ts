@@ -12,7 +12,7 @@ import TableApi from '../utils/table-api';
 import fs from 'node:fs';
 import { inputWithCancel } from '../utils/input';
 import { updateEnvFile } from '@exsat/account-initializer/dist/utils';
-import { checkExsatUrls, notAccountMenu, updateMenu } from './common';
+import { checkExsatUrls, notAccountMenu, resetBtcRpcUrl, setBtcRpcUrl, updateMenu } from './common';
 import { Font } from '../utils/font';
 import { changeEmail } from '@exsat/account-initializer/dist/accountInitializer';
 
@@ -120,7 +120,7 @@ export class SynchronizerCommander {
       set_reward_address: async () => await this.setRewardAddress(),
       set_donation_ratio: async () => await this.setDonationRatio(),
       purchase_memory_slot: async () => await this.purchaseSlots(),
-      reset_btc_rpc: async () => await this.resetBtcRpcUrl(),
+      reset_btc_rpc: async () => await resetBtcRpcUrl(),
       export_private_key: async () => {
         console.log(`Private Key: ${this.exsatAccountInfo.privateKey}`);
         await input({ message: 'Press [enter] to continue' });
@@ -178,7 +178,7 @@ export class SynchronizerCommander {
    * Purchases memory slots for the synchronizer.
    */
   async purchaseSlots() {
-    const numberSlots = await inputWithCancel('Enter number of slots(Input "q" to return)', (value) => {
+    const numberSlots = await inputWithCancel('Input number of slots(Input "q" to return): ', (value) => {
       const num = Number(value);
       if (!Number.isInteger(num) || num < 1) {
         return 'Please enter a valid number more than 0';
@@ -261,68 +261,6 @@ export class SynchronizerCommander {
     await this.exsatApi.executeAction('poolreg.xsat', 'buyslot', data);
     await this.updateSynchronizerInfo();
     return true;
-  }
-
-  /**
-   * Sets the BTC RPC URL, username, and password.
-   */
-  async setBtcRpcUrl() {
-    const btcRpcUrl = await inputWithCancel('Please enter new BTC_RPC_URL(Input "q" to return): ', (input) => {
-      if (!isValidUrl(input)) {
-        return 'Please enter a valid URL';
-      }
-      return true;
-    });
-    if (!btcRpcUrl) {
-      return false;
-    }
-    const values: { [key: string]: string } = {
-      BTC_RPC_URL: btcRpcUrl,
-      BTC_RPC_USERNAME: '',
-      BTC_RPC_PASSWORD: '',
-    };
-
-    if (
-      await confirm({
-        message: 'Do You need to configure the username and password?',
-      })
-    ) {
-      const rpcUsername = await inputWithCancel('Please enter RPC username(Input "q" to return): ');
-      if (!rpcUsername) {
-        return false;
-      }
-      const rpcPassword = await inputWithCancel('Please enter RPC password(Input "q" to return): ');
-      if (!rpcPassword) {
-        return false;
-      }
-      values['BTC_RPC_USERNAME'] = rpcUsername;
-      values['BTC_RPC_PASSWORD'] = rpcPassword;
-    }
-
-    updateEnvFile(values);
-    process.env.BTC_RPC_URL = btcRpcUrl;
-    process.env.BTC_RPC_USERNAME = values['BTC_RPC_USERNAME'];
-    process.env.BTC_RPC_PASSWORD = values['BTC_RPC_PASSWORD'];
-
-    logger.info('.env file has been updated successfully.');
-    return true;
-  }
-
-  /**
-   * Resets the BTC RPC URL after confirmation.
-   */
-  async resetBtcRpcUrl() {
-    const rpcUrl = process.env.BTC_RPC_URL;
-    if (rpcUrl) {
-      if (
-        !(await confirm({
-          message: `Your BTC_RPC_URL: ${rpcUrl}\nAre you sure to change it?`,
-        }))
-      ) {
-        return;
-      }
-    }
-    return await this.setBtcRpcUrl();
   }
 
   /**
@@ -551,7 +489,7 @@ export class SynchronizerCommander {
       ];
 
       const actions: { [key: string]: () => Promise<any> } = {
-        set_btc_node: async () => await this.setBtcRpcUrl(),
+        set_btc_node: async () => await setBtcRpcUrl(),
         quit: async () => process.exit(0),
       };
       let action;

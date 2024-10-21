@@ -1,10 +1,13 @@
-import { input, select, Separator } from '@inquirer/prompts';
+import { input, select, Separator, confirm } from '@inquirer/prompts';
 import { importFromMnemonic, importFromPrivateKey, initializeAccount } from '@exsat/account-initializer';
 import process from 'node:process';
 import { Font } from '../utils/font';
 import { EXSAT_RPC_URLS } from '../utils/config';
-import { getRpcUrls, isExsatDocker } from '../utils/common';
+import { getRpcUrls, isExsatDocker, isValidUrl } from '../utils/common';
 import { Client } from '../utils/enumeration';
+import { logger } from '../utils/logger';
+import { inputWithCancel } from '../utils/input';
+import { updateEnvFile } from '@exsat/account-initializer/dist/utils';
 
 export async function notAccountMenu(role) {
   const menus = [
@@ -59,10 +62,6 @@ export async function updateMenu(versions, isDocker, role) {
       value: 'get_upgrade_method',
     },
     {
-      name: 'Method',
-      value: 'get_docker_upgrade',
-    },
-    {
       name: 'Skip',
       value: '99',
     },
@@ -105,4 +104,65 @@ export async function checkExsatUrls() {
       EXSAT_RPC_URLS = result.info.exsat_rpc;
     }
   }
+}
+/**
+ * Sets the BTC RPC URL, username, and password.
+ */
+export async function setBtcRpcUrl() {
+  const btcRpcUrl = await inputWithCancel('Please enter new BTC_RPC_URL(Input "q" to return): ', (input) => {
+    if (!isValidUrl(input)) {
+      return 'Please enter a valid URL';
+    }
+    return true;
+  });
+  if (!btcRpcUrl) {
+    return false;
+  }
+  const values: { [key: string]: string } = {
+    BTC_RPC_URL: btcRpcUrl,
+    BTC_RPC_USERNAME: '',
+    BTC_RPC_PASSWORD: '',
+  };
+
+  if (
+    await confirm({
+      message: 'Do You need to configure the username and password?',
+    })
+  ) {
+    const rpcUsername = await inputWithCancel('Please enter RPC username(Input "q" to return): ');
+    if (!rpcUsername) {
+      return false;
+    }
+    const rpcPassword = await inputWithCancel('Please enter RPC password(Input "q" to return): ');
+    if (!rpcPassword) {
+      return false;
+    }
+    values['BTC_RPC_USERNAME'] = rpcUsername;
+    values['BTC_RPC_PASSWORD'] = rpcPassword;
+  }
+
+  updateEnvFile(values);
+  process.env.BTC_RPC_URL = btcRpcUrl;
+  process.env.BTC_RPC_USERNAME = values['BTC_RPC_USERNAME'];
+  process.env.BTC_RPC_PASSWORD = values['BTC_RPC_PASSWORD'];
+
+  logger.info('.env file has been updated successfully.');
+  return true;
+}
+
+/**
+ * Resets the BTC RPC URL after confirmation.
+ */
+export async function resetBtcRpcUrl() {
+  const rpcUrl = process.env.BTC_RPC_URL;
+  if (rpcUrl) {
+    if (
+      !(await confirm({
+        message: `Your BTC_RPC_URL: ${rpcUrl}\nAre you sure to change it?`,
+      }))
+    ) {
+      return;
+    }
+  }
+  return await setBtcRpcUrl();
 }

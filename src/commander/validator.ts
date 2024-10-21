@@ -1,6 +1,6 @@
 import TableApi from '../utils/table-api';
 import ExsatApi from '../utils/exsat-api';
-import { checkExsatUrls, notAccountMenu } from './common';
+import { checkExsatUrls, notAccountMenu, resetBtcRpcUrl, setBtcRpcUrl } from './common';
 import fs from 'node:fs';
 import process from 'node:process';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
@@ -131,7 +131,7 @@ export class ValidatorCommander {
       set_reward_address: async () => await this.setRewardAddress(),
       set_commission_ratio: async () => await this.setCommissionRatio(),
       set_donation_ratio: async () => await this.setDonationRatio(),
-      reset_btc_rpc: async () => await this.resetBtcRpcUrl(),
+      reset_btc_rpc: async () => await resetBtcRpcUrl(),
       export_private_key: async () => {
         console.log(`Private Key: ${this.exsatAccountInfo.privateKey}`);
         await input({ message: 'Press [enter] to continue' });
@@ -274,67 +274,9 @@ export class ValidatorCommander {
   }
 
   /**
-   * Sets the BTC RPC URL, username, and password.
+   * To activate and become a official validator.
+   * @returns {Promise<boolean>}
    */
-  async setBtcRpcUrl() {
-    const btcRpcUrl = await inputWithCancel('Please enter new BTC_RPC_URL(Input "q" to return): ', (input) => {
-      if (!isValidUrl(input)) {
-        return 'Please enter a valid URL';
-      }
-      return true;
-    });
-    if (!btcRpcUrl) {
-      return false;
-    }
-    const values: { [key: string]: string } = {
-      BTC_RPC_URL: btcRpcUrl,
-      BTC_RPC_USERNAME: '',
-      BTC_RPC_PASSWORD: '',
-    };
-
-    if (
-      await confirm({
-        message: 'Do You need to configure the username and password?',
-      })
-    ) {
-      const rpcUsername = await inputWithCancel('Please enter RPC username(Input "q" to return): ');
-      if (!rpcUsername) {
-        return false;
-      }
-      const rpcPassword = await inputWithCancel('Please enter RPC password(Input "q" to return): ');
-      if (!rpcPassword) {
-        return false;
-      }
-      values['BTC_RPC_USERNAME'] = rpcUsername;
-      values['BTC_RPC_PASSWORD'] = rpcPassword;
-    }
-
-    updateEnvFile(values);
-    process.env.BTC_RPC_URL = btcRpcUrl;
-    process.env.BTC_RPC_USERNAME = values['BTC_RPC_USERNAME'];
-    process.env.BTC_RPC_PASSWORD = values['BTC_RPC_PASSWORD'];
-
-    logger.info('.env file has been updated successfully.');
-    return true;
-  }
-
-  /**
-   * Resets the BTC RPC URL after confirmation.
-   */
-  async resetBtcRpcUrl() {
-    const rpcUrl = process.env.BTC_RPC_URL;
-    if (rpcUrl) {
-      if (
-        !(await confirm({
-          message: `Your BTC_RPC_URL: ${rpcUrl}\nAre you sure to change it?`,
-        }))
-      ) {
-        return;
-      }
-    }
-    return await this.setBtcRpcUrl();
-  }
-
   async toActivateValidator() {
     const activateValidatorQuotas: any = await this.tableApi.getActivateValidatorQuatos();
     if (activateValidatorQuotas.total_quotas <= activateValidatorQuotas.total_activations) {
@@ -670,7 +612,7 @@ export class ValidatorCommander {
       ];
 
       const actions: { [key: string]: () => Promise<any> } = {
-        set_btc_node: async () => await this.setBtcRpcUrl(),
+        set_btc_node: async () => await setBtcRpcUrl(),
         quit: async () => process.exit(0),
       };
       let action;
