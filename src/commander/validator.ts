@@ -308,11 +308,11 @@ export class ValidatorCommander {
         if (errorMessage.includes('round has not started yet')) {
           const menu = [
             {
-              name: 'retry active',
+              name: 'Retry To Activate',
               value: 'retry',
             },
             {
-              name: 'quit',
+              name: 'Quit',
               value: 'quit',
             },
           ];
