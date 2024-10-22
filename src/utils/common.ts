@@ -209,9 +209,9 @@ export function isExsatDocker(): boolean {
 export function reloadEnv() {
   let envFilePath;
   if (isExsatDocker()) {
-    envFilePath = path.resolve(__dirname, '../../.exsat', '.env');
+    envFilePath = path.join(process.cwd(), '.exsat', '.env');
   } else {
-    envFilePath = path.resolve(__dirname, '../../', '.env');
+    envFilePath = path.join(process.cwd(), '.env');
   }
   if (!fs.existsSync(envFilePath)) {
     throw new Error('No .env file found');

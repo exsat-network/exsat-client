@@ -1,18 +1,17 @@
 import TableApi from '../utils/table-api';
 import ExsatApi from '../utils/exsat-api';
-import { Version } from '../utils/version';
-import { checkExsatUrls, notAccountMenu, updateMenu } from './common';
+import { checkExsatUrls, notAccountMenu, resetBtcRpcUrl, setBtcRpcUrl } from './common';
 import fs from 'node:fs';
 import process from 'node:process';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
-import { isValidUrl, reloadEnv, retry, showInfo, sleep } from '../utils/common';
+import { getErrorMessage, isValidUrl, reloadEnv, retry, showInfo, sleep } from '../utils/common';
 import { confirm, input, password, select, Separator } from '@inquirer/prompts';
 import { chargeBtcForResource, chargeForRegistry, checkUsernameWithBackend } from '@exsat/account-initializer';
 import { EXSAT_RPC_URLS, SET_VALIDATOR_DONATE_RATIO } from '../utils/config';
 import { logger } from '../utils/logger';
 import { inputWithCancel } from '../utils/input';
 import { updateEnvFile } from '@exsat/account-initializer/dist/utils';
-import { ClientType, ContractName } from '../utils/enumeration';
+import { Client, ClientType, ContractName } from '../utils/enumeration';
 import { Font } from '../utils/font';
 import { changeEmail } from '@exsat/account-initializer/dist/accountInitializer';
 
@@ -29,7 +28,7 @@ export class ValidatorCommander {
   async main() {
     // Check if keystore exists
     while (!fs.existsSync(process.env.VALIDATOR_KEYSTORE_FILE)) {
-      await notAccountMenu('Validator');
+      await notAccountMenu(Client.Validator);
       reloadEnv();
     }
 
@@ -53,8 +52,9 @@ export class ValidatorCommander {
     const accountName = this.exsatAccountInfo.accountName;
     const btcBalance = await this.tableApi.getAccountBalance(accountName);
     const validator = this.validatorInfo;
+    const activedInfo = await this.getValidatedInfo();
 
-    const showMessageInfo = {
+    let showMessageInfo: any = {
       'Account Name': accountName,
       'Public Key': this.exsatAccountInfo.publicKey,
       'BTC Balance Used for Gas Fee': btcBalance,
@@ -70,7 +70,7 @@ export class ValidatorCommander {
     };
     showInfo(showMessageInfo);
 
-    const menus = [
+    let menus = [
       {
         name: 'Bridge BTC as GAS Fee',
         value: 'recharge_btc',
@@ -118,12 +118,20 @@ export class ValidatorCommander {
       { name: 'Quit', value: 'quit', description: 'Quit' },
     ];
 
+    if (!activedInfo) {
+      menus.unshift({
+        name: 'Compete to win a Validator quota',
+        value: 'activate_validator',
+        description: 'To activate validator',
+      });
+    }
+
     const actions: { [key: string]: () => Promise<any> } = {
       recharge_btc: async () => await chargeBtcForResource(process.env.VALIDATOR_KEYSTORE_FILE),
       set_reward_address: async () => await this.setRewardAddress(),
       set_commission_ratio: async () => await this.setCommissionRatio(),
       set_donation_ratio: async () => await this.setDonationRatio(),
-      reset_btc_rpc: async () => await this.resetBtcRpcUrl(),
+      reset_btc_rpc: async () => await resetBtcRpcUrl(),
       export_private_key: async () => {
         console.log(`Private Key: ${this.exsatAccountInfo.privateKey}`);
         await input({ message: 'Press [enter] to continue' });
@@ -134,6 +142,12 @@ export class ValidatorCommander {
         console.log();
         await input({ message: 'Press [enter] to continue' });
       },
+      activate_validator: async () => {
+        const res = await this.toActivateValidator();
+        if (res) {
+          menus.shift();
+        }
+      },
       remove_account: async () => await this.removeKeystore(),
       quit: async () => process.exit(),
     };
@@ -141,7 +155,7 @@ export class ValidatorCommander {
     let action;
     do {
       action = await select({
-        message: 'Select An Action',
+        message: 'Select an Action',
         choices: menus,
         loop: false,
         pageSize: 20,
@@ -228,6 +242,7 @@ export class ValidatorCommander {
     await this.exsatApi.executeAction(ContractName.endrmng, 'config', data);
     await this.updateValidatorInfo();
     logger.info(`${Font.fgCyan}${Font.bright}Set commission ratio: ${commissionRatio}% successfully.${Font.reset}\n`);
+    return true;
   }
 
   /**
@@ -250,73 +265,86 @@ export class ValidatorCommander {
       validator: this.exsatAccountInfo.accountName,
       donate_rate: parseFloat(ratio) * 100,
     };
-    await this.exsatApi.executeAction('endrmng.xsat', 'setdonate', data);
+    await this.exsatApi.executeAction(ContractName.endrmng, 'setdonate', data);
     logger.info(
       `${Font.fgCyan}${Font.bright}Set donation ratio: ${ratio}% successfully. ${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`
     );
     await this.updateValidatorInfo();
-  }
-
-  /**
-   * Sets the BTC RPC URL, username, and password.
-   */
-  async setBtcRpcUrl() {
-    const btcRpcUrl = await inputWithCancel('Please enter new BTC_RPC_URL(Input "q" to return): ', (input) => {
-      if (!isValidUrl(input)) {
-        return 'Please enter a valid URL';
-      }
-      return true;
-    });
-    if (!btcRpcUrl) {
-      return false;
-    }
-    const values: { [key: string]: string } = {
-      BTC_RPC_URL: btcRpcUrl,
-      BTC_RPC_USERNAME: '',
-      BTC_RPC_PASSWORD: '',
-    };
-
-    if (
-      await confirm({
-        message: 'Do You need to configure the username and password?',
-      })
-    ) {
-      const rpcUsername = await inputWithCancel('Please enter RPC username(Input "q" to return): ');
-      if (!rpcUsername) {
-        return false;
-      }
-      const rpcPassword = await inputWithCancel('Please enter RPC password(Input "q" to return): ');
-      if (!rpcPassword) {
-        return false;
-      }
-      values['BTC_RPC_USERNAME'] = rpcUsername;
-      values['BTC_RPC_PASSWORD'] = rpcPassword;
-    }
-
-    updateEnvFile(values);
-    process.env.BTC_RPC_URL = btcRpcUrl;
-    process.env.BTC_RPC_USERNAME = values['BTC_RPC_USERNAME'];
-    process.env.BTC_RPC_PASSWORD = values['BTC_RPC_PASSWORD'];
-
-    logger.info('.env file has been updated successfully.');
     return true;
   }
 
   /**
-   * Resets the BTC RPC URL after confirmation.
+   * To activate and become a official validator.
+   * @returns {Promise<boolean>}
    */
-  async resetBtcRpcUrl() {
-    const rpcUrl = process.env.BTC_RPC_URL;
-    if (rpcUrl) {
-      if (
-        !(await confirm({
-          message: `Your BTC_RPC_URL: ${rpcUrl}\nAre you sure to change it?`,
-        }))
-      ) {
-        return;
-      }
+  async toActivateValidator() {
+    const activateValidatorQuotas: any = await this.tableApi.getActivateValidatorQuotas();
+    if (!activateValidatorQuotas || activateValidatorQuotas.total_quotas == 0) {
+      console.log(Font.importMessageCyan("The competition hasn't started yet. Please wait."));
+      await input({ message: 'Press [enter] to continue' });
+      return false;
     }
-    await this.setBtcRpcUrl();
+    if (activateValidatorQuotas.total_quotas <= activateValidatorQuotas.total_activations) {
+      console.log(Font.importMessageCyan('The number of quotas has been used up. Please wait for the next round.'));
+      await input({ message: 'Press [enter] to continue' });
+      return false;
+    }
+    if (
+      !(await confirm({
+        message: Font.importMessageCyan('Please confirm to start participating in the competition.'),
+      }))
+    ) {
+      return false;
+    }
+    do {
+      try {
+        const res = await this.activeValidator();
+        console.log(Font.importMessageCyan('Congratulations on securing a quota and becoming a validator.'));
+        await input({ message: 'Press [enter] to continue' });
+        return true;
+      } catch (e) {
+        const errorMessage = getErrorMessage(e);
+        // network error or timeout
+        if (errorMessage.includes('round has not started yet')) {
+          const menu = [
+            {
+              name: 'retry active',
+              value: 'retry',
+            },
+            {
+              name: 'quit',
+              value: 'quit',
+            },
+          ];
+          const action = await select({ choices: menu, message: 'Please select an action: ' });
+          if (action === 'quit') {
+            return false;
+          }
+        } else {
+          logger.error(errorMessage);
+          return false;
+        }
+      }
+    } while (true);
+  }
+
+  async activeValidator() {
+    console.log(Font.importMessageCyan('Competing for a quota...'));
+    return await this.exsatApi.executeAction(ContractName.compete, 'activate', {
+      validator: this.exsatAccountInfo.accountName,
+    });
+  }
+
+  async getValidatedInfo(): Promise<any> {
+    return await this.tableApi.getValidatorActivatedInfo(this.exsatAccountInfo.accountName);
+  }
+
+  async checkActovateValidatorQuotas() {
+    const activateValidatorQuotas: any = await this.tableApi.getActivateValidatorQuotas();
+    if (activateValidatorQuotas.total_quotas <= activateValidatorQuotas.total_activations) {
+      return false;
+    }
+    return true;
   }
 
   /**
@@ -429,7 +457,7 @@ export class ValidatorCommander {
             { name: 'Quit', value: 'quit', description: 'Quit' },
           ];
           const action = await select({
-            message: 'Select Action',
+            message: 'Select an Action',
             choices: menus,
           });
           if (action === 'quit') {
@@ -493,7 +521,7 @@ export class ValidatorCommander {
       let action;
       let res;
       do {
-        action = await select({ message: 'Select Action: ', choices: menus });
+        action = await select({ message: 'Select an Action: ', choices: menus });
         res = await (actions[action] || (() => {}))();
       } while (!res);
     } else {
@@ -534,7 +562,7 @@ export class ValidatorCommander {
       let action;
       let res;
       do {
-        action = await select({ message: 'Select Action: ', choices: menus });
+        action = await select({ message: 'Select an Action: ', choices: menus });
         res = await (actions[action] || (() => {}))();
       } while (!res);
     } else {
@@ -555,6 +583,7 @@ export class ValidatorCommander {
     }
     return true;
   }
+
   /**
    * Checks if the BTC RPC URL is set and valid.
    */
@@ -584,13 +613,13 @@ export class ValidatorCommander {
       ];
 
       const actions: { [key: string]: () => Promise<any> } = {
-        set_btc_node: async () => await this.setBtcRpcUrl(),
+        set_btc_node: async () => await setBtcRpcUrl(),
         quit: async () => process.exit(0),
       };
       let action;
       let res;
       do {
-        action = await select({ message: 'Select Action: ', choices: menus });
+        action = await select({ message: 'Select an Action: ', choices: menus });
         res = await (actions[action] || (() => {}))();
       } while (!res);
     } else {
