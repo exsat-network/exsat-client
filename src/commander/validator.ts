@@ -37,7 +37,7 @@ export class ValidatorCommander {
     await this.checkAccountRegistrationStatus();
     await this.checkValidatorRegistrationStatus();
     await this.checkRewardsAddress();
-    await this.checkCommission();
+    // await this.checkCommission();
     await this.checkDonateSetting();
     await this.checkBtcRpcNode();
 
