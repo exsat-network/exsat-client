@@ -60,7 +60,7 @@ export class ValidatorCommander {
       'BTC Balance Used for Gas Fee': btcBalance,
       'Reward Address': validator.memo ?? validator.reward_recipient,
       'Commission Ratio': `${validator.commission_rate / 100}%` ?? '0%',
-      'Donate Ratio': `${validator.donate_rate / 100}%` ?? '0%',
+      'Donation Ratio': `${validator.donate_rate / 100}%` ?? '0%',
       'BTC PRC Node': process.env.BTC_RPC_URL ?? '',
       'BTC Staked': validator.quantity,
       'Eligible for Verification': parseFloat(validator.quantity) > 100 ? 'Yes' : 'No, requires min 100 BTC staked',
