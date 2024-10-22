@@ -305,10 +305,10 @@ export class ValidatorCommander {
       } catch (e) {
         const errorMessage = getErrorMessage(e);
         // network error or timeout
-        if (errorMessage.includes('round has not started yet')) {
+        if (errorMessage.includes('Round has not started yet')) {
           const menu = [
             {
-              name: 'Retry To Activate',
+              name: 'Retry Activation',
               value: 'retry',
             },
             {
@@ -321,7 +321,7 @@ export class ValidatorCommander {
             return false;
           }
         } else {
-          logger.error(errorMessage);
+          logger.error(errorMessage.replace('compete.xsat::activate: ', ''));
           return false;
         }
       }
@@ -330,9 +330,14 @@ export class ValidatorCommander {
 
   async activeValidator() {
     console.log(Font.importMessageCyan('Competing for a quota...'));
-    return await this.exsatApi.executeAction(ContractName.compete, 'activate', {
-      validator: this.exsatAccountInfo.accountName,
-    });
+    return await this.exsatApi.executeAction(
+      ContractName.compete,
+      'activate',
+      {
+        validator: this.exsatAccountInfo.accountName,
+      },
+      false
+    );
   }
 
   async getValidatedInfo(): Promise<any> {
