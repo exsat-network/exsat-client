@@ -165,9 +165,10 @@ class ExsatApi {
    * @param account - The account to execute the action on.
    * @param name - The name of the action to execute.
    * @param data - The data to send with the action.
+   * @param showLog
    * @returns The result of the transaction.
    */
-  public async executeAction(account: string, name: string, data: any) {
+  public async executeAction(account: string, name: string, data: any, showLog = true) {
     const authorization = [
       {
         actor: ContractName.res,
@@ -206,7 +207,9 @@ class ExsatApi {
       }
       let dataStr = JSON.stringify(data);
       dataStr = dataStr.length > 500 ? dataStr.substring(0, 500) + '...' : dataStr;
-      logger.info(`Transaction result, account: ${account}, name: ${name}, data: ${dataStr}`, e);
+      if (showLog) {
+        logger.info(`Transaction result, account: ${account}, name: ${name}, data: ${dataStr}`, e);
+      }
       throw e;
     }
   }
