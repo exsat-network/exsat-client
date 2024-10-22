@@ -316,7 +316,7 @@ export class ValidatorCommander {
               value: 'quit',
             },
           ];
-          const action = await select({ choices: menu, message: 'Please select an action:' });
+          const action = await select({ choices: menu, message: 'Please select an action: ' });
           if (action === 'quit') {
             return false;
           }

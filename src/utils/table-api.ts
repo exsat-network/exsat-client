@@ -224,7 +224,6 @@ class TableApi {
       limit: 1,
       lower_bound: validator,
       upper_bound: validator,
-      key_type: 'name',
     });
     if (rows && rows.length > 0) {
       return rows[0];
