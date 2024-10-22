@@ -4,15 +4,31 @@ import axios from 'axios';
 import process from 'node:process';
 
 export class Version {
-  private static repoUrl = 'https://github.com/exsat-network/exsat-client';
   private static repoPath = 'exsat-network/exsat-client';
+  private static dockerRepoPath = 'exsatnetwork/exsat-client';
   private static packageJsonPath = path.join(process.cwd(), './package.json');
 
   // Get the latest version number of the remote warehouse
   static async getLatestVersion(): Promise<string | null> {
     try {
-      const response = await axios.get(`https://api.github.com/repos/${this.repoPath}/releases/latest`);
-      return response.data.tag_name;
+      const response = await axios.get(`https://api.github.com/repos/${this.repoPath}/tags`);
+      return response.data[0].name;
+    } catch (error) {
+      throw new Error('Failed to fetch latest version:');
+    }
+  }
+  // Get the latest version number of the remote Docker hub
+  static async getDockerLatestVersion(): Promise<string | null> {
+    try {
+      const response = await axios.get(
+        `https://registry.hub.docker.com/v2/repositories/${this.dockerRepoPath}/tags?page_size=5&page=1&ordering=last_updated`
+      );
+      const datas = response.data.results;
+      for (const data of datas) {
+        if (data.name !== 'latest') {
+          return data.name;
+        }
+      }
     } catch (error) {
       throw new Error('Failed to fetch latest version:');
     }
@@ -46,11 +62,10 @@ export class Version {
   /**
    * Checks for updates by comparing the latest version with the local version.
    * If a newer version is found, it retrieves the description of the new version.
-   * @param action Optional parameter for additional actions (not used in this implementation)
    * @returns An object containing the latest version, current local version, and new version description if an update is available
    * @throws Error if unable to determine the versions
    */
-  static async checkForUpdates(action?) {
+  static async checkForUpdates() {
     // Retrieve the latest version and the local version
     const [latestVersion, localVersion] = await Promise.all([this.getLatestVersion(), this.getLocalVersion()]);
 
@@ -59,17 +74,41 @@ export class Version {
       throw new Error('Failed to determine versions');
     }
 
-    // Remove 'v' prefix from the version string if it exists
-    const cleanVersion = (version: string) => version.replace(/^v/, '');
+    let newVersion: string | boolean = false;
+    // Compare version numbers; if the latest version is newer than the local version, get the new version description
+    if (this.isNewerVersion(latestVersion, localVersion)) {
+      //newVersion = (await this.getTagDescription(latestVersion)) ?? true;
+      newVersion = true;
+    }
 
-    // Cleaned version numbers
-    const cleanLatestVersion = cleanVersion(latestVersion);
-    const cleanLocalVersion = cleanVersion(localVersion);
+    // Return version information
+    return {
+      latest: latestVersion,
+      current: localVersion,
+      newVersion,
+    };
+  }
+
+  /**
+   * Checks for updates by comparing the latest version with the local version.
+   * If a newer version is found, it retrieves the description of the new version.
+   * @returns An object containing the latest version, current local version, and new version description if an update is available
+   * @throws Error if unable to determine the versions
+   */
+  static async checkForDockerUpdates() {
+    // Retrieve the latest version and the local version
+    const [latestVersion, localVersion] = await Promise.all([this.getDockerLatestVersion(), this.getLocalVersion()]);
+
+    // If unable to retrieve version information, throw an error
+    if (!latestVersion || !localVersion) {
+      throw new Error('Failed to determine versions');
+    }
 
     let newVersion: string | boolean = false;
     // Compare version numbers; if the latest version is newer than the local version, get the new version description
-    if (this.isNewerVersion(cleanLatestVersion, cleanLocalVersion)) {
-      newVersion = await this.getTagDescription(latestVersion);
+    if (this.isNewerVersion(latestVersion, localVersion)) {
+      //newVersion = (await this.getTagDescription(latestVersion)) ?? true;
+      newVersion = true;
     }
 
     // Return version information
@@ -87,6 +126,12 @@ export class Version {
    * @returns True if the latest version is newer than the current version, otherwise false
    */
   static isNewerVersion(latest: string, current: string): boolean {
+    // Remove 'v' prefix from the version string if it exists
+    const cleanVersion = (version: string) => version.replace(/^v/, '');
+    // Cleaned version numbers
+    const cleanLatestVersion = cleanVersion(latest);
+    const cleanCurrentVersion = cleanVersion(current);
+
     const parseVersion = (version: string) => {
       const [main, pre] = version.split('-');
       const parts = main.split('.').map(Number);
@@ -101,8 +146,8 @@ export class Version {
       return 0;
     };
 
-    const latestParsed = parseVersion(latest);
-    const currentParsed = parseVersion(current);
+    const latestParsed = parseVersion(cleanLatestVersion);
+    const currentParsed = parseVersion(cleanCurrentVersion);
 
     const mainComparison = compare(latestParsed.parts, currentParsed.parts);
     if (mainComparison !== 0) return mainComparison > 0;

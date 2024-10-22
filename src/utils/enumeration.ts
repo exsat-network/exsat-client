@@ -17,6 +17,7 @@ export enum ContractName {
   rescmng = 'rescmng.xsat',
   utxomng = 'utxomng.xsat',
   rwddist = 'rwddist.xsat',
+  compete = 'compete.xsat',
   res = 'res.xsat',
 }
 
