@@ -63,7 +63,7 @@ export class ValidatorCommander {
       'Donation Ratio': `${validator.donate_rate / 100}%` ?? '0%',
       'BTC PRC Node': process.env.BTC_RPC_URL ?? '',
       'BTC Staked': validator.quantity,
-      'Eligible for Verification': parseFloat(validator.quantity) > 100 ? 'Yes' : 'No, requires min 100 BTC staked',
+      'Eligible for Verification': parseFloat(validator.quantity) >= 100 ? 'Yes' : 'No, requires min 100 BTC staked',
       'Account Registration Status': 'Registered',
       'Validator Registration Status': 'Registered',
       Email: this.exsatAccountInfo.email,
