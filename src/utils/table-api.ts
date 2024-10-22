@@ -98,7 +98,7 @@ class TableApi {
    * get account balance
    */
   public async getAccountBalance(account: string): Promise<any> {
-    const rows: any[] = await this.exsatApi.getTableRows(ContractName.rescmng, account, 'accounts', {
+    const rows: any[] = await this.exsatApi.getTableRows(ContractName.rescmng, ContractName.rescmng, 'accounts', {
       limit: 1,
       lower_bound: account,
       upper_bound: account,
@@ -194,6 +194,36 @@ class TableApi {
     const rows = await this.exsatApi.getTableRows(ContractName.utxomng, ContractName.utxomng, 'consensusblk', {
       limit: 1,
       reverse: true,
+    });
+    if (rows && rows.length > 0) {
+      return rows[0];
+    }
+    return null;
+  }
+
+  /**
+   * Retrieves the become validator quatos.
+   * @returns The become validator quatos data or null if not found.
+   */
+  public async getActivateValidatorQuotas() {
+    const rows = await this.exsatApi.getTableRows(ContractName.compete, ContractName.compete, 'globals', {
+      limit: 1,
+    });
+    if (rows && rows.length > 0) {
+      return rows[0];
+    }
+    return null;
+  }
+
+  /**
+   * Retrieves the validator acticed info.
+   * @param validator
+   */
+  public async getValidatorActivatedInfo(validator) {
+    const rows = await this.exsatApi.getTableRows(ContractName.compete, ContractName.compete, 'activations', {
+      limit: 1,
+      lower_bound: validator,
+      upper_bound: validator,
     });
     if (rows && rows.length > 0) {
       return rows[0];
