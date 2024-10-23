@@ -58,7 +58,7 @@ export class SynchronizerCommander {
       'Public Key': this.exsatAccountInfo.publicKey,
       'BTC Balance Used for Gas Fee': btcBalance,
       'Reward Address': synchronizer.memo ?? synchronizer.reward_recipient,
-      'Donate Ratio': `${synchronizer.donate_rate / 100}%` ?? '0%',
+      'Donation Ratio': `${synchronizer.donate_rate / 100}%` ?? '0%',
       'BTC PRC Node': process.env.BTC_RPC_URL ?? '',
       'Account Registration Status': 'Registered',
       'Synchronizer Registration Status': 'Registered',

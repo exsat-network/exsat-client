@@ -80,7 +80,7 @@ export async function updateMenu(versions, isDocker, role) {
     case 'get_upgrade_method':
       if (isDocker) {
         console.log(
-          `\n${Font.fgCyan}${Font.bright}Please exit the Docker container and follow the instructions in the documentation to upgrade your Docker: ${role == Client.Synchronizer ? 'https://docs.exsat.network/guides-of-data-consensus/others/operation-references/synchronizer-operations/update-to-new-docker-version-for-synchronizer' : 'https://docs.exsat.network/guides-of-data-consensus/others/operation-references/validator-operations/update-to-new-docker-version-for-validator'}${Font.reset}`
+          `\n${Font.fgCyan}${Font.bright}Please exit the Docker container and follow the instructions in the documentation to upgrade your Docker: \n${Font.reset}${Font.bright}${role == Client.Synchronizer ? 'https://docs.exsat.network/guides-of-data-consensus/others/operation-references/synchronizer-operations/update-to-new-docker-version-for-synchronizer' : 'https://docs.exsat.network/guides-of-data-consensus/others/operation-references/validator-operations/update-to-new-docker-version-for-validator'}${Font.reset}`
         );
       } else {
         console.log(
