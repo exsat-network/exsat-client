@@ -2,6 +2,7 @@ import ExsatApi from './exsat-api';
 import { ContractName, IndexPosition, KeyType } from './enumeration';
 import { computeBlockId } from './key';
 import { logger } from './logger';
+import { Checksum256, Name, UInt64 } from '@wharfkit/session';
 
 class TableApi {
   private exsatApi: ExsatApi;
@@ -39,8 +40,8 @@ class TableApi {
   public async getEndorsementByBlockId(height: number, hash: string): Promise<any> {
     const rows = await this.exsatApi.getTableRows(ContractName.blkendt, height, 'endorsements', {
       index_position: IndexPosition.Secondary,
-      upper_bound: hash,
-      lower_bound: hash,
+      upper_bound: Checksum256.from(hash),
+      lower_bound: Checksum256.from(hash),
       key_type: KeyType.Sha256,
       limit: 1,
     });
@@ -69,8 +70,8 @@ class TableApi {
   public async getSynchronizerInfo(synchronizer: string): Promise<any> {
     const rows = await this.exsatApi.getTableRows(ContractName.poolreg, ContractName.poolreg, 'synchronizer', {
       limit: 1,
-      lower_bound: synchronizer,
-      upper_bound: synchronizer,
+      lower_bound: Name.from(synchronizer),
+      upper_bound: Name.from(synchronizer),
     });
     if (rows && rows.length > 0) {
       return rows[0];
@@ -85,8 +86,8 @@ class TableApi {
   public async getValidatorInfo(validator: string): Promise<any> {
     const rows = await this.exsatApi.getTableRows(ContractName.endrmng, ContractName.endrmng, 'validators', {
       limit: 1,
-      lower_bound: validator,
-      upper_bound: validator,
+      lower_bound: Name.from(validator),
+      upper_bound: Name.from(validator),
     });
     if (rows && rows.length > 0) {
       return rows[0];
@@ -100,8 +101,8 @@ class TableApi {
   public async getAccountBalance(account: string): Promise<any> {
     const rows: any[] = await this.exsatApi.getTableRows(ContractName.rescmng, ContractName.rescmng, 'accounts', {
       limit: 1,
-      lower_bound: account,
-      upper_bound: account,
+      lower_bound: Name.from(account),
+      upper_bound: Name.from(account),
     });
     if (rows && rows.length > 0) {
       return rows[0].balance;
@@ -118,8 +119,8 @@ class TableApi {
   public async getBlockbucketById(synchronizer: string, bucketId: number): Promise<any> {
     const rows = await this.exsatApi.getTableRows(ContractName.blksync, synchronizer, 'blockbuckets', {
       index_position: IndexPosition.Primary,
-      upper_bound: bucketId,
-      lower_bound: bucketId,
+      upper_bound: UInt64.from(bucketId),
+      lower_bound: UInt64.from(bucketId),
       key_type: KeyType.I64,
     });
     if (rows && rows.length > 0) {
@@ -157,8 +158,8 @@ class TableApi {
   public async getConsensusByBucketId(synchronizer: string, bucketId: number): Promise<any> {
     const rows = await this.exsatApi.getTableRows(ContractName.utxomng, ContractName.utxomng, 'consensusblk', {
       index_position: IndexPosition.Primary,
-      upper_bound: bucketId,
-      lower_bound: bucketId,
+      upper_bound: UInt64.from(bucketId),
+      lower_bound: UInt64.from(bucketId),
       key_type: KeyType.I64,
     });
     if (rows && rows.length > 0) {
@@ -176,8 +177,8 @@ class TableApi {
     const blockId = computeBlockId(height, hash);
     const rows = await this.exsatApi.getTableRows(ContractName.utxomng, ContractName.utxomng, 'consensusblk', {
       index_position: IndexPosition.Fifth,
-      upper_bound: blockId,
-      lower_bound: blockId,
+      upper_bound: Checksum256.from(blockId),
+      lower_bound: Checksum256.from(blockId),
       key_type: KeyType.Sha256,
     });
     if (rows && rows.length > 0) {
@@ -219,11 +220,11 @@ class TableApi {
    * Retrieves the validator acticed info.
    * @param validator
    */
-  public async getValidatorActivatedInfo(validator) {
+  public async getValidatorActivatedInfo(validator: string) {
     const rows = await this.exsatApi.getTableRows(ContractName.compete, ContractName.compete, 'activations', {
       limit: 1,
-      lower_bound: validator,
-      upper_bound: validator,
+      lower_bound: Name.from(validator),
+      upper_bound: Name.from(validator),
     });
     if (rows && rows.length > 0) {
       return rows[0];
