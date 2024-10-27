@@ -1,20 +1,31 @@
-import { Api, JsonRpc, RpcError } from 'eosjs';
-import { JsSignatureProvider } from 'eosjs/dist/eosjs-jssig';
 import fetch from 'node-fetch';
 import { TextDecoder, TextEncoder } from 'util';
+import {
+  API,
+  APIClient,
+  Chains,
+  Checksum160,
+  Checksum256,
+  Float128,
+  Float64,
+  Name,
+  Session,
+  UInt128,
+  UInt64,
+} from '@wharfkit/session';
 import { logger } from './logger';
 import process from 'process';
 import axios from 'axios';
 import moment from 'moment';
-import { TransactResult } from 'eosjs/dist/eosjs-api-interfaces';
 import { getAmountFromQuantity } from './common';
 import { Client, ClientType, ContractName } from './enumeration';
 import { Version } from './version';
+import { WalletPluginPrivateKey } from '@wharfkit/wallet-plugin-privatekey';
 
 class ExsatApi {
-  private api: Api;
-  private rpc: JsonRpc;
-  private signatureProvider: JsSignatureProvider;
+  private api: APIClient;
+  private session: Session;
+  private walletPlugin: WalletPluginPrivateKey;
   private nodes: string[];
   private currentNodeIndex: number;
   private accountName: string;
@@ -37,7 +48,7 @@ class ExsatApi {
     this.nodes = nodes;
     this.currentNodeIndex = 0;
     this.accountName = accountInfo.accountName;
-    this.signatureProvider = new JsSignatureProvider([accountInfo.privateKey]);
+    this.walletPlugin = new WalletPluginPrivateKey(accountInfo.privateKey);
   }
 
   /**
@@ -49,13 +60,20 @@ class ExsatApi {
       throw new Error('No valid exsat node available.');
     }
 
-    this.rpc = new JsonRpc(this.getCurrentNode(), { fetch });
-    this.api = new Api({
-      rpc: this.rpc,
-      signatureProvider: this.signatureProvider,
-      textDecoder: new TextDecoder(),
-      textEncoder: new TextEncoder(),
-    });
+    this.session = new Session(
+      {
+        chain: {
+          id: Chains.EOS.id,
+          url: this.getCurrentNode(),
+        },
+        actor: this.accountName,
+        permission: 'active',
+        walletPlugin: this.walletPlugin,
+      },
+      {
+        fetch,
+      }
+    );
 
     logger.info('ExsatApi initialized successfully.');
   }
@@ -98,13 +116,20 @@ class ExsatApi {
     const valid = await this.isValidNode(this.getCurrentNode());
 
     if (valid) {
-      this.rpc = new JsonRpc(this.getCurrentNode(), { fetch });
-      this.api = new Api({
-        rpc: this.rpc,
-        signatureProvider: this.signatureProvider,
-        textDecoder: new TextDecoder(),
-        textEncoder: new TextEncoder(),
-      });
+      this.session = new Session(
+        {
+          chain: {
+            id: Chains.EOS.id,
+            url: this.getCurrentNode(),
+          },
+          actor: this.accountName,
+          permission: 'active',
+          walletPlugin: this.walletPlugin,
+        },
+        {
+          fetch,
+        }
+      );
       logger.info(`Switched to node: ${this.getCurrentNode()}`);
       return true;
     }
@@ -165,9 +190,10 @@ class ExsatApi {
    * @param account - The account to execute the action on.
    * @param name - The name of the action to execute.
    * @param data - The data to send with the action.
+   * @param showLog
    * @returns The result of the transaction.
    */
-  public async executeAction(account: string, name: string, data: any) {
+  public async executeAction(account: string, name: string, data: any, showLog = true) {
     const authorization = [
       {
         actor: ContractName.res,
@@ -179,7 +205,7 @@ class ExsatApi {
       },
     ];
     try {
-      const result = await this.api.transact(
+      const result = await this.session.transact(
         {
           actions: [
             {
@@ -191,22 +217,17 @@ class ExsatApi {
           ],
         },
         {
-          blocksBehind: 3,
           expireSeconds: 30,
         }
       );
       // logger.info(`Execute actions: ${this.executeActions++}`);
       return result;
     } catch (e: any) {
-      if (e instanceof RpcError && e.json?.code === 401 && e.json?.message === 'UnAuthorized') {
-        logger.error(
-          `The account[${this.accountName}] permissions do not match this rpc node[${this.getCurrentNode()}].`
-        );
-        process.exit(1);
-      }
       let dataStr = JSON.stringify(data);
       dataStr = dataStr.length > 500 ? dataStr.substring(0, 500) + '...' : dataStr;
-      logger.info(`Transaction result, account: ${account}, name: ${name}, data: ${dataStr}`, e);
+      if (showLog) {
+        logger.info(`Transaction result, account: ${account}, name: ${name}, data: ${dataStr}`, e);
+      }
       throw e;
     }
   }
@@ -219,12 +240,12 @@ class ExsatApi {
     const clientType = type === ClientType.Synchronizer ? 'Synchronizer' : 'Validator';
     try {
       const version = await Version.getLocalVersion();
-      const result = (await this.executeAction(ContractName.rescmng, 'checkclient', {
+      const result = await this.executeAction(ContractName.rescmng, 'checkclient', {
         client: this.accountName,
         type,
         version,
-      })) as TransactResult;
-      const returnValueData = result?.processed?.action_traces[0]?.return_value_data;
+      });
+      const returnValueData = result.response.processed.action_traces[0].return_value_data;
       if (!returnValueData.has_auth) {
         logger.error(
           `The account[${this.accountName}] permissions do not match. Please check if the keystore file[${process.env.KEYSTORE_FILE}] has been imported correctly`
@@ -255,12 +276,12 @@ class ExsatApi {
     const clientType = type === ClientType.Synchronizer ? Client.Synchronizer : Client.Validator;
     try {
       const version = await Version.getLocalVersion();
-      const result = (await this.executeAction(ContractName.rescmng, 'checkclient', {
+      const result = await this.executeAction(ContractName.rescmng, 'checkclient', {
         client: this.accountName,
         type,
         version,
-      })) as TransactResult;
-      const returnValueData = result?.processed?.action_traces[0]?.return_value_data;
+      });
+      const returnValueData = result.response.processed.action_traces[0].return_value_data;
       if (!returnValueData.has_auth) {
         logger.error(
           `The account[${this.accountName}] permissions do not match. Please check if the keystore file[${process.env.KEYSTORE_FILE}] has been imported correctly`
@@ -298,10 +319,20 @@ class ExsatApi {
     table: string,
     options: {
       limit?: number;
-      lower_bound?: string | number;
-      upper_bound?: string | number;
-      index_position?: string;
-      key_type?: string;
+      lower_bound?: API.v1.TableIndexType;
+      upper_bound?: API.v1.TableIndexType;
+      index_position?:
+        | 'primary'
+        | 'secondary'
+        | 'tertiary'
+        | 'fourth'
+        | 'fifth'
+        | 'sixth'
+        | 'seventh'
+        | 'eighth'
+        | 'ninth'
+        | 'tenth';
+      key_type?: keyof API.v1.TableIndexTypes;
       reverse?: boolean;
       fetch_all?: boolean;
     } = {
@@ -310,17 +341,17 @@ class ExsatApi {
   ): Promise<T[]> {
     return this.retryWithExponentialBackoff(async () => {
       let rows: T[] = [];
-      let lower_bound = options.lower_bound || '';
+      let lower_bound = options.lower_bound;
       let more = true;
 
       do {
-        const result = await this.rpc.get_table_rows({
+        const result = await this.session.client.v1.chain.get_table_rows({
           json: true,
           code,
-          scope,
+          scope: String(scope),
           table,
           limit: options.limit || 10,
-          lower_bound,
+          lower_bound: lower_bound,
           upper_bound: options.upper_bound,
           index_position: options.index_position,
           key_type: options.key_type,
@@ -331,7 +362,7 @@ class ExsatApi {
         rows = rows.concat(result.rows as T[]);
         more = result.more;
         if (more && options.fetch_all) {
-          lower_bound = result.next_key;
+          lower_bound = result.next_key as API.v1.TableIndexType;
         } else {
           more = false;
         }

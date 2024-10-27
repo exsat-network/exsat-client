@@ -37,7 +37,7 @@ export class ValidatorCommander {
     await this.checkAccountRegistrationStatus();
     await this.checkValidatorRegistrationStatus();
     await this.checkRewardsAddress();
-    await this.checkCommission();
+    // await this.checkCommission();
     await this.checkDonateSetting();
     await this.checkBtcRpcNode();
 
@@ -60,10 +60,10 @@ export class ValidatorCommander {
       'BTC Balance Used for Gas Fee': btcBalance,
       'Reward Address': validator.memo ?? validator.reward_recipient,
       'Commission Ratio': `${validator.commission_rate / 100}%` ?? '0%',
-      'Donate Ratio': `${validator.donate_rate / 100}%` ?? '0%',
+      'Donation Ratio': `${validator.donate_rate / 100}%` ?? '0%',
       'BTC PRC Node': process.env.BTC_RPC_URL ?? '',
       'BTC Staked': validator.quantity,
-      'Eligible for Verification': parseFloat(validator.quantity) > 100 ? 'Yes' : 'No, requires min 100 BTC staked',
+      'Eligible for Verification': parseFloat(validator.quantity) >= 100 ? 'Yes' : 'No, requires min 100 BTC staked',
       'Account Registration Status': 'Registered',
       'Validator Registration Status': 'Registered',
       Email: this.exsatAccountInfo.email,
@@ -305,14 +305,14 @@ export class ValidatorCommander {
       } catch (e) {
         const errorMessage = getErrorMessage(e);
         // network error or timeout
-        if (errorMessage.includes('round has not started yet')) {
+        if (errorMessage.includes('Round has not started yet')) {
           const menu = [
             {
-              name: 'retry active',
+              name: 'Retry Activation',
               value: 'retry',
             },
             {
-              name: 'quit',
+              name: 'Quit',
               value: 'quit',
             },
           ];
@@ -321,7 +321,7 @@ export class ValidatorCommander {
             return false;
           }
         } else {
-          logger.error(errorMessage);
+          logger.error(errorMessage.replace('compete.xsat::activate: ', ''));
           return false;
         }
       }
@@ -330,9 +330,14 @@ export class ValidatorCommander {
 
   async activeValidator() {
     console.log(Font.importMessageCyan('Competing for a quota...'));
-    return await this.exsatApi.executeAction(ContractName.compete, 'activate', {
-      validator: this.exsatAccountInfo.accountName,
-    });
+    return await this.exsatApi.executeAction(
+      ContractName.compete,
+      'activate',
+      {
+        validator: this.exsatAccountInfo.accountName,
+      },
+      false
+    );
   }
 
   async getValidatedInfo(): Promise<any> {
