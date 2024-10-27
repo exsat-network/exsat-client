@@ -5,7 +5,7 @@ import { input, password, select, Separator, confirm } from '@inquirer/prompts';
 import { chargeBtcForResource, chargeForRegistry, checkUsernameWithBackend } from '@exsat/account-initializer';
 import process from 'node:process';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
-import { Client, ClientType } from '../utils/enumeration';
+import { Client, ClientType, ContractName } from '../utils/enumeration';
 import { logger } from '../utils/logger';
 import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
@@ -228,7 +228,7 @@ export class SynchronizerCommander {
       synchronizer: this.exsatAccountInfo.accountName,
       donate_rate: parseFloat(ratio) * 100,
     };
-    await this.exsatApi.executeAction('poolreg.xsat', 'setdonate', data);
+    await this.exsatApi.executeAction(ContractName.poolreg, 'setdonate', data);
     await this.updateSynchronizerInfo();
     logger.info(
       `${Font.fgCyan}${Font.bright}Set Donation Ratio: ${ratio}% successfully. ${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`
@@ -244,7 +244,7 @@ export class SynchronizerCommander {
       synchronizer: this.exsatAccountInfo.accountName,
       financial_account: account,
     };
-    await this.exsatApi.executeAction('poolreg.xsat', 'setfinacct', data);
+    await this.exsatApi.executeAction(ContractName.poolreg, 'setfinacct', data);
     await this.updateSynchronizerInfo();
     return true;
   }
@@ -258,7 +258,7 @@ export class SynchronizerCommander {
       receiver: this.exsatAccountInfo.accountName,
       num_slots: slots,
     };
-    await this.exsatApi.executeAction('poolreg.xsat', 'buyslot', data);
+    await this.exsatApi.executeAction(ContractName.poolreg, 'buyslot', data);
     await this.updateSynchronizerInfo();
     return true;
   }

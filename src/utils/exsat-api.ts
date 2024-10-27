@@ -1,26 +1,14 @@
 import fetch from 'node-fetch';
-import { TextDecoder, TextEncoder } from 'util';
-import {
-  API,
-  APIClient,
-  Chains,
-  Checksum160,
-  Checksum256,
-  Float128,
-  Float64,
-  Name,
-  Session,
-  UInt128,
-  UInt64,
-} from '@wharfkit/session';
+import { API, APIClient, Chains, Session } from '@wharfkit/session';
 import { logger } from './logger';
 import process from 'process';
 import axios from 'axios';
 import moment from 'moment';
 import { getAmountFromQuantity } from './common';
-import { Client, ClientType, ContractName } from './enumeration';
+import { Client, ClientType, ContractName, IndexPosition } from './enumeration';
 import { Version } from './version';
 import { WalletPluginPrivateKey } from '@wharfkit/wallet-plugin-privatekey';
+import { RES_PERMISSION } from './config';
 
 class ExsatApi {
   private api: APIClient;
@@ -32,6 +20,7 @@ class ExsatApi {
   private maxRetries: number = 3;
   private retryDelay: number = 1000;
   private executeActions: number = 0;
+  private chainId: string;
 
   /**
    * Constructor initializes the API with account information and node list.
@@ -59,11 +48,10 @@ class ExsatApi {
     if (!validNodeFound) {
       throw new Error('No valid exsat node available.');
     }
-
     this.session = new Session(
       {
         chain: {
-          id: Chains.EOS.id,
+          id: this.chainId,
           url: this.getCurrentNode(),
         },
         actor: this.accountName,
@@ -148,6 +136,7 @@ class ExsatApi {
         timeout: 3000,
       });
       if (response.status === 200 && response.data) {
+        this.chainId = response.data.chain_id;
         const diffMS: number =
           moment(response.data.head_block_time).diff(moment().valueOf()) + moment().utcOffset() * 60_000;
         return Math.abs(diffMS) <= 300_000;
@@ -194,10 +183,15 @@ class ExsatApi {
    * @returns The result of the transaction.
    */
   public async executeAction(account: string, name: string, data: any, showLog = true) {
+    const packageVersion = await Version.getLocalVersion();
+    let resPermission = packageVersion.startsWith('1.0') ? 'active' : 'res';
+    if (RES_PERMISSION) {
+      resPermission = RES_PERMISSION;
+    }
     const authorization = [
       {
         actor: ContractName.res,
-        permission: 'active',
+        permission: resPermission,
       },
       {
         actor: this.accountName,
@@ -322,16 +316,16 @@ class ExsatApi {
       lower_bound?: API.v1.TableIndexType;
       upper_bound?: API.v1.TableIndexType;
       index_position?:
-        | 'primary'
-        | 'secondary'
-        | 'tertiary'
-        | 'fourth'
-        | 'fifth'
-        | 'sixth'
-        | 'seventh'
-        | 'eighth'
-        | 'ninth'
-        | 'tenth';
+        | IndexPosition.Primary
+        | IndexPosition.Secondary
+        | IndexPosition.Tertiary
+        | IndexPosition.Fourth
+        | IndexPosition.Fifth
+        | IndexPosition.Sixth
+        | IndexPosition.Seventh
+        | IndexPosition.Eighth
+        | IndexPosition.Ninth
+        | IndexPosition.Tenth;
       key_type?: keyof API.v1.TableIndexTypes;
       reverse?: boolean;
       fetch_all?: boolean;
