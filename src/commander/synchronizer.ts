@@ -76,7 +76,7 @@ export class SynchronizerCommander {
       {
         name: 'Recharge Gas',
         value: 'recharge_btc',
-        description: 'Bridge BTC as GAS Fee',
+        description: 'Recharge Gas',
       },
       {
         name: synchronizer?.reward_recipient ? 'Change Reward Address' : 'Set Reward Address',

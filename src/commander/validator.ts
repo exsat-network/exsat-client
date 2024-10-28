@@ -80,7 +80,7 @@ export class ValidatorCommander {
       {
         name: 'Recharge Gas',
         value: 'recharge_btc',
-        description: 'Bridge BTC as GAS Fee',
+        description: 'Recharge Gas',
       },
       {
         name: 'Change Reward Address',
