@@ -6,6 +6,7 @@ reloadEnv();
 export const MAX_RETRIES = parseInt(process.env.MAX_RETRIES) || 3;
 export const RETRY_INTERVAL_MS = process.env.RETRY_INTERVAL_MS ? parseInt(process.env.RETRY_INTERVAL_MS) : 2000;
 export let EXSAT_RPC_URLS: string[] = process.env.EXSAT_RPC_URLS ? JSON.parse(process.env.EXSAT_RPC_URLS) : [];
+export const RES_PERMISSION: string = process.env.RES_PERMISSION;
 export const SET_SYNCHRONIZER_DONATE_RATIO = process.env.SET_SYNCHRONIZER_DONATE_RATIO || false;
 export const SET_VALIDATOR_DONATE_RATIO = process.env.SET_VALIDATOR_DONATE_RATIO || false;
 
@@ -17,7 +18,7 @@ export const BTC_RPC_URL: string = process.env.BTC_RPC_URL;
 export const BTC_RPC_USERNAME: string = process.env.BTC_RPC_USERNAME;
 export const BTC_RPC_PASSWORD: string = process.env.BTC_RPC_PASSWORD;
 
-export const HEARTBEAT_JOBS = '0 */5 * * * *';
+export const HEARTBEAT_JOBS = '0 */10 * * * *';
 
 //  Size of each upload chunk (256 KB). Be careful! Modifying this configuration may cause block uploading failure. It must not be less than 100 KB.
 export const CHUNK_SIZE = parseInt(process.env.CHUNK_SIZE) || 262144;
