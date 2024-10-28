@@ -181,7 +181,7 @@ export async function resetBtcRpcUrl() {
  */
 export async function chargeBtcGas() {
   console.log(
-    `${Font.bright}Please copy the following link and visit it in your browser to proceed with BTC gas recharge. \n${Font.fgCyan}Url: ${Font.reset}${Font.bright}${CHARGE_BTC_URL}${Font.reset}\n`
+    `\n${Font.bright}Please copy the link below and visit it in your browser to complete the BTC Gas recharge. \n${Font.fgCyan}Url: ${Font.reset}${Font.bright}${CHARGE_BTC_URL}${Font.reset}\n`
   );
   await input({ message: 'Press [Enter] to continue...' });
   clearLines(1);
