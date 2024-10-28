@@ -1,17 +1,16 @@
 import fetch from 'node-fetch';
-import { API, APIClient, Chains, Session } from '@wharfkit/session';
+import { API, Chains, Session } from '@wharfkit/session';
 import { logger } from './logger';
 import process from 'process';
 import axios from 'axios';
 import moment from 'moment';
-import { getAmountFromQuantity } from './common';
+import { getAmountFromQuantity, sleep } from './common';
 import { Client, ClientType, ContractName, IndexPosition } from './enumeration';
 import { Version } from './version';
 import { WalletPluginPrivateKey } from '@wharfkit/wallet-plugin-privatekey';
 import { RES_PERMISSION } from './config';
 
 class ExsatApi {
-  private api: APIClient;
   private session: Session;
   private walletPlugin: WalletPluginPrivateKey;
   private nodes: string[];
@@ -163,7 +162,7 @@ class ExsatApi {
 
       const delay = this.retryDelay * Math.pow(2, retryCount);
       logger.warn(`Operation failed, retrying in ${delay}ms...`);
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      await sleep(delay);
 
       const switchResult = await this.switchNode();
       if (!switchResult) {
