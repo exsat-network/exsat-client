@@ -231,12 +231,17 @@ export class SynchronizerCommander {
       synchronizer: this.exsatAccountInfo.accountName,
       donate_rate: parseFloat(ratio) * 100,
     };
-    await this.exsatApi.executeAction('poolreg.xsat', 'setdonate', data);
-    await this.updateSynchronizerInfo();
-    logger.info(
-      `${Font.fgCyan}${Font.bright}Set Donation Ratio: ${ratio}% successfully. ${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`
-    );
-    return true;
+    const res: any = await this.exsatApi.executeAction('poolreg.xsat', 'setdonate', data);
+    if (res && res.transaction_id) {
+      await this.updateSynchronizerInfo();
+      logger.info(
+        `${Font.fgCyan}${Font.bright}Set Donation Ratio: ${ratio}% successfully. ${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`
+      );
+      return true;
+    } else {
+      logger.error(`Synchronizer[${this.exsatAccountInfo.accountName}] Set Donation Ratio: ${ratio}% failed`);
+      return false;
+    }
   }
 
   /**
@@ -247,9 +252,14 @@ export class SynchronizerCommander {
       synchronizer: this.exsatAccountInfo.accountName,
       financial_account: account,
     };
-    await this.exsatApi.executeAction('poolreg.xsat', 'setfinacct', data);
-    await this.updateSynchronizerInfo();
-    return true;
+    const res: any = await this.exsatApi.executeAction('poolreg.xsat', 'setfinacct', data);
+    if (res && res.transaction_id) {
+      await this.updateSynchronizerInfo();
+      return true;
+    } else {
+      logger.error(`Synchronizer[${this.exsatAccountInfo.accountName}] Set reward address: ${account} failed`);
+      return false;
+    }
   }
 
   /**
@@ -261,9 +271,15 @@ export class SynchronizerCommander {
       receiver: this.exsatAccountInfo.accountName,
       num_slots: slots,
     };
-    await this.exsatApi.executeAction('poolreg.xsat', 'buyslot', data);
-    await this.updateSynchronizerInfo();
-    return true;
+
+    const res: any = await this.exsatApi.executeAction('poolreg.xsat', 'buyslot', data);
+    if (res && res.transaction_id) {
+      await this.updateSynchronizerInfo();
+      return true;
+    } else {
+      logger.error(`Synchronizer[${this.exsatAccountInfo.accountName}] Buy slots: ${slots} failed`);
+      return false;
+    }
   }
 
   /**

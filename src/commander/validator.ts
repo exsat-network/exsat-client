@@ -213,10 +213,16 @@ export class ValidatorCommander {
       financial_account: financialAccount,
       commission_rate: null,
     };
-    await this.exsatApi.executeAction(ContractName.endrmng, 'config', data);
-    logger.info(`Set reward address: ${financialAccount} successfully`);
-    await this.updateValidatorInfo();
-    return true;
+
+    const res: any = await this.exsatApi.executeAction(ContractName.endrmng, 'config', data);
+    if (res && res.transaction_id) {
+      logger.info(`Set reward address: ${financialAccount} successfully`);
+      await this.updateValidatorInfo();
+      return true;
+    } else {
+      logger.error(`Validator[${this.exsatAccountInfo.accountName}] Set reward address: ${financialAccount} failed`);
+      return false;
+    }
   }
 
   /**
@@ -243,10 +249,15 @@ export class ValidatorCommander {
       financial_account: null,
       commission_rate: parseFloat(commissionRatio) * 100,
     };
-    await this.exsatApi.executeAction(ContractName.endrmng, 'config', data);
-    await this.updateValidatorInfo();
-    logger.info(`${Font.fgCyan}${Font.bright}Set commission ratio: ${commissionRatio}% successfully.${Font.reset}\n`);
-    return true;
+    const res: any = await this.exsatApi.executeAction(ContractName.endrmng, 'config', data);
+    if (res && res.transaction_id) {
+      await this.updateValidatorInfo();
+      logger.info(`${Font.fgCyan}${Font.bright}Set commission ratio: ${commissionRatio}% successfully.${Font.reset}\n`);
+      return true;
+    } else {
+      logger.error(`Validator[${this.exsatAccountInfo.accountName}] Set commission ratio: ${commissionRatio} failed`);
+      return false;
+    }
   }
 
   /**
@@ -269,12 +280,17 @@ export class ValidatorCommander {
       validator: this.exsatAccountInfo.accountName,
       donate_rate: parseFloat(ratio) * 100,
     };
-    await this.exsatApi.executeAction(ContractName.endrmng, 'setdonate', data);
-    logger.info(
-      `${Font.fgCyan}${Font.bright}Set donation ratio: ${ratio}% successfully. ${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`
-    );
-    await this.updateValidatorInfo();
-    return true;
+    const res: any = await this.exsatApi.executeAction(ContractName.endrmng, 'setdonate', data);
+    if (res && res.transaction_id) {
+      logger.info(
+        `${Font.fgCyan}${Font.bright}Set donation ratio: ${ratio}% successfully. ${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`
+      );
+      await this.updateValidatorInfo();
+      return true;
+    } else {
+      logger.error(`Validator[${this.exsatAccountInfo.accountName}] Set donation ratio: ${ratio} failed`);
+      return false;
+    }
   }
 
   /**
@@ -302,10 +318,15 @@ export class ValidatorCommander {
     }
     do {
       try {
-        const res = await this.activeValidator();
-        console.log(Font.importMessageCyan('Congratulations on securing a quota and becoming a validator.'));
-        await input({ message: 'Press [Enter] to continue...' });
-        return true;
+        const res: any = await this.activeValidator();
+        if (res && res.transaction_id) {
+          console.log(Font.importMessageCyan('Congratulations on securing a quota and becoming a validator.'));
+          await input({ message: 'Press [Enter] to continue...' });
+          return true;
+        } else {
+          logger.error(`${this.exsatAccountInfo.accountName} Failed to activate validator.`);
+          process.exit(0);
+        }
       } catch (e) {
         const errorMessage = getErrorMessage(e);
         // network error or timeout
