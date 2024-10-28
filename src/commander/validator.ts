@@ -1,19 +1,25 @@
 import TableApi from '../utils/table-api';
 import ExsatApi from '../utils/exsat-api';
-import { checkExsatUrls, notAccountMenu, resetBtcRpcUrl, setBtcRpcUrl } from './common';
+import {
+  changeEmail,
+  chargeBtcGas,
+  checkExsatUrls,
+  exportPrivateKey,
+  notAccountMenu,
+  resetBtcRpcUrl,
+  setBtcRpcUrl,
+} from './common';
 import fs from 'node:fs';
 import process from 'node:process';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
 import { getErrorMessage, isValidUrl, reloadEnv, retry, showInfo, sleep } from '../utils/common';
 import { confirm, input, password, select, Separator } from '@inquirer/prompts';
-import { chargeBtcForResource, chargeForRegistry, checkUsernameWithBackend } from '@exsat/account-initializer';
+import { chargeForRegistry, checkUsernameWithBackend, updateEnvFile } from '@exsat/account-initializer';
 import { EXSAT_RPC_URLS, SET_VALIDATOR_DONATE_RATIO } from '../utils/config';
 import { logger } from '../utils/logger';
 import { inputWithCancel } from '../utils/input';
-import { updateEnvFile } from '@exsat/account-initializer/dist/utils';
 import { Client, ClientType, ContractName } from '../utils/enumeration';
 import { Font } from '../utils/font';
-import { changeEmail } from '@exsat/account-initializer/dist/accountInitializer';
 
 export class ValidatorCommander {
   private exsatAccountInfo: any;
@@ -72,7 +78,7 @@ export class ValidatorCommander {
 
     let menus = [
       {
-        name: 'Bridge BTC as GAS Fee',
+        name: 'Recharge Gas',
         value: 'recharge_btc',
         description: 'Bridge BTC as GAS Fee',
       },
@@ -127,20 +133,18 @@ export class ValidatorCommander {
     }
 
     const actions: { [key: string]: () => Promise<any> } = {
-      recharge_btc: async () => await chargeBtcForResource(process.env.VALIDATOR_KEYSTORE_FILE),
+      recharge_btc: async () => {
+        return await chargeBtcGas();
+      },
       set_reward_address: async () => await this.setRewardAddress(),
       set_commission_ratio: async () => await this.setCommissionRatio(),
       set_donation_ratio: async () => await this.setDonationRatio(),
       reset_btc_rpc: async () => await resetBtcRpcUrl(),
       export_private_key: async () => {
-        console.log(`Private Key: ${this.exsatAccountInfo.privateKey}`);
-        await input({ message: 'Press [enter] to continue' });
+        return await exportPrivateKey(this.exsatAccountInfo.privateKey);
       },
       change_email: async () => {
-        console.log();
-        await changeEmail(accountName, this.exsatAccountInfo.email);
-        console.log();
-        await input({ message: 'Press [enter] to continue' });
+        return await changeEmail(accountName, this.exsatAccountInfo.email);
       },
       activate_validator: async () => {
         const res = await this.toActivateValidator();
@@ -281,12 +285,12 @@ export class ValidatorCommander {
     const activateValidatorQuotas: any = await this.tableApi.getActivateValidatorQuotas();
     if (!activateValidatorQuotas || activateValidatorQuotas.total_quotas == 0) {
       console.log(Font.importMessageCyan("The competition hasn't started yet. Please wait."));
-      await input({ message: 'Press [enter] to continue' });
+      await input({ message: 'Press [Enter] to continue...' });
       return false;
     }
     if (activateValidatorQuotas.total_quotas <= activateValidatorQuotas.total_activations) {
       console.log(Font.importMessageCyan('The number of quotas has been used up. Please wait for the next round.'));
-      await input({ message: 'Press [enter] to continue' });
+      await input({ message: 'Press [Enter] to continue...' });
       return false;
     }
     if (
@@ -300,7 +304,7 @@ export class ValidatorCommander {
       try {
         const res = await this.activeValidator();
         console.log(Font.importMessageCyan('Congratulations on securing a quota and becoming a validator.'));
-        await input({ message: 'Press [enter] to continue' });
+        await input({ message: 'Press [Enter] to continue...' });
         return true;
       } catch (e) {
         const errorMessage = getErrorMessage(e);

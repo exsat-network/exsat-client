@@ -1,8 +1,7 @@
-import { Version } from '../utils/version';
 import { isValidUrl, reloadEnv, retry, showInfo, sleep } from '../utils/common';
 import { EXSAT_RPC_URLS, SET_SYNCHRONIZER_DONATE_RATIO } from '../utils/config';
-import { input, password, select, Separator, confirm } from '@inquirer/prompts';
-import { chargeBtcForResource, chargeForRegistry, checkUsernameWithBackend } from '@exsat/account-initializer';
+import { password, select, Separator } from '@inquirer/prompts';
+import { chargeForRegistry, checkUsernameWithBackend, updateEnvFile } from '@exsat/account-initializer';
 import process from 'node:process';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
 import { Client, ClientType } from '../utils/enumeration';
@@ -11,10 +10,16 @@ import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
 import fs from 'node:fs';
 import { inputWithCancel } from '../utils/input';
-import { updateEnvFile } from '@exsat/account-initializer/dist/utils';
-import { checkExsatUrls, notAccountMenu, resetBtcRpcUrl, setBtcRpcUrl, updateMenu } from './common';
+import {
+  changeEmail,
+  chargeBtcGas,
+  checkExsatUrls,
+  exportPrivateKey,
+  notAccountMenu,
+  resetBtcRpcUrl,
+  setBtcRpcUrl,
+} from './common';
 import { Font } from '../utils/font';
-import { changeEmail } from '@exsat/account-initializer/dist/accountInitializer';
 
 export class SynchronizerCommander {
   private exsatAccountInfo: any;
@@ -69,7 +74,7 @@ export class SynchronizerCommander {
 
     const menus = [
       {
-        name: 'Bridge BTC as GAS Fee',
+        name: 'Recharge Gas',
         value: 'recharge_btc',
         description: 'Bridge BTC as GAS Fee',
       },
@@ -116,21 +121,19 @@ export class SynchronizerCommander {
     ];
 
     const actions: { [key: string]: () => Promise<any> } = {
-      recharge_btc: async () => await chargeBtcForResource(process.env.SYNCHRONIZER_KEYSTORE_FILE),
+      recharge_btc: async () => {
+        return await chargeBtcGas();
+      },
       set_reward_address: async () => await this.setRewardAddress(),
       set_donation_ratio: async () => await this.setDonationRatio(),
       purchase_memory_slot: async () => await this.purchaseSlots(),
       reset_btc_rpc: async () => await resetBtcRpcUrl(),
       export_private_key: async () => {
-        console.log(`Private Key: ${this.exsatAccountInfo.privateKey}`);
-        await input({ message: 'Press [enter] to continue' });
+        return await exportPrivateKey(this.exsatAccountInfo.privateKey);
       },
       remove_account: async () => await this.removeKeystore(),
       change_email: async () => {
-        console.log();
-        await changeEmail(accountName, this.exsatAccountInfo.email);
-        console.log();
-        await input({ message: 'Press [enter] to continue' });
+        return await changeEmail(accountName, this.exsatAccountInfo.email);
       },
       quit: async () => process.exit(),
     };
