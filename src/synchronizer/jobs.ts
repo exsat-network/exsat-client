@@ -50,6 +50,7 @@ export class SynchronizerJobs {
       for (const [chunkId, chunkData] of chunkMap) {
         await this.blockOperations.pushchunk(caller, uploadHeight, hash, chunkId, chunkData);
       }
+      await sleep();
     } catch (e) {
       const errorMessage = getErrorMessage(e);
       if (errorMessage.includes('duplicate transaction')) {
@@ -178,6 +179,7 @@ export class SynchronizerJobs {
               }
             }
           }
+          await sleep();
           return;
         }
         const synchronizerInfo = await this.state.tableApi!.getSynchronizerInfo(this.state.accountName);
