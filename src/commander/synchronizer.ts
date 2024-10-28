@@ -4,7 +4,7 @@ import { password, select, Separator } from '@inquirer/prompts';
 import { chargeForRegistry, checkUsernameWithBackend, updateEnvFile } from '@exsat/account-initializer';
 import process from 'node:process';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
-import { Client, ClientType } from '../utils/enumeration';
+import { Client, ClientType, ContractName } from '../utils/enumeration';
 import { logger } from '../utils/logger';
 import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
@@ -231,7 +231,7 @@ export class SynchronizerCommander {
       synchronizer: this.exsatAccountInfo.accountName,
       donate_rate: parseFloat(ratio) * 100,
     };
-    const res: any = await this.exsatApi.executeAction('poolreg.xsat', 'setdonate', data);
+    const res: any = await this.exsatApi.executeAction(ContractName.poolreg, 'setdonate', data);
     if (res && res.transaction_id) {
       await this.updateSynchronizerInfo();
       logger.info(
@@ -252,7 +252,7 @@ export class SynchronizerCommander {
       synchronizer: this.exsatAccountInfo.accountName,
       financial_account: account,
     };
-    const res: any = await this.exsatApi.executeAction('poolreg.xsat', 'setfinacct', data);
+    const res: any = await this.exsatApi.executeAction(ContractName.poolreg, 'setfinacct', data);
     if (res && res.transaction_id) {
       await this.updateSynchronizerInfo();
       return true;
@@ -272,7 +272,7 @@ export class SynchronizerCommander {
       num_slots: slots,
     };
 
-    const res: any = await this.exsatApi.executeAction('poolreg.xsat', 'buyslot', data);
+    const res: any = await this.exsatApi.executeAction(ContractName.poolreg, 'buyslot', data);
     if (res && res.transaction_id) {
       await this.updateSynchronizerInfo();
       return true;

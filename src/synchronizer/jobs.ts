@@ -50,6 +50,7 @@ export class SynchronizerJobs {
       for (const [chunkId, chunkData] of chunkMap) {
         await this.blockOperations.pushchunk(caller, uploadHeight, hash, chunkId, chunkData);
       }
+      await sleep();
     } catch (e) {
       const errorMessage = getErrorMessage(e);
       if (errorMessage.includes('duplicate transaction')) {
@@ -178,6 +179,7 @@ export class SynchronizerJobs {
               }
             }
           }
+          await sleep();
           return;
         }
         const synchronizerInfo = await this.state.tableApi!.getSynchronizerInfo(this.state.accountName);
@@ -354,17 +356,17 @@ export class SynchronizerJobs {
                 processRows = PROCESS_ROWS;
                 resetRows = true;
               }
-              const parseResult: any = await this.state.exsatApi!.executeAction(ContractName.utxomng, 'processblock', {
+              const result: any = await this.state.exsatApi!.executeAction(ContractName.utxomng, 'processblock', {
                 synchronizer: this.state.accountName,
                 process_rows: processRows,
                 nonce: Date.now(),
               });
-              if (parseResult) {
+              if (result) {
                 logger.info(
-                  `Parse block success, parsing_height: ${chainstate!.parsing_height}, status: ${chainstate!.status}, processRows: ${processRows}, transaction_id: ${parseResult.transaction_id}`
+                  `Parse block success, parsing_height: ${chainstate!.parsing_height}, status: ${chainstate!.status}, processRows: ${processRows}, transaction_id: ${result.transaction_id}`
                 );
-                const returnValueDate = parseResult.processed?.action_traces[0]?.return_value_data;
-                if (returnValueDate.status === 'parsing_completed') {
+                const returnValueData = result.processed.action_traces[0].return_value_data;
+                if (returnValueData.status === 'parsing_completed') {
                   break;
                 }
                 await sleep(300);
