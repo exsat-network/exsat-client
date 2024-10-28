@@ -356,16 +356,16 @@ export class SynchronizerJobs {
                 processRows = PROCESS_ROWS;
                 resetRows = true;
               }
-              const parseResult: any = await this.state.exsatApi!.executeAction(ContractName.utxomng, 'processblock', {
+              const result: any = await this.state.exsatApi!.executeAction(ContractName.utxomng, 'processblock', {
                 synchronizer: this.state.accountName,
                 process_rows: processRows,
                 nonce: Date.now(),
               });
-              if (parseResult) {
+              if (result) {
                 logger.info(
-                  `Parse block success, parsing_height: ${chainstate!.parsing_height}, status: ${chainstate!.status}, processRows: ${processRows}, transaction_id: ${parseResult.transaction_id}`
+                  `Parse block success, parsing_height: ${chainstate!.parsing_height}, status: ${chainstate!.status}, processRows: ${processRows}, transaction_id: ${result.transaction_id}`
                 );
-                const returnValueData = parseResult.processed.action_traces[0].return_value_data;
+                const returnValueData = result.processed.action_traces[0].return_value_data;
                 if (returnValueData.status === 'parsing_completed') {
                   break;
                 }
