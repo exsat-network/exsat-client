@@ -5,7 +5,7 @@ import { BlockStatus, Client, ClientType, ContractName, ErrorCode } from '../uti
 import { errorTotalCounter, warnTotalCounter } from '../utils/prom';
 import { BlockOperations } from './blockOperations';
 import { SynchronizerState } from './index';
-import { CHUNK_SIZE, PROCESS_ROWS } from '../utils/config';
+import { CHUNK_SIZE, PARSING_PROCESS_ROWS, PROCESS_ROWS } from '../utils/config';
 import moment from 'moment';
 
 export class SynchronizerJobs {
@@ -352,8 +352,8 @@ export class SynchronizerJobs {
           while (true) {
             try {
               chainstate = await this.state.tableApi!.getChainstate();
-              if (chainstate!.status === 5 && processRows < PROCESS_ROWS && !resetRows) {
-                processRows = PROCESS_ROWS;
+              if (chainstate!.status === 5 && processRows < PARSING_PROCESS_ROWS && !resetRows) {
+                processRows = PARSING_PROCESS_ROWS;
                 resetRows = true;
               }
               const result: any = await this.state.exsatApi!.executeAction(ContractName.utxomng, 'processblock', {

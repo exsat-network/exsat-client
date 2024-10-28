@@ -22,7 +22,8 @@ export const HEARTBEAT_JOBS = '0 */10 * * * *';
 
 //  Size of each upload chunk (256 KB). Be careful! Modifying this configuration may cause block uploading failure. It must not be less than 100 KB.
 export const CHUNK_SIZE = parseInt(process.env.CHUNK_SIZE) || 262144;
-export const PROCESS_ROWS = parseInt(process.env.PROCESS_ROWS) || 2000;
+export const PROCESS_ROWS = parseInt(process.env.PROCESS_ROWS) || 1000;
+export const PARSING_PROCESS_ROWS = parseInt(process.env.PARSING_PROCESS_ROWS) || 2000;
 export const SYNCHRONIZER_JOBS_BLOCK_UPLOAD: string = process.env.SYNCHRONIZER_JOBS_BLOCK_UPLOAD || '*/1 * * * * *';
 export const SYNCHRONIZER_JOBS_BLOCK_VERIFY: string = process.env.SYNCHRONIZER_JOBS_BLOCK_VERIFY || '*/1 * * * * *';
 export const SYNCHRONIZER_JOBS_BLOCK_PARSE: string = process.env.SYNCHRONIZER_JOBS_BLOCK_PARSE || '*/5 * * * * *';
