@@ -365,7 +365,7 @@ export class SynchronizerJobs {
                 logger.info(
                   `Parse block success, parsing_height: ${chainstate!.parsing_height}, status: ${chainstate!.status}, processRows: ${processRows}, transaction_id: ${parseResult.transaction_id}`
                 );
-                const returnValueData = parseResult.response.processed.action_traces[0].return_value_data;
+                const returnValueData = parseResult.processed.action_traces[0].return_value_data;
                 if (returnValueData.status === 'parsing_completed') {
                   break;
                 }

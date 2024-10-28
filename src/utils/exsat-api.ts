@@ -214,7 +214,7 @@ class ExsatApi {
         }
       );
       // logger.info(`Execute actions: ${this.executeActions++}`);
-      return result;
+      return result.response;
     } catch (e: any) {
       let dataStr = JSON.stringify(data);
       dataStr = dataStr.length > 500 ? dataStr.substring(0, 500) + '...' : dataStr;
@@ -238,7 +238,7 @@ class ExsatApi {
         type,
         version,
       });
-      const returnValueData = result.response.processed.action_traces[0].return_value_data;
+      const returnValueData = result.processed.action_traces[0].return_value_data;
       if (!returnValueData.has_auth) {
         logger.error(
           `The account[${this.accountName}] permissions do not match. Please check if the keystore file[${process.env.KEYSTORE_FILE}] has been imported correctly`
@@ -274,7 +274,7 @@ class ExsatApi {
         type,
         version,
       });
-      const returnValueData = result.response.processed.action_traces[0].return_value_data;
+      const returnValueData = result.processed.action_traces[0].return_value_data;
       if (!returnValueData.has_auth) {
         logger.error(
           `The account[${this.accountName}] permissions do not match. Please check if the keystore file[${process.env.KEYSTORE_FILE}] has been imported correctly`

@@ -85,7 +85,7 @@ export class BlockOperations {
         logger.info(
           `[${caller}] verify success, height: ${height}, hash: ${hash}, transaction_id: ${result.transaction_id}`
         );
-        const returnValueData = result.response.processed.action_traces[0].return_value_data;
+        const returnValueData = result.processed.action_traces[0].return_value_data;
         if (returnValueData.status === 'verify_pass') {
           logger.info(`[${caller}] Block verify pass, height: ${height}, hash: ${hash}`);
           syncLatestBlockGauge.set({ account: this.accountName, client: Client.Synchronizer }, height);
