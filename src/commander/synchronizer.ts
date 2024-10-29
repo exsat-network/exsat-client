@@ -1,20 +1,25 @@
-import { Version } from '../utils/version';
 import { isValidUrl, reloadEnv, retry, showInfo, sleep } from '../utils/common';
 import { EXSAT_RPC_URLS, SET_SYNCHRONIZER_DONATE_RATIO } from '../utils/config';
-import { input, password, select, Separator, confirm } from '@inquirer/prompts';
-import { chargeBtcForResource, chargeForRegistry, checkUsernameWithBackend } from '@exsat/account-initializer';
+import { password, select, Separator } from '@inquirer/prompts';
+import { chargeForRegistry, checkUsernameWithBackend, updateEnvFile } from '@exsat/account-initializer';
 import process from 'node:process';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
-import { Client, ClientType } from '../utils/enumeration';
+import { Client, ClientType, ContractName } from '../utils/enumeration';
 import { logger } from '../utils/logger';
 import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
 import fs from 'node:fs';
 import { inputWithCancel } from '../utils/input';
-import { updateEnvFile } from '@exsat/account-initializer/dist/utils';
-import { checkExsatUrls, notAccountMenu, resetBtcRpcUrl, setBtcRpcUrl, updateMenu } from './common';
+import {
+  changeEmail,
+  chargeBtcGas,
+  checkExsatUrls,
+  exportPrivateKey,
+  notAccountMenu,
+  resetBtcRpcUrl,
+  setBtcRpcUrl,
+} from './common';
 import { Font } from '../utils/font';
-import { changeEmail } from '@exsat/account-initializer/dist/accountInitializer';
 
 export class SynchronizerCommander {
   private exsatAccountInfo: any;
@@ -58,7 +63,7 @@ export class SynchronizerCommander {
       'Public Key': this.exsatAccountInfo.publicKey,
       'BTC Balance Used for Gas Fee': btcBalance,
       'Reward Address': synchronizer.memo ?? synchronizer.reward_recipient,
-      'Donate Ratio': `${synchronizer.donate_rate / 100}%` ?? '0%',
+      'Donation Ratio': `${synchronizer.donate_rate / 100}%` ?? '0%',
       'BTC PRC Node': process.env.BTC_RPC_URL ?? '',
       'Account Registration Status': 'Registered',
       'Synchronizer Registration Status': 'Registered',
@@ -69,9 +74,9 @@ export class SynchronizerCommander {
 
     const menus = [
       {
-        name: 'Bridge BTC as GAS Fee',
+        name: 'Recharge Gas',
         value: 'recharge_btc',
-        description: 'Bridge BTC as GAS Fee',
+        description: 'Recharge Gas',
       },
       {
         name: synchronizer?.reward_recipient ? 'Change Reward Address' : 'Set Reward Address',
@@ -116,21 +121,19 @@ export class SynchronizerCommander {
     ];
 
     const actions: { [key: string]: () => Promise<any> } = {
-      recharge_btc: async () => await chargeBtcForResource(process.env.SYNCHRONIZER_KEYSTORE_FILE),
+      recharge_btc: async () => {
+        return await chargeBtcGas();
+      },
       set_reward_address: async () => await this.setRewardAddress(),
       set_donation_ratio: async () => await this.setDonationRatio(),
       purchase_memory_slot: async () => await this.purchaseSlots(),
       reset_btc_rpc: async () => await resetBtcRpcUrl(),
       export_private_key: async () => {
-        console.log(`Private Key: ${this.exsatAccountInfo.privateKey}`);
-        await input({ message: 'Press [enter] to continue' });
+        return await exportPrivateKey(this.exsatAccountInfo.privateKey);
       },
       remove_account: async () => await this.removeKeystore(),
       change_email: async () => {
-        console.log();
-        await changeEmail(accountName, this.exsatAccountInfo.email);
-        console.log();
-        await input({ message: 'Press [enter] to continue' });
+        return await changeEmail(accountName, this.exsatAccountInfo.email);
       },
       quit: async () => process.exit(),
     };
@@ -228,12 +231,17 @@ export class SynchronizerCommander {
       synchronizer: this.exsatAccountInfo.accountName,
       donate_rate: parseFloat(ratio) * 100,
     };
-    await this.exsatApi.executeAction('poolreg.xsat', 'setdonate', data);
-    await this.updateSynchronizerInfo();
-    logger.info(
-      `${Font.fgCyan}${Font.bright}Set Donation Ratio: ${ratio}% successfully. ${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`
-    );
-    return true;
+    const res: any = await this.exsatApi.executeAction(ContractName.poolreg, 'setdonate', data);
+    if (res && res.transaction_id) {
+      await this.updateSynchronizerInfo();
+      logger.info(
+        `${Font.fgCyan}${Font.bright}Set Donation Ratio: ${ratio}% successfully. ${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`
+      );
+      return true;
+    } else {
+      logger.error(`Synchronizer[${this.exsatAccountInfo.accountName}] Set Donation Ratio: ${ratio}% failed`);
+      return false;
+    }
   }
 
   /**
@@ -244,9 +252,14 @@ export class SynchronizerCommander {
       synchronizer: this.exsatAccountInfo.accountName,
       financial_account: account,
     };
-    await this.exsatApi.executeAction('poolreg.xsat', 'setfinacct', data);
-    await this.updateSynchronizerInfo();
-    return true;
+    const res: any = await this.exsatApi.executeAction(ContractName.poolreg, 'setfinacct', data);
+    if (res && res.transaction_id) {
+      await this.updateSynchronizerInfo();
+      return true;
+    } else {
+      logger.error(`Synchronizer[${this.exsatAccountInfo.accountName}] Set reward address: ${account} failed`);
+      return false;
+    }
   }
 
   /**
@@ -258,9 +271,15 @@ export class SynchronizerCommander {
       receiver: this.exsatAccountInfo.accountName,
       num_slots: slots,
     };
-    await this.exsatApi.executeAction('poolreg.xsat', 'buyslot', data);
-    await this.updateSynchronizerInfo();
-    return true;
+
+    const res: any = await this.exsatApi.executeAction(ContractName.poolreg, 'buyslot', data);
+    if (res && res.transaction_id) {
+      await this.updateSynchronizerInfo();
+      return true;
+    } else {
+      logger.error(`Synchronizer[${this.exsatAccountInfo.accountName}] Buy slots: ${slots} failed`);
+      return false;
+    }
   }
 
   /**

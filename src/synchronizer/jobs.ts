@@ -5,7 +5,7 @@ import { BlockStatus, Client, ClientType, ContractName, ErrorCode } from '../uti
 import { errorTotalCounter, warnTotalCounter } from '../utils/prom';
 import { BlockOperations } from './blockOperations';
 import { SynchronizerState } from './index';
-import { CHUNK_SIZE, PROCESS_ROWS } from '../utils/config';
+import { CHUNK_SIZE, PARSING_PROCESS_ROWS, PROCESS_ROWS } from '../utils/config';
 import moment from 'moment';
 
 export class SynchronizerJobs {
@@ -50,6 +50,7 @@ export class SynchronizerJobs {
       for (const [chunkId, chunkData] of chunkMap) {
         await this.blockOperations.pushchunk(caller, uploadHeight, hash, chunkId, chunkData);
       }
+      await sleep();
     } catch (e) {
       const errorMessage = getErrorMessage(e);
       if (errorMessage.includes('duplicate transaction')) {
@@ -57,7 +58,7 @@ export class SynchronizerJobs {
         await sleep();
       } else if (errorMessage.startsWith(ErrorCode.Code2005) || errorMessage.startsWith(ErrorCode.Code2009)) {
         logger.info(`The block has reached consensus, height: ${uploadHeight}, hash: ${hash}`);
-      } else if (errorMessage.startsWith(ErrorCode.Code2006) || errorMessage.startsWith(ErrorCode.Code2012)) {
+      } else if (errorMessage.startsWith(ErrorCode.Code2006)) {
         logger.warn(errorMessage);
         warnTotalCounter.inc({
           account: this.state.accountName,
@@ -65,6 +66,7 @@ export class SynchronizerJobs {
         });
       } else if (
         errorMessage.startsWith(ErrorCode.Code2008) ||
+        errorMessage.startsWith(ErrorCode.Code2012) ||
         errorMessage.startsWith(ErrorCode.Code2013) ||
         errorMessage.startsWith(ErrorCode.Code2019)
       ) {
@@ -169,6 +171,12 @@ export class SynchronizerJobs {
               const errorMessage = getErrorMessage(e);
               if (errorMessage.includes('duplicate transaction')) {
                 await sleep();
+              } else if (
+                errorMessage.startsWith(ErrorCode.Code2009) ||
+                errorMessage.startsWith(ErrorCode.Code2012) ||
+                errorMessage.startsWith(ErrorCode.Code2013)
+              ) {
+                //Ignore
               } else {
                 logger.error('pushchunk: Error in upload task:', e);
                 errorTotalCounter.inc({
@@ -178,6 +186,7 @@ export class SynchronizerJobs {
               }
             }
           }
+          await sleep();
           return;
         }
         const synchronizerInfo = await this.state.tableApi!.getSynchronizerInfo(this.state.accountName);
@@ -217,6 +226,8 @@ export class SynchronizerJobs {
       if (errorMessage.includes('duplicate transaction')) {
         //Ignore duplicate transaction
         await sleep();
+      } else if (errorMessage.startsWith(ErrorCode.Code2012) || errorMessage.startsWith(ErrorCode.Code2013)) {
+        //Ignore
       } else {
         logger.error('Error in upload task:', e);
         errorTotalCounter.inc({
@@ -350,21 +361,21 @@ export class SynchronizerJobs {
           while (true) {
             try {
               chainstate = await this.state.tableApi!.getChainstate();
-              if (chainstate!.status === 5 && processRows < PROCESS_ROWS && !resetRows) {
-                processRows = PROCESS_ROWS;
+              if (chainstate!.status === 5 && processRows < PARSING_PROCESS_ROWS && !resetRows) {
+                processRows = PARSING_PROCESS_ROWS;
                 resetRows = true;
               }
-              const parseResult: any = await this.state.exsatApi!.executeAction(ContractName.utxomng, 'processblock', {
+              const result: any = await this.state.exsatApi!.executeAction(ContractName.utxomng, 'processblock', {
                 synchronizer: this.state.accountName,
                 process_rows: processRows,
                 nonce: Date.now(),
               });
-              if (parseResult) {
+              if (result) {
                 logger.info(
-                  `Parse block success, parsing_height: ${chainstate!.parsing_height}, status: ${chainstate!.status}, processRows: ${processRows}, transaction_id: ${parseResult.transaction_id}`
+                  `Parse block success, parsing_height: ${chainstate!.parsing_height}, status: ${chainstate!.status}, processRows: ${processRows}, transaction_id: ${result.transaction_id}`
                 );
-                const returnValueDate = parseResult.processed?.action_traces[0]?.return_value_data;
-                if (returnValueDate.status === 'parsing_completed') {
+                const returnValueData = result.processed.action_traces[0].return_value_data;
+                if (returnValueData.status === 'parsing_completed') {
                   break;
                 }
                 await sleep(300);
