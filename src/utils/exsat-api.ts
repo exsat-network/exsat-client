@@ -106,7 +106,7 @@ class ExsatApi {
       this.session = new Session(
         {
           chain: {
-            id: Chains.EOS.id,
+            id: this.chainId,
             url: this.getCurrentNode(),
           },
           actor: this.accountName,
