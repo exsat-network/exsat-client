@@ -58,7 +58,7 @@ export class SynchronizerJobs {
         await sleep();
       } else if (errorMessage.startsWith(ErrorCode.Code2005) || errorMessage.startsWith(ErrorCode.Code2009)) {
         logger.info(`The block has reached consensus, height: ${uploadHeight}, hash: ${hash}`);
-      } else if (errorMessage.startsWith(ErrorCode.Code2006) || errorMessage.startsWith(ErrorCode.Code2012)) {
+      } else if (errorMessage.startsWith(ErrorCode.Code2006)) {
         logger.warn(errorMessage);
         warnTotalCounter.inc({
           account: this.state.accountName,
@@ -66,6 +66,7 @@ export class SynchronizerJobs {
         });
       } else if (
         errorMessage.startsWith(ErrorCode.Code2008) ||
+        errorMessage.startsWith(ErrorCode.Code2012) ||
         errorMessage.startsWith(ErrorCode.Code2013) ||
         errorMessage.startsWith(ErrorCode.Code2019)
       ) {
@@ -170,6 +171,12 @@ export class SynchronizerJobs {
               const errorMessage = getErrorMessage(e);
               if (errorMessage.includes('duplicate transaction')) {
                 await sleep();
+              } else if (
+                errorMessage.startsWith(ErrorCode.Code2009) ||
+                errorMessage.startsWith(ErrorCode.Code2012) ||
+                errorMessage.startsWith(ErrorCode.Code2013)
+              ) {
+                //Ignore
               } else {
                 logger.error('pushchunk: Error in upload task:', e);
                 errorTotalCounter.inc({
@@ -219,6 +226,8 @@ export class SynchronizerJobs {
       if (errorMessage.includes('duplicate transaction')) {
         //Ignore duplicate transaction
         await sleep();
+      } else if (errorMessage.startsWith(ErrorCode.Code2012) || errorMessage.startsWith(ErrorCode.Code2013)) {
+        //Ignore
       } else {
         logger.error('Error in upload task:', e);
         errorTotalCounter.inc({
