@@ -1,13 +1,19 @@
-import { input, select, Separator, confirm } from '@inquirer/prompts';
-import { importFromMnemonic, importFromPrivateKey, initializeAccount } from '@exsat/account-initializer';
+import { confirm, input, select, Separator } from '@inquirer/prompts';
+import {
+  clearLines,
+  importFromMnemonic,
+  importFromPrivateKey,
+  initializeAccount,
+  updateEnvFile,
+  changeEmail as changeAccountEmail,
+} from '@exsat/account-initializer';
 import process from 'node:process';
 import { Font } from '../utils/font';
-import { EXSAT_RPC_URLS } from '../utils/config';
-import { getRpcUrls, isExsatDocker, isValidUrl } from '../utils/common';
+import { CHARGE_BTC_URL, EXSAT_RPC_URLS } from '../utils/config';
+import { getRpcUrls, isValidUrl } from '../utils/common';
 import { Client } from '../utils/enumeration';
 import { logger } from '../utils/logger';
 import { inputWithCancel } from '../utils/input';
-import { updateEnvFile } from '@exsat/account-initializer/dist/utils';
 
 export async function notAccountMenu(role) {
   const menus = [
@@ -88,7 +94,8 @@ export async function updateMenu(versions, isDocker, role) {
         );
         console.log(`${Font.bright}git fetch --tags && git checkout -f ${versions.latest} ${Font.reset}\n`);
       }
-      await input({ message: 'Press Enter to Continue...' });
+      await input({ message: 'Press [Enter] to continue...' });
+      clearLines(1);
       process.exit(0);
       break;
     default:
@@ -105,6 +112,7 @@ export async function checkExsatUrls() {
     }
   }
 }
+
 /**
  * Sets the BTC RPC URL, username, and password.
  */
@@ -142,6 +150,7 @@ export async function setBtcRpcUrl() {
   }
 
   updateEnvFile(values);
+
   process.env.BTC_RPC_URL = btcRpcUrl;
   process.env.BTC_RPC_USERNAME = values['BTC_RPC_USERNAME'];
   process.env.BTC_RPC_PASSWORD = values['BTC_RPC_PASSWORD'];
@@ -165,4 +174,43 @@ export async function resetBtcRpcUrl() {
     }
   }
   return await setBtcRpcUrl();
+}
+
+/**
+ * Recharges the BTC gas.
+ */
+export async function chargeBtcGas() {
+  console.log(
+    `\n${Font.bright}Please copy the link below and visit it in your browser to complete the BTC Gas recharge. \n${Font.fgCyan}Url: ${Font.reset}${Font.bright}${CHARGE_BTC_URL}${Font.reset}\n`
+  );
+  await input({ message: 'Press [Enter] to continue...' });
+  clearLines(1);
+  // deprecated
+  // await chargeBtcForResource(process.env.SYNCHRONIZER_KEYSTORE_FILE)
+  return true;
+}
+
+/**
+ * Changes the email.
+ * @param accountName
+ * @param oldEmail
+ */
+export async function changeEmail(accountName: string, oldEmail: string) {
+  console.log();
+  await changeAccountEmail(accountName, oldEmail);
+  console.log();
+  await input({ message: 'Press [Enter] to continue...' });
+  clearLines(1);
+  return true;
+}
+
+/**
+ * Exports the private key.
+ * @param privateKey
+ */
+export async function exportPrivateKey(privateKey: string) {
+  console.log(`Private Key: ${privateKey}`);
+  await input({ message: 'Press [Enter] to continue...' });
+  clearLines(2);
+  return true;
 }

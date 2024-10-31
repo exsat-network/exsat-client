@@ -61,9 +61,9 @@ export enum ErrorCode {
   Code1003 = '1003', //1003:blkendt.xsat::endorse: the endorsement height cannot exceed height
   Code1008 = '1008', //1008:blkendt.xsat::endorse: the next endorsement time has not yet been reached
   Code2005 = '2005', //2005:blksync.xsat::initbucket: the block has reached consensus
+  Code2006 = '2006', //2006:blksync.xsat::initbucket: to become a synchronizer, a block must be produced within 72 hours
   Code2008 = '2008', //2008:blksync.xsat::initbucket: cannot init bucket in the current state [verify_pass]
   Code2009 = '2009', //2009:blksync.xsat::pushchunk: the block has reached consensus
-  Code2006 = '2006', //2006:blksync.xsat::initbucket: to become a synchronizer, a block must be produced within 72 hours
   Code2012 = '2012', //2012:blksync.xsat::pushchunk: [blockbuckets] does not exists
   Code2013 = '2013', //2013:blksync.xsat::pushchunk: cannot push chunk in the current state [verify_merkle]
   Code2017 = '2017', //2017:blksync.xsat::delbucket: [blockbuckets] does not exists

@@ -1,19 +1,25 @@
 import TableApi from '../utils/table-api';
 import ExsatApi from '../utils/exsat-api';
-import { checkExsatUrls, notAccountMenu, resetBtcRpcUrl, setBtcRpcUrl } from './common';
+import {
+  changeEmail,
+  chargeBtcGas,
+  checkExsatUrls,
+  exportPrivateKey,
+  notAccountMenu,
+  resetBtcRpcUrl,
+  setBtcRpcUrl,
+} from './common';
 import fs from 'node:fs';
 import process from 'node:process';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
 import { getErrorMessage, isValidUrl, reloadEnv, retry, showInfo, sleep } from '../utils/common';
 import { confirm, input, password, select, Separator } from '@inquirer/prompts';
-import { chargeBtcForResource, chargeForRegistry, checkUsernameWithBackend } from '@exsat/account-initializer';
+import { chargeForRegistry, checkUsernameWithBackend, updateEnvFile } from '@exsat/account-initializer';
 import { EXSAT_RPC_URLS, SET_VALIDATOR_DONATE_RATIO } from '../utils/config';
 import { logger } from '../utils/logger';
 import { inputWithCancel } from '../utils/input';
-import { updateEnvFile } from '@exsat/account-initializer/dist/utils';
 import { Client, ClientType, ContractName } from '../utils/enumeration';
 import { Font } from '../utils/font';
-import { changeEmail } from '@exsat/account-initializer/dist/accountInitializer';
 
 export class ValidatorCommander {
   private exsatAccountInfo: any;
@@ -72,9 +78,9 @@ export class ValidatorCommander {
 
     let menus = [
       {
-        name: 'Bridge BTC as GAS Fee',
+        name: 'Recharge Gas',
         value: 'recharge_btc',
-        description: 'Bridge BTC as GAS Fee',
+        description: 'Recharge Gas',
       },
       {
         name: 'Change Reward Address',
@@ -127,20 +133,18 @@ export class ValidatorCommander {
     }
 
     const actions: { [key: string]: () => Promise<any> } = {
-      recharge_btc: async () => await chargeBtcForResource(process.env.VALIDATOR_KEYSTORE_FILE),
+      recharge_btc: async () => {
+        return await chargeBtcGas();
+      },
       set_reward_address: async () => await this.setRewardAddress(),
       set_commission_ratio: async () => await this.setCommissionRatio(),
       set_donation_ratio: async () => await this.setDonationRatio(),
       reset_btc_rpc: async () => await resetBtcRpcUrl(),
       export_private_key: async () => {
-        console.log(`Private Key: ${this.exsatAccountInfo.privateKey}`);
-        await input({ message: 'Press [enter] to continue' });
+        return await exportPrivateKey(this.exsatAccountInfo.privateKey);
       },
       change_email: async () => {
-        console.log();
-        await changeEmail(accountName, this.exsatAccountInfo.email);
-        console.log();
-        await input({ message: 'Press [enter] to continue' });
+        return await changeEmail(accountName, this.exsatAccountInfo.email);
       },
       activate_validator: async () => {
         const res = await this.toActivateValidator();
@@ -209,10 +213,16 @@ export class ValidatorCommander {
       financial_account: financialAccount,
       commission_rate: null,
     };
-    await this.exsatApi.executeAction(ContractName.endrmng, 'config', data);
-    logger.info(`Set reward address: ${financialAccount} successfully`);
-    await this.updateValidatorInfo();
-    return true;
+
+    const res: any = await this.exsatApi.executeAction(ContractName.endrmng, 'config', data);
+    if (res && res.transaction_id) {
+      logger.info(`Set reward address: ${financialAccount} successfully`);
+      await this.updateValidatorInfo();
+      return true;
+    } else {
+      logger.error(`Validator[${this.exsatAccountInfo.accountName}] Set reward address: ${financialAccount} failed`);
+      return false;
+    }
   }
 
   /**
@@ -239,10 +249,15 @@ export class ValidatorCommander {
       financial_account: null,
       commission_rate: parseFloat(commissionRatio) * 100,
     };
-    await this.exsatApi.executeAction(ContractName.endrmng, 'config', data);
-    await this.updateValidatorInfo();
-    logger.info(`${Font.fgCyan}${Font.bright}Set commission ratio: ${commissionRatio}% successfully.${Font.reset}\n`);
-    return true;
+    const res: any = await this.exsatApi.executeAction(ContractName.endrmng, 'config', data);
+    if (res && res.transaction_id) {
+      await this.updateValidatorInfo();
+      logger.info(`${Font.fgCyan}${Font.bright}Set commission ratio: ${commissionRatio}% successfully.${Font.reset}\n`);
+      return true;
+    } else {
+      logger.error(`Validator[${this.exsatAccountInfo.accountName}] Set commission ratio: ${commissionRatio} failed`);
+      return false;
+    }
   }
 
   /**
@@ -265,12 +280,17 @@ export class ValidatorCommander {
       validator: this.exsatAccountInfo.accountName,
       donate_rate: parseFloat(ratio) * 100,
     };
-    await this.exsatApi.executeAction(ContractName.endrmng, 'setdonate', data);
-    logger.info(
-      `${Font.fgCyan}${Font.bright}Set donation ratio: ${ratio}% successfully. ${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`
-    );
-    await this.updateValidatorInfo();
-    return true;
+    const res: any = await this.exsatApi.executeAction(ContractName.endrmng, 'setdonate', data);
+    if (res && res.transaction_id) {
+      logger.info(
+        `${Font.fgCyan}${Font.bright}Set donation ratio: ${ratio}% successfully. ${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`
+      );
+      await this.updateValidatorInfo();
+      return true;
+    } else {
+      logger.error(`Validator[${this.exsatAccountInfo.accountName}] Set donation ratio: ${ratio} failed`);
+      return false;
+    }
   }
 
   /**
@@ -281,12 +301,12 @@ export class ValidatorCommander {
     const activateValidatorQuotas: any = await this.tableApi.getActivateValidatorQuotas();
     if (!activateValidatorQuotas || activateValidatorQuotas.total_quotas == 0) {
       console.log(Font.importMessageCyan("The competition hasn't started yet. Please wait."));
-      await input({ message: 'Press [enter] to continue' });
+      await input({ message: 'Press [Enter] to continue...' });
       return false;
     }
     if (activateValidatorQuotas.total_quotas <= activateValidatorQuotas.total_activations) {
       console.log(Font.importMessageCyan('The number of quotas has been used up. Please wait for the next round.'));
-      await input({ message: 'Press [enter] to continue' });
+      await input({ message: 'Press [Enter] to continue...' });
       return false;
     }
     if (
@@ -298,10 +318,15 @@ export class ValidatorCommander {
     }
     do {
       try {
-        const res = await this.activeValidator();
-        console.log(Font.importMessageCyan('Congratulations on securing a quota and becoming a validator.'));
-        await input({ message: 'Press [enter] to continue' });
-        return true;
+        const res: any = await this.activeValidator();
+        if (res && res.transaction_id) {
+          console.log(Font.importMessageCyan('Congratulations on securing a quota and becoming a validator.'));
+          await input({ message: 'Press [Enter] to continue...' });
+          return true;
+        } else {
+          logger.error(`${this.exsatAccountInfo.accountName} Failed to activate validator.`);
+          process.exit(0);
+        }
       } catch (e) {
         const errorMessage = getErrorMessage(e);
         // network error or timeout
