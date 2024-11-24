@@ -44,7 +44,7 @@ export function getConfigPassword(clientType: number) {
         ? process.env.SYNCHRONIZER_KEYSTORE_PASSWORD
         : process.env.VALIDATOR_KEYSTORE_PASSWORD;
   }
-  return password;
+  return password.replace(/\\'/g, "'").replace(/\\"/g, '"').replace(/\\`/g, '`').replace(/\\\\/g, '\\');
 }
 
 export async function getInputPassword(): Promise<string> {

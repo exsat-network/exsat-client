@@ -65,10 +65,10 @@
     enabled "2.0.x"
     kuler "^2.0.0"
 
-"@exsat/account-initializer@^1.2.4":
-  version "1.2.4"
-  resolved "https://registry.npmjs.org/@exsat/account-initializer/-/account-initializer-1.2.4.tgz#3f2a682bdebf456aa221165f709e8d466fd4fb06"
-  integrity sha512-fEpPPx7Dobv2BZyo9gVjpH/mBVwan8qJy5G5gxBuEscxg1k+J6ROfFDcbDk2mowD4N9hQw+AkoKgjhGM0dLOqA==
+"@exsat/account-initializer@^1.2.7":
+  version "1.2.7"
+  resolved "https://registry.npmjs.org/@exsat/account-initializer/-/account-initializer-1.2.7.tgz#72e09d9a00b54f00e6ab54a8a5d38a9de69f0014"
+  integrity sha512-hvjTqqvVTU1mBcyQiROCFvL96ggxTYqI5aqNEWET/qhjX1mlEurB3klIVCdY4mUwFxopAaBPWk5g3lWQWK9wHg==
   dependencies:
     "@inquirer/prompts" "^5.1.2"
     "@scure/bip39" "^1.0.0"
@@ -76,7 +76,7 @@
     axios "^0.24.0"
     body-parser "^1.20.2"
     crypto-js "^4.0.0"
-    dotenv "^10.0.0"
+    dotenv "^16.4.5"
     ethereum-cryptography "^2.2.0"
     express "^4.19.2"
     fs-extra "^11.2.0"
@@ -1521,11 +1521,6 @@ dir-glob@^3.0.1:
   integrity sha512-WkrWp9GR4KXfKGYzOLmTuGVi1UWFfws377n9cc55/tb6DuqyF6pcQ5AbiHEshaDpY9v6oaSr2XCDidGmMwdzIA==
   dependencies:
     path-type "^4.0.0"
-
-dotenv@^10.0.0:
-  version "10.0.0"
-  resolved "https://registry.yarnpkg.com/dotenv/-/dotenv-10.0.0.tgz#3d4227b8fb95f81096cdd2b66653fb2c7085ba81"
-  integrity sha512-rlBi9d8jpv9Sf1klPjNfFAuWDjKLwTIJJ/VxtoTwIR6hnZxcEOQCZg2oIL3MWBYw5GpUDKOEnND7LXTbIpQ03Q==
 
 dotenv@^16.4.5:
   version "16.4.5"
