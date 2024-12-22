@@ -6,16 +6,22 @@ import { BTC_RPC_PASSWORD, BTC_RPC_URL, BTC_RPC_USERNAME, CHUNK_SIZE } from './c
  * @param data
  */
 async function sendBtcRpcRequest(data: object): Promise<any> {
-  let rpcAuth = '';
-  if (BTC_RPC_USERNAME && BTC_RPC_PASSWORD) {
-    rpcAuth = Buffer.from(`${BTC_RPC_USERNAME}:${BTC_RPC_PASSWORD}`).toString('base64');
+  try {
+    let rpcAuth = '';
+    if (BTC_RPC_USERNAME && BTC_RPC_PASSWORD) {
+      rpcAuth = Buffer.from(`${BTC_RPC_USERNAME}:${BTC_RPC_PASSWORD}`).toString('base64');
+    }
+    const headers = {
+      'Content-Type': 'text/plain',
+      Authorization: rpcAuth ? `Basic ${rpcAuth}` : '',
+    };
+    const response = await axios.post(BTC_RPC_URL, data, { headers });
+    return response.data;
+  } catch (e: any) {
+    throw new Error(
+      `Send BTC RPC request error, rpcUrl: ${BTC_RPC_URL}, data: ${JSON.stringify(data)}, error: ${e.message}`
+    );
   }
-  const headers = {
-    'Content-Type': 'text/plain',
-    Authorization: rpcAuth ? `Basic ${rpcAuth}` : '',
-  };
-  const response = await axios.post(BTC_RPC_URL, data, { headers });
-  return response.data;
 }
 
 /**
