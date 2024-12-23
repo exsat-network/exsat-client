@@ -10,13 +10,11 @@ import { password } from '@inquirer/prompts';
 import { reloadEnv } from './common';
 
 interface Arguments {
-  pwd?: string;
   pwdFile?: string;
 }
 
 export function getConfigPassword(clientType: number) {
   const argv = yargs.options({
-    pwd: { type: 'string', describe: 'Password as a command-line argument' },
     pwdFile: { type: 'string', describe: 'Path to the password file' },
   }).argv as Arguments;
 
@@ -32,12 +30,7 @@ export function getConfigPassword(clientType: number) {
     }
   }
 
-  // Priority 2: Get the password with the command line argument --pwd
-  if (!password && argv.pwd) {
-    password = argv.pwd;
-  }
-
-  // Priority 3: Get passwords from environment variables
+  // Priority 2: Get passwords from environment variables
   if (!password) {
     password =
       clientType === ClientType.Synchronizer
