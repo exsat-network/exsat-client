@@ -11,7 +11,7 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@exsat/account-initializer": "^1.2.9",
+    "@exsat/account-initializer": "^1.2.10",
     "@inquirer/prompts": "^5.3.8",
     "@wharfkit/session": "^1.4.0",
     "@wharfkit/wallet-plugin-privatekey": "^1.1.0",
