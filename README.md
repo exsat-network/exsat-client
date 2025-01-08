@@ -108,7 +108,6 @@ Navigate to the project directory, execute different commands based on different
 
 | Parameter | Description                                     | Example                                                 |
 | --------- | ----------------------------------------------- | ------------------------------------------------------- |
-| --pwd     | Provides the password directly.                 | yarn start-<clientType> --pwd mysecretpassword          |
 | --pwdfile | Provides the file path containing the password. | yarn start-<clientType> --pwdfile /path/to/password.txt |
 
 ### Start the Client with pm2(The keystore password is configured in the .env file)
