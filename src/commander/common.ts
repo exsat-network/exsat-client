@@ -1,19 +1,12 @@
 import { confirm, input, select, Separator } from '@inquirer/prompts';
-import {
-  clearLines,
-  importFromMnemonic,
-  importFromPrivateKey,
-  initializeAccount,
-  updateEnvFile,
-  changeEmail as changeAccountEmail,
-} from '@exsat/account-initializer';
 import process from 'node:process';
 import { Font } from '../utils/font';
 import { CHARGE_BTC_URL, EXSAT_RPC_URLS } from '../utils/config';
-import { getRpcUrls, isValidUrl } from '../utils/common';
+import { getRpcUrls, isValidUrl, updateEnvFile } from '../utils/common';
 import { Client } from '../utils/enumeration';
 import { logger } from '../utils/logger';
-import { inputWithCancel } from '../utils/input';
+import { clearLines, inputWithCancel } from '../utils/input';
+import { importFromMnemonic, importFromPrivateKey, initializeAccount } from './account';
 
 export async function notAccountMenu(role) {
   const menus = [
@@ -40,24 +33,30 @@ export async function notAccountMenu(role) {
     create_account: async () => {
       const res = await initializeAccount(role);
       if (res) {
+        //todo notice a url to finish the registration
         console.log(
           `${Font.fgCyan}${Font.bright}Account registration may take a moment, please wait.\nConfirmation email will be sent to your inbox after the account registration is complete.\nPlease follow the instructions in the email to complete the subsequent Synchronizer registration.\n-----------------------------------------------${Font.reset}`
         );
         process.exit(0);
       }
+      return res;
     },
-    import_seed_phrase: async () => await importFromMnemonic(role),
-    import_private_key: async () => await importFromPrivateKey(role),
+    import_seed_phrase: async () => {
+      return await importFromMnemonic(role);
+    },
+    import_private_key: async () => {
+      return await importFromPrivateKey(role);
+    },
     quit: async () => process.exit(0),
   };
 
-  const action = await select({
-    message: 'Select an Action: ',
-    choices: menus,
-  });
   let res;
   do {
-    res = await (actions[action] || (() => {}))();
+    const action = await select({
+      message: 'Select an Action: ',
+      choices: menus,
+    });
+    res = await (actions[action] || (async () => {}))();
   } while (!res);
 }
 
@@ -187,20 +186,6 @@ export async function chargeBtcGas() {
   clearLines(1);
   // deprecated
   // await chargeBtcForResource(process.env.SYNCHRONIZER_KEYSTORE_FILE)
-  return true;
-}
-
-/**
- * Changes the email.
- * @param accountName
- * @param oldEmail
- */
-export async function changeEmail(accountName: string, oldEmail: string) {
-  console.log();
-  await changeAccountEmail(accountName, oldEmail);
-  console.log();
-  await input({ message: 'Press [Enter] to continue...' });
-  clearLines(1);
   return true;
 }
 

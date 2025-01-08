@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import { API, Chains, Session } from '@wharfkit/session';
 import { logger } from './logger';
 import process from 'process';

@@ -1,7 +1,6 @@
-import { isValidUrl, reloadEnv, retry, showInfo, sleep } from '../utils/common';
+import { isValidUrl, reloadEnv, retry, showInfo, sleep, updateEnvFile } from '../utils/common';
 import { EXSAT_RPC_URLS, SET_SYNCHRONIZER_DONATE_RATIO } from '../utils/config';
 import { password, select, Separator } from '@inquirer/prompts';
-import { chargeForRegistry, checkUsernameWithBackend, updateEnvFile } from '@exsat/account-initializer';
 import process from 'node:process';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
 import { Client, ClientType, ContractName } from '../utils/enumeration';
@@ -10,16 +9,9 @@ import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
 import fs from 'node:fs';
 import { inputWithCancel } from '../utils/input';
-import {
-  changeEmail,
-  chargeBtcGas,
-  checkExsatUrls,
-  exportPrivateKey,
-  notAccountMenu,
-  resetBtcRpcUrl,
-  setBtcRpcUrl,
-} from './common';
+import { chargeBtcGas, checkExsatUrls, exportPrivateKey, notAccountMenu, resetBtcRpcUrl, setBtcRpcUrl } from './common';
 import { Font } from '../utils/font';
+import { checkUserAccount } from './account';
 
 export class SynchronizerCommander {
   private exsatAccountInfo: any;
@@ -67,7 +59,6 @@ export class SynchronizerCommander {
       'BTC PRC Node': process.env.BTC_RPC_URL ?? '',
       'Account Registration Status': 'Registered',
       'Synchronizer Registration Status': 'Registered',
-      Email: this.exsatAccountInfo.email,
       'Memory Slot': synchronizer.num_slots,
     };
     showInfo(showMessageInfo);
@@ -102,11 +93,6 @@ export class SynchronizerCommander {
         description: 'Change BTC RPC Node',
       },
       {
-        name: 'Change Email',
-        value: 'change_email',
-        description: 'Change Email',
-      },
-      {
         name: 'Export Private Key',
         value: 'export_private_key',
         description: 'Export Private Key',
@@ -132,9 +118,6 @@ export class SynchronizerCommander {
         return await exportPrivateKey(this.exsatAccountInfo.privateKey);
       },
       remove_account: async () => await this.removeKeystore(),
-      change_email: async () => {
-        return await changeEmail(accountName, this.exsatAccountInfo.email);
-      },
       quit: async () => process.exit(),
     };
 
@@ -334,8 +317,8 @@ export class SynchronizerCommander {
         'BTC Balance Used for Gas Fee': btcBalance,
         'Account Registration Status': 'Registered',
         'Synchronizer Registration Status': 'Registering',
-        Email: this.exsatAccountInfo.email,
       });
+      //todo notice a url to check the status of registration
       console.log(
         `${Font.fgCyan}${Font.bright}The account has been registered, and a confirmation email has been sent to your inbox.\n` +
           'Please follow the instructions in the email to complete the Synchronizer registration. \n' +
@@ -352,7 +335,7 @@ export class SynchronizerCommander {
   async checkAccountRegistrationStatus() {
     let checkAccountInfo;
     do {
-      checkAccountInfo = await checkUsernameWithBackend(this.exsatAccountInfo.accountName);
+      checkAccountInfo = await checkUserAccount(this.exsatAccountInfo.accountName);
       let menus;
       switch (checkAccountInfo.status) {
         case 'completed':
@@ -363,60 +346,6 @@ export class SynchronizerCommander {
           break;
         case 'failed':
         case 'initial':
-          const statusLabel =
-            checkAccountInfo.status === 'failed'
-              ? Font.colorize('Registration Failed', Font.fgRed)
-              : 'Unregistered, Bridge Gas Fee (BTC) to Register';
-          showInfo({
-            'Account Name': this.exsatAccountInfo.accountName,
-            'Public Key': this.exsatAccountInfo.publicKey,
-            'Account Registration Status': statusLabel,
-            Email: checkAccountInfo.email,
-          });
-          if (checkAccountInfo.status === 'failed') {
-            console.log(
-              'Your account registration was Failed. \n' +
-                'Possible reasons: the BTC Transaction ID you provided is incorrect, or the BTC transaction has been rolled back. \n' +
-                'Please resubmit the BTC Transaction ID. Thank you.\n' +
-                `${Font.fgCyan}${Font.bright}-----------------------------------------------${Font.reset}`
-            );
-          }
-          menus = [
-            {
-              name: 'Bridge BTC Used For GAS Fee',
-              value: 'recharge_btc_registry',
-              description: 'Bridge BTC as GAS Fee',
-            },
-            new Separator(),
-            { name: 'Quit', value: 'quit', description: 'Quit' },
-          ];
-          const action = await select({
-            message: 'Select an Action',
-            choices: menus,
-          });
-          if (action === 'quit') {
-            process.exit(0);
-          }
-          if (action === 'recharge_btc_registry') {
-            await chargeForRegistry(
-              this.exsatAccountInfo.accountName,
-              checkAccountInfo.btcAddress,
-              checkAccountInfo.amount
-            );
-          }
-          break;
-        case 'charging':
-          showInfo({
-            'Account Name': this.exsatAccountInfo.accountName,
-            'Public Key': this.exsatAccountInfo.publicKey,
-            'Account Registration Status': 'Registering',
-            Email: checkAccountInfo.email,
-          });
-          console.log(
-            `${Font.fgCyan}${Font.bright}Account registration may take a moment, please wait.\nConfirmation email will be sent to your inbox after the account registration is complete.\nPlease follow the instructions in the email to complete the subsequent Synchronizer registration.\n-----------------------------------------------${Font.reset}`
-          );
-          process.exit(0);
-          return;
         default:
           throw new Error(`Invalid account: status_${checkAccountInfo.status}`);
       }
@@ -439,7 +368,6 @@ export class SynchronizerCommander {
         'Reward Address': 'Unset',
         'Account Registration Status': 'Registered',
         'Synchronizer Registration Status': 'Registered',
-        Email: this.exsatAccountInfo.email,
         'Memory Slot': synchronizer.num_slots,
       });
 
@@ -496,7 +424,6 @@ export class SynchronizerCommander {
         'BTC PRC Node': 'Unset',
         'Account Registration Status': 'Registered',
         'Synchronizer Registration Status': 'Registered',
-        Email: this.exsatAccountInfo.email,
         'Memory Slot': synchronizer.num_slots,
       };
       showInfo(showMessageInfo);

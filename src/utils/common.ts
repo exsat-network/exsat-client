@@ -218,3 +218,60 @@ export function reloadEnv() {
   }
   dotenv.config({ override: true, path: envFilePath });
 }
+
+export function updateEnvFile(values) {
+  let envFilePath;
+  if (isExsatDocker()) {
+    envFilePath = path.join(process.cwd(), '.exsat', '.env');
+  } else {
+    envFilePath = path.join(process.cwd(), '.env');
+  }
+  if (!fs.existsSync(envFilePath)) {
+    fs.writeFileSync(envFilePath, '');
+  }
+  const envConfig = dotenv.parse(fs.readFileSync(envFilePath));
+  Object.keys(values).forEach((key) => {
+    envConfig[key] = values[key];
+  });
+  // Read original .env file contents
+  const originalEnvContent = fs.readFileSync(envFilePath, 'utf-8');
+
+  // Parse original .env file contents
+  const parsedEnv = dotenv.parse(originalEnvContent);
+
+  // Build updated .env file contents, preserving comments and structure
+  const updatedLines = originalEnvContent.split('\n').map((line) => {
+    const [key] = line.split('=');
+    if (key && envConfig.hasOwnProperty(key)) {
+      return `${key}=${envConfig[key.trim()]}`;
+    }
+    return line;
+  });
+
+  // Check if any new key-value pairs need to be added to the end of the file
+  Object.keys(envConfig).forEach((key) => {
+    if (!parsedEnv.hasOwnProperty(key)) {
+      updatedLines.push(`${key}=${envConfig[key]}`);
+    }
+  });
+  // Concatenate updated content into string
+  const updatedEnvContent = updatedLines.join('\n');
+  // Write back the updated .env file contents
+  fs.writeFileSync(envFilePath, updatedEnvContent);
+
+  return true;
+}
+
+/**
+ * Check if transaction id is 64 digit hexadecimal
+ * @param txid
+ */
+export function isValidTxid(txid: string): boolean {
+  // Check if the length is 64
+  if (txid.length !== 64) {
+    return false;
+  }
+  // Check if it is hexadecimal
+  const hexRegex = /^[0-9a-fA-F]+$/;
+  return hexRegex.test(txid);
+}
