@@ -11,7 +11,7 @@ import { logger } from '../utils/logger';
 import { inputWithCancel } from '../utils/input';
 import { Client, ClientType, ContractName } from '../utils/enumeration';
 import { Font } from '../utils/font';
-import { checkUserAccount } from './account';
+import { checkUserAccountExist } from './account';
 
 export class ValidatorCommander {
   private exsatAccountInfo: any;
@@ -430,7 +430,7 @@ export class ValidatorCommander {
   async checkAccountRegistrationStatus() {
     let checkAccountInfo;
     do {
-      checkAccountInfo = await checkUserAccount(this.exsatAccountInfo.accountName);
+      checkAccountInfo = await checkUserAccountExist(this.exsatAccountInfo.accountName);
       let menus;
       switch (checkAccountInfo.status) {
         case 'completed':

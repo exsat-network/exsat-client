@@ -28,12 +28,27 @@ function validateEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-export async function checkUserAccount(username) {
-  //todo  check account status from eos chain
-
-  return {};
+export async function checkUserAccountExist(accountName) {
+  return await retry(async () => {
+    try {
+      await axios.post(
+        `${EXSAT_RPC_URLS[0]}/v1/chain/get_account`,
+        JSON.stringify({
+          account_name: accountName,
+        }),
+        {
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+      return true;
+    } catch (error: any) {
+      if (error.response && error.response.data.message === 'Account lookup') {
+        return false;
+      }
+      throw error;
+    }
+  });
 }
-
 async function getInputRole() {
   const role = await select({
     message: 'Select a role',
@@ -130,7 +145,7 @@ async function importAccountAndSaveKeystore(privateKey) {
       message: 'Enter your account name (1-8 characters): ',
     });
     const fullAccountName = accountName.endsWith('.sat') ? accountName : `${accountName}.sat`;
-    const accountInfo: any = await checkUserAccount(fullAccountName);
+    const accountInfo: any = await checkUserAccountExist(fullAccountName);
     if (privateKey.toPublic().toString() === accountInfo.pubkey) {
       return { accountName, ...accountInfo };
     }
@@ -213,7 +228,7 @@ export async function initializeAccount(role) {
         return 'Please enter an account name that is 1-8 characters long, contains only a-z and 1-5.';
       }
       try {
-        const response: any = await checkUserAccount(input);
+        const response: any = await checkUserAccountExist(input);
         registryStatus = response.status;
         switch (registryStatus) {
           case 'valid':
@@ -261,22 +276,5 @@ export async function initializeAccount(role) {
     return username;
   } catch (error: any) {
     console.error('Error creating account: ', error.message);
-  }
-
-  async function checkUserAccount(accountName) {
-    const exist = retry(async () => {
-      try {
-        const response = await axios.post(`https://${EXSAT_RPC_URLS[0]}/v1/chain/get_account`, {
-          account_name: accountName,
-        });
-        return true;
-      } catch (error: any) {
-        if (!error.response || error.response.status !== 500) {
-          throw error;
-        }
-        return false;
-      }
-    });
-    return { status: exist ? 'valid' : 'chain_off' };
   }
 }

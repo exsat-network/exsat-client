@@ -11,7 +11,7 @@ import fs from 'node:fs';
 import { inputWithCancel } from '../utils/input';
 import { chargeBtcGas, checkExsatUrls, exportPrivateKey, notAccountMenu, resetBtcRpcUrl, setBtcRpcUrl } from './common';
 import { Font } from '../utils/font';
-import { checkUserAccount } from './account';
+import { checkUserAccountExist } from './account';
 
 export class SynchronizerCommander {
   private exsatAccountInfo: any;
@@ -32,6 +32,7 @@ export class SynchronizerCommander {
 
     // Initialize APIs and check account and synchronizer status
     await this.init();
+
     await this.checkAccountRegistrationStatus();
     await this.checkSynchronizerRegistrationStatus();
     await this.checkRewardsAddress();
@@ -335,7 +336,7 @@ export class SynchronizerCommander {
   async checkAccountRegistrationStatus() {
     let checkAccountInfo;
     do {
-      checkAccountInfo = await checkUserAccount(this.exsatAccountInfo.accountName);
+      checkAccountInfo = await checkUserAccountExist(this.exsatAccountInfo.accountName);
       let menus;
       switch (checkAccountInfo.status) {
         case 'completed':

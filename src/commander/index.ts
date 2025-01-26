@@ -7,6 +7,7 @@ import { updateMenu } from './common';
 import { Client } from '../utils/enumeration';
 import { isExsatDocker, showInfo } from '../utils/common';
 
+export const account = {};
 /**
  * Main entry point for the application.
  * Checks for updates, displays user guide information, and prompts user to select a client to start.
