@@ -148,7 +148,10 @@ async function importAccountAndSaveKeystore(privateKey) {
     });
     const fullAccountName = accountName.endsWith('.sat') ? accountName : `${accountName}.sat`;
     const accountInfo: any = await getUserAccount(fullAccountName);
-    if (privateKey.toPublic().toString() === accountInfo.pubkey) {
+    if (
+      privateKey.toPublic().toString() === accountInfo.pubkey ||
+      privateKey.toPublic().toLegacyString() === accountInfo.pubkey
+    ) {
       return { accountName, ...accountInfo };
     }
     throw new Error('Account name is not matched.');
@@ -212,6 +215,7 @@ export async function importFromPrivateKey(role) {
 
 export async function processAccount({ accountName, pubkey, status, btcAddress, amount }) {
   //todo processAccount
+  return true;
 }
 
 export async function initializeAccount(role) {

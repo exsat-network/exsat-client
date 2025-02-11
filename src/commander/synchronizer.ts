@@ -36,7 +36,7 @@ export class SynchronizerCommander {
     await this.checkAccountRegistrationStatus();
     await this.checkSynchronizerRegistrationStatus();
     await this.checkRewardsAddress();
-    await this.checkDonateSetting();
+    // await this.checkDonateSetting();
     await this.checkBtcRpcNode();
 
     // Display the main manager menu
@@ -56,7 +56,6 @@ export class SynchronizerCommander {
       'Public Key': this.exsatAccountInfo.publicKey,
       'BTC Balance Used for Gas Fee': btcBalance,
       'Reward Address': synchronizer.memo ?? synchronizer.reward_recipient,
-      'Donation Ratio': `${synchronizer.donate_rate / 100}%` ?? '0%',
       'BTC PRC Node': process.env.BTC_RPC_URL ?? '',
       'Account Registration Status': 'Registered',
       'Synchronizer Registration Status': 'Registered',
@@ -65,18 +64,18 @@ export class SynchronizerCommander {
     showInfo(showMessageInfo);
 
     const menus = [
-      {
+      /*      {
         name: 'Recharge Gas',
         value: 'recharge_btc',
         description: 'Recharge Gas',
-      },
+      },*/
       {
         name: synchronizer?.reward_recipient ? 'Change Reward Address' : 'Set Reward Address',
         value: 'set_reward_address',
         description: 'Set/Change Reward Address',
         disabled: !synchronizer,
       },
-      {
+      /*      {
         name: `${synchronizer?.donate_rate ? 'Change' : 'Set'} Donation Ratio`,
         value: 'set_donation_ratio',
         description: 'Set/Change Donation Ratio',
@@ -87,7 +86,7 @@ export class SynchronizerCommander {
         value: 'purchase_memory_slot',
         description: 'Purchase Memory Slot',
         disabled: !synchronizer,
-      },
+      },*/
       {
         name: 'Change BTC RPC Node',
         value: 'reset_btc_rpc',

@@ -63,27 +63,30 @@ export class ValidatorCommander {
     const accountName = this.exsatAccountInfo.accountName;
     const btcBalance = await this.tableApi.getAccountBalance(accountName);
     const validator = this.validatorInfo;
-    const activedInfo = await this.getValidatedInfo();
 
     let showMessageInfo: any = {
       'Account Name': accountName,
-      'Account Role': this.exsatAccountInfo.role.toUpperCase().replace('_', ' '),
+      'Account Role': validator.role ? 'XSAT Validator' : 'BTC Validator',
       'Public Key': this.exsatAccountInfo.publicKey,
       'BTC Balance Used for Gas Fee': btcBalance,
       'Reward Address': validator.reward_address ? `0x${validator.reward_address}` : '',
       'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
       'Commission Ratio': `${validator.commission_rate / 100}%` ?? '0%',
-      'Donation Ratio': `${validator.donate_rate / 100}%` ?? '0%',
-      'BTC PRC Node': process.env.BTC_RPC_URL ?? '',
       'BTC Staked': validator.quantity,
       'XSAT Staked': validator.xsat_quantity,
       'Eligible for Verification': parseFloat(validator.quantity) >= 100 ? 'Yes' : 'No, requires min 100 BTC staked',
       'Account Registration Status': 'Registered',
       'Validator Registration Status': 'Registered',
+      'BTC PRC Node': process.env.BTC_RPC_URL ?? '',
     };
-    if (this.exsatAccountInfo.role == Client.XSATValidaotr) {
+    if (validator.role) {
+      delete showMessageInfo['BTC Staked'];
       delete showMessageInfo['Reward Address'];
+      delete showMessageInfo['Commission Ratio'];
+    } else {
+      delete showMessageInfo['XSAT Staked'];
     }
+
     showInfo(showMessageInfo);
 
     let menus = [
@@ -96,8 +99,7 @@ export class ValidatorCommander {
         name: 'Change Stake Address',
         value: 'set_stake_address',
         description: 'Set/Change Stake Address',
-        disabled:
-          this.exsatAccountInfo.role == Client.BTCValidator ? validator.quantity == 0 : validator.xsat_quantity == 0,
+        disabled: validator.role ? validator.xsat_quantity == 0 : validator.quantity == 0,
       },
 
       /* {
@@ -124,7 +126,7 @@ export class ValidatorCommander {
       new Separator(),
       { name: 'Quit', value: 'quit', description: 'Quit' },
     ];
-    if (this.exsatAccountInfo.role == Client.BTCValidator) {
+    if (!validator.role) {
       menus.splice(
         1,
         0,
@@ -427,7 +429,7 @@ export class ValidatorCommander {
    * Decrypts the keystore file to retrieve account information.
    */
   async decryptKeystore() {
-    let password = getConfigPassword(ClientType.BTCValidator);
+    let password = getConfigPassword(ClientType.Validator);
     let accountInfo;
     if (password) {
       password = password.trim();
@@ -648,7 +650,7 @@ export class ValidatorCommander {
     let commissionRate;
     if (role === Client.BTCValidator) {
       claimableAddress = await input({
-        message: 'Enter your claimable address: ',
+        message: 'Enter your reward address: ',
         validate: (value) => {
           return isValidEvmAddress(value) ? true : 'Invalid address';
         },
