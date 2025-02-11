@@ -28,33 +28,34 @@ function validateEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-export async function checkUserAccountExist(accountName) {
-  return await retry(async () => {
-    try {
-      await axios.post(
-        `${EXSAT_RPC_URLS[0]}/v1/chain/get_account`,
-        JSON.stringify({
-          account_name: accountName,
-        }),
-        {
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-      return true;
-    } catch (error: any) {
-      if (error.response && error.response.data.message === 'Account lookup') {
-        return false;
+export async function getUserAccount(accountName) {
+  accountName = accountName.endsWith('.sat') ? accountName : `${accountName}.sat`;
+  try {
+    const response = await axios.post(
+      `${EXSAT_RPC_URLS[0]}/v1/chain/get_account`,
+      JSON.stringify({
+        account_name: accountName,
+      }),
+      {
+        headers: { 'Content-Type': 'application/json' },
       }
-      throw error;
+    );
+    const owner = response.data.permissions.find((p) => p.perm_name === 'owner');
+    return { account: response.data.account_name, pubkey: owner.required_auth.keys[0].key };
+  } catch (error: any) {
+    if (error.response && error.response.data.message === 'Account lookup') {
+      return false;
     }
-  });
+    throw error;
+  }
 }
 async function getInputRole() {
   const role = await select({
     message: 'Select a role',
     choices: [
-      { name: 'Synchronizer', value: 'Synchronizer' },
-      { name: 'Validator', value: 'Validator' },
+      { name: 'Synchronizer', value: 'synchronizer' },
+      { name: 'BTC Validator', value: 'btc_validator' },
+      { name: 'XSAT Validator', value: 'xsat_validator' },
     ],
   });
   return role;
@@ -82,7 +83,8 @@ async function saveKeystore(privateKey, username, role) {
   const keystore = await createKeystore(
     `${bytesToHex(WIF.decode(privateKey.toWif(), 128).privateKey)}`,
     passwordInput,
-    username
+    username,
+    role
   );
   const savePassword = await confirm({
     message: 'Do you want to save the password in the .env file?',
@@ -104,10 +106,10 @@ async function saveKeystore(privateKey, username, role) {
   const keystoreFilePath = `${selectedPath}/${username}_keystore.json`;
   writeFileSync(keystoreFilePath, JSON.stringify(keystore), { mode: 0o600 });
 
-  const keystoreFileKey = `${role.toUpperCase()}_KEYSTORE_FILE`;
+  const keystoreFileKey = (role.toUpperCase() == 'SYNCHRONIZER' ? 'SYNCHRONIZER' : 'VALIDATOR') + '_KEYSTORE';
   const updateDatas = {
-    [keystoreFileKey]: keystoreFilePath,
-    [`${role.toUpperCase()}_KEYSTORE_PASSWORD`]: savePassword ? processAndUpdatePassword(passwordInput) : '',
+    [`${keystoreFileKey}_FILE`]: keystoreFilePath,
+    [`${keystoreFileKey}_PASSWORD`]: savePassword ? processAndUpdatePassword(passwordInput) : '',
   };
   updateEnvFile(updateDatas);
 
@@ -145,7 +147,7 @@ async function importAccountAndSaveKeystore(privateKey) {
       message: 'Enter your account name (1-8 characters): ',
     });
     const fullAccountName = accountName.endsWith('.sat') ? accountName : `${accountName}.sat`;
-    const accountInfo: any = await checkUserAccountExist(fullAccountName);
+    const accountInfo: any = await getUserAccount(fullAccountName);
     if (privateKey.toPublic().toString() === accountInfo.pubkey) {
       return { accountName, ...accountInfo };
     }
@@ -213,7 +215,6 @@ export async function processAccount({ accountName, pubkey, status, btcAddress, 
 }
 
 export async function initializeAccount(role) {
-  role = capitalizeFirstLetter(role);
   const keystoreFile = keystoreExist(role);
   if (keystoreFile) {
     console.log(`\n${Font.fgYellow}${Font.bright}An account has already been created in ${keystoreFile}.${Font.reset}`);
@@ -228,16 +229,9 @@ export async function initializeAccount(role) {
         return 'Please enter an account name that is 1-8 characters long, contains only a-z and 1-5.';
       }
       try {
-        const response: any = await checkUserAccountExist(input);
-        registryStatus = response.status;
-        switch (registryStatus) {
-          case 'valid':
-            return true;
-          case 'chain_off':
-            return 'The network query failed. Please try again later or contact the administrator.';
-          default:
-            return 'This username is already registered. Please enter another one.';
-        }
+        const exist = await getUserAccount(input);
+        if (exist) return 'This username is already registered. Please enter another one.';
+        return true;
       } catch (error: any) {
         return `Request error: ${error.message}`;
       }
@@ -248,26 +242,6 @@ export async function initializeAccount(role) {
 
   if (!role) {
     role = await getInputRole();
-  }
-  let rewardAddress = '';
-  let commissionRate = '';
-  if (role === 'Validator') {
-    commissionRate = await input({
-      message: 'Enter commission ratio (0.00-100.00): ',
-      validate: (input) => {
-        const num = parseFloat(input);
-        // Check if it is a valid number and within the range
-        if (!isNaN(num) && num >= 0 && num <= 100 && /^\d+(\.\d{1,2})?$/.test(input)) {
-          return true;
-        }
-        return 'Please enter a valid number between 0.00 and 100.00';
-      },
-    });
-
-    rewardAddress = await input({
-      message: 'Enter reward address',
-      validate: (input) => /^0x[a-fA-F0-9]{40}$/.test(input) || 'Please enter a valid reward address.',
-    });
   }
   const { publicKey } = await generateKeystore(username, role);
   const infoJson = '{}';

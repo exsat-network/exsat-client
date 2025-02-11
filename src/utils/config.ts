@@ -41,3 +41,5 @@ export const PROMETHEUS: boolean = process.env.PROMETHEUS === 'true';
 export const PROMETHEUS_ADDRESS = process.env.PROMETHEUS_ADDRESS || '0.0.0.0:9900';
 
 export const CHARGE_BTC_URL: string = 'https://exsat.network/app/bridge/gas-recharge';
+
+export const REGISTER_URL = 'https://portal.exsat.network';

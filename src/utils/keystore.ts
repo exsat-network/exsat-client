@@ -105,12 +105,12 @@ export async function getAccountInfo(keystoreFile: string, password: string) {
   const keystoreInfo = JSON.parse(keystore);
   const accountName = keystoreInfo.username.endsWith('.sat') ? keystoreInfo.username : `${keystoreInfo.username}.sat`;
   const privateKey = await decryptKeystore(keystore, password);
-  return { accountName, privateKey, publicKey: keystoreInfo.address };
+  return { accountName, privateKey, publicKey: keystoreInfo.address, role: keystoreInfo.role ?? false };
 }
 
 export function keystoreExist(role?: string) {
   if (role) {
-    const keystoreFileKey = role.toUpperCase() + '_KEYSTORE_FILE';
+    const keystoreFileKey = (role.toUpperCase() == 'SYNCHRONIZER' ? 'SYNCHRONIZER' : 'VALIDATOR') + '_KEYSTORE_FILE';
     if (process.env[keystoreFileKey] && fs.existsSync(process.env[keystoreFileKey] ?? '')) {
       return process.env[keystoreFileKey];
     }
@@ -165,7 +165,8 @@ export const parseAndValidatePrivateKey = (data: Bytes, ignoreLength?: boolean):
 export const createKeystore = async (
   privateKey: Bytes,
   password: string,
-  username?: string,
+  username: string,
+  role: string,
   options?: CipherOptions
 ): Promise<any> => {
   const privateKeyUint8Array = parseAndValidatePrivateKey(privateKey);
@@ -245,6 +246,7 @@ export const createKeystore = async (
     id: uuidV4(),
     address: publicKey,
     username,
+    role: role,
     crypto: {
       ciphertext,
       cipherparams: {

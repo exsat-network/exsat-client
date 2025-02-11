@@ -6,6 +6,8 @@ import { Version } from '../utils/version';
 import { updateMenu } from './common';
 import { Client } from '../utils/enumeration';
 import { isExsatDocker, showInfo } from '../utils/common';
+import fs from 'node:fs';
+import process from 'node:process';
 
 export const account = {};
 /**
@@ -20,11 +22,15 @@ async function main() {
   });
 
   // Define menu options for client selection
-  const menus = [
-    { name: 'Synchronizer', value: Client.Synchronizer },
-    { name: 'Validator', value: Client.Validator },
-  ];
-
+  const menus = [{ name: 'Synchronizer', value: Client.Synchronizer }];
+  if (fs.existsSync(process.env.VALIDATOR_KEYSTORE_FILE)) {
+    menus.push({ name: 'Validator', value: Client.Validator });
+  } else {
+    menus.push(
+      { name: 'BTC Validator', value: Client.BTCValidator },
+      { name: 'XSAT Validator', value: Client.XSATValidaotr }
+    );
+  }
   // Prompt user to select a client to start
   const role = await select({
     message: 'Please select the client to start: ',
@@ -49,7 +55,9 @@ async function main() {
       clientCommander = new SynchronizerCommander();
       break;
     case Client.Validator:
-      clientCommander = new ValidatorCommander();
+    case Client.BTCValidator:
+    case Client.XSATValidaotr:
+      clientCommander = new ValidatorCommander(role);
       break;
     default:
       throw new Error('Invalid client selection');

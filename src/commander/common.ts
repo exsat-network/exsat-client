@@ -31,15 +31,7 @@ export async function notAccountMenu(role) {
   //
   const actions: { [key: string]: () => Promise<any> } = {
     create_account: async () => {
-      const res = await initializeAccount(role);
-      if (res) {
-        //todo notice a url to finish the registration
-        console.log(
-          `${Font.fgCyan}${Font.bright}Account registration may take a moment, please wait.\nConfirmation email will be sent to your inbox after the account registration is complete.\nPlease follow the instructions in the email to complete the subsequent Synchronizer registration.\n-----------------------------------------------${Font.reset}`
-        );
-        process.exit(0);
-      }
-      return res;
+      return await initializeAccount(role);
     },
     import_seed_phrase: async () => {
       return await importFromMnemonic(role);

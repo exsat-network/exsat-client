@@ -1,5 +1,5 @@
 import { isValidUrl, reloadEnv, retry, showInfo, sleep, updateEnvFile } from '../utils/common';
-import { EXSAT_RPC_URLS, SET_SYNCHRONIZER_DONATE_RATIO } from '../utils/config';
+import { EXSAT_RPC_URLS, REGISTER_URL, SET_SYNCHRONIZER_DONATE_RATIO } from '../utils/config';
 import { password, select, Separator } from '@inquirer/prompts';
 import process from 'node:process';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
@@ -11,7 +11,7 @@ import fs from 'node:fs';
 import { inputWithCancel } from '../utils/input';
 import { chargeBtcGas, checkExsatUrls, exportPrivateKey, notAccountMenu, resetBtcRpcUrl, setBtcRpcUrl } from './common';
 import { Font } from '../utils/font';
-import { checkUserAccountExist } from './account';
+import { getUserAccount } from './account';
 
 export class SynchronizerCommander {
   private exsatAccountInfo: any;
@@ -307,24 +307,12 @@ export class SynchronizerCommander {
    */
   async checkSynchronizerRegistrationStatus() {
     const synchronizerInfo = await this.tableApi.getSynchronizerInfo(this.exsatAccountInfo.accountName);
-    const btcBalance = await this.tableApi.getAccountBalance(this.exsatAccountInfo.accountName);
     if (synchronizerInfo) {
       this.synchronizerInfo = synchronizerInfo;
       return true;
     } else {
-      showInfo({
-        'Account Name': this.exsatAccountInfo.accountName,
-        'Public Key': this.exsatAccountInfo.publicKey,
-        'BTC Balance Used for Gas Fee': btcBalance,
-        'Account Registration Status': 'Registered',
-        'Synchronizer Registration Status': 'Registering',
-      });
-      //todo notice a url to check the status of registration
       console.log(
-        `${Font.fgCyan}${Font.bright}The account has been registered, and a confirmation email has been sent to your inbox.\n` +
-          'Please follow the instructions in the email to complete the Synchronizer registration. \n' +
-          'If you have already followed the instructions, please wait patiently for the next confirmation email.\n' +
-          `-----------------------------------------------${Font.reset}`
+        `To become a Synchronizer, please send an email to ${Font.fgCyan}${Font.bright}support@exsat.org${Font.reset} to submit your application.\n`
       );
       process.exit(0);
     }
@@ -334,23 +322,16 @@ export class SynchronizerCommander {
    * Checks the registration status of the account.
    */
   async checkAccountRegistrationStatus() {
-    let checkAccountInfo;
-    do {
-      checkAccountInfo = await checkUserAccountExist(this.exsatAccountInfo.accountName);
-      let menus;
-      switch (checkAccountInfo.status) {
-        case 'completed':
-          this.exsatAccountInfo = {
-            ...this.exsatAccountInfo,
-            ...checkAccountInfo,
-          };
-          break;
-        case 'failed':
-        case 'initial':
-        default:
-          throw new Error(`Invalid account: status_${checkAccountInfo.status}`);
-      }
-    } while (checkAccountInfo.status !== 'completed');
+    const checkAccountInfo = await getUserAccount(this.exsatAccountInfo.accountName);
+    if (!checkAccountInfo) {
+      showInfo({
+        'Account Name': this.exsatAccountInfo.accountName,
+        'Public Key': this.exsatAccountInfo.publicKey,
+        'Register Url': `${REGISTER_URL}?account=${this.exsatAccountInfo.accountName}&pubkey=${this.exsatAccountInfo.publicKey}`,
+      });
+      process.exit(0);
+    }
+    return true;
   }
 
   /**

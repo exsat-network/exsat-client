@@ -59,3 +59,6 @@ export function computeStakerId(proxy: string, staker: string, validator: Name):
   result.writeBigUInt64LE(validator.value.value, 40);
   return sha256(result).toString('hex');
 }
+export function evmAddressToChecksum(address: string) {
+  return Checksum160.from(Buffer.from(address.slice(2), 'hex'));
+}

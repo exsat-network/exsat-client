@@ -4,20 +4,33 @@ import { chargeBtcGas, checkExsatUrls, exportPrivateKey, notAccountMenu, resetBt
 import fs from 'node:fs';
 import process from 'node:process';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
-import { getErrorMessage, isValidUrl, reloadEnv, retry, showInfo, sleep, updateEnvFile } from '../utils/common';
+import {
+  getErrorMessage,
+  isValidEvmAddress,
+  isValidUrl,
+  reloadEnv,
+  retry,
+  showInfo,
+  sleep,
+  updateEnvFile,
+} from '../utils/common';
 import { confirm, input, password, select, Separator } from '@inquirer/prompts';
-import { EXSAT_RPC_URLS, SET_VALIDATOR_DONATE_RATIO } from '../utils/config';
+import { EXSAT_RPC_URLS, REGISTER_URL, SET_VALIDATOR_DONATE_RATIO } from '../utils/config';
 import { logger } from '../utils/logger';
 import { inputWithCancel } from '../utils/input';
 import { Client, ClientType, ContractName } from '../utils/enumeration';
 import { Font } from '../utils/font';
-import { checkUserAccountExist } from './account';
+import { getUserAccount } from './account';
+import { Checksum160 } from '@wharfkit/antelope';
+import { evmAddressToChecksum } from '../utils/key';
 
 export class ValidatorCommander {
   private exsatAccountInfo: any;
   private validatorInfo: any;
   private tableApi: TableApi;
   private exsatApi: ExsatApi;
+
+  constructor(private role) {}
 
   /**
    * Main entry point for the ValidatorCommander.
@@ -26,7 +39,7 @@ export class ValidatorCommander {
   async main() {
     // Check if keystore exists
     while (!fs.existsSync(process.env.VALIDATOR_KEYSTORE_FILE)) {
-      await notAccountMenu(Client.Validator);
+      await notAccountMenu(this.role);
       reloadEnv();
     }
 
@@ -36,7 +49,7 @@ export class ValidatorCommander {
     await this.checkValidatorRegistrationStatus();
     await this.checkRewardsAddress();
     // await this.checkCommission();
-    await this.checkDonateSetting();
+    // await this.checkDonateSetting();
     await this.checkBtcRpcNode();
 
     // Display the main manager menu
@@ -54,43 +67,45 @@ export class ValidatorCommander {
 
     let showMessageInfo: any = {
       'Account Name': accountName,
+      'Account Role': this.exsatAccountInfo.role.toUpperCase().replace('_', ' '),
       'Public Key': this.exsatAccountInfo.publicKey,
       'BTC Balance Used for Gas Fee': btcBalance,
-      'Reward Address': validator.memo ?? validator.reward_recipient,
+      'Reward Address': validator.reward_address ? `0x${validator.reward_address}` : '',
+      'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
       'Commission Ratio': `${validator.commission_rate / 100}%` ?? '0%',
       'Donation Ratio': `${validator.donate_rate / 100}%` ?? '0%',
       'BTC PRC Node': process.env.BTC_RPC_URL ?? '',
       'BTC Staked': validator.quantity,
+      'XSAT Staked': validator.xsat_quantity,
       'Eligible for Verification': parseFloat(validator.quantity) >= 100 ? 'Yes' : 'No, requires min 100 BTC staked',
       'Account Registration Status': 'Registered',
       'Validator Registration Status': 'Registered',
     };
+    if (this.exsatAccountInfo.role == Client.XSATValidaotr) {
+      delete showMessageInfo['Reward Address'];
+    }
     showInfo(showMessageInfo);
 
     let menus = [
-      {
+      /* {
         name: 'Recharge Gas',
         value: 'recharge_btc',
         description: 'Recharge Gas',
-      },
+      },*/
       {
-        name: 'Change Reward Address',
-        value: 'set_reward_address',
-        description: 'Set/Change Reward Address',
-        disabled: !validator,
+        name: 'Change Stake Address',
+        value: 'set_stake_address',
+        description: 'Set/Change Stake Address',
+        disabled:
+          this.exsatAccountInfo.role == Client.BTCValidator ? validator.quantity == 0 : validator.xsat_quantity == 0,
       },
-      {
-        name: 'Change Commission Ratio',
-        value: 'set_commission_ratio',
-        description: 'Set/Change Reward Address',
-        disabled: !validator,
-      },
-      {
+
+      /* {
         name: `${validator?.donate_rate ? 'Change' : 'Set'} Donation Ratio`,
         value: 'set_donation_ratio',
         description: 'Set/Change Donation Ratio',
         disabled: !validator,
-      },
+      },*/
       {
         name: 'Change BTC RPC Node',
         value: 'reset_btc_rpc',
@@ -109,20 +124,30 @@ export class ValidatorCommander {
       new Separator(),
       { name: 'Quit', value: 'quit', description: 'Quit' },
     ];
-
-    if (!activedInfo) {
-      menus.unshift({
-        name: 'Compete to win a Validator quota',
-        value: 'activate_validator',
-        description: 'To activate validator',
-      });
+    if (this.exsatAccountInfo.role == Client.BTCValidator) {
+      menus.splice(
+        1,
+        0,
+        {
+          name: 'Change Reward Address',
+          value: 'set_reward_address',
+          description: 'Set/Change Reward Address',
+          disabled: !validator,
+        },
+        {
+          name: 'Change Commission Ratio',
+          value: 'set_commission_ratio',
+          description: 'Set/Change Reward Address',
+          disabled: !validator,
+        }
+      );
     }
-
     const actions: { [key: string]: () => Promise<any> } = {
       recharge_btc: async () => {
         return await chargeBtcGas();
       },
       set_reward_address: async () => await this.setRewardAddress(),
+      set_stake_address: async () => await this.setStakeAddress(),
       set_commission_ratio: async () => await this.setCommissionRatio(),
       set_donation_ratio: async () => await this.setDonationRatio(),
       reset_btc_rpc: async () => await resetBtcRpcUrl(),
@@ -182,28 +207,55 @@ export class ValidatorCommander {
    * Sets the reward address for the validator.
    */
   async setRewardAddress() {
-    const financialAccount = await inputWithCancel('Enter reward address(Input "q" to return): ', (input: string) => {
+    const rewardAddress = await inputWithCancel('Enter reward address(Input "q" to return): ', (input: string) => {
       if (!/^0x[a-fA-F0-9]{40}$/.test(input)) {
         return 'Please enter a valid account name.';
       }
       return true;
     });
-    if (!financialAccount) {
+    if (!rewardAddress) {
       return false;
     }
     const data = {
       validator: this.exsatAccountInfo.accountName,
-      financial_account: financialAccount,
-      commission_rate: null,
+      reward_addr: evmAddressToChecksum(rewardAddress),
     };
 
-    const res: any = await this.exsatApi.executeAction(ContractName.endrmng, 'config', data);
+    const res: any = await this.exsatApi.executeAction(ContractName.endrmng, 'setrwdaddr', data);
     if (res && res.transaction_id) {
-      logger.info(`Set reward address: ${financialAccount} successfully`);
+      logger.info(`Set reward address: ${rewardAddress} successfully`);
       await this.updateValidatorInfo();
       return true;
     } else {
-      logger.error(`Validator[${this.exsatAccountInfo.accountName}] Set reward address: ${financialAccount} failed`);
+      logger.error(`Validator[${this.exsatAccountInfo.accountName}] Set reward address: ${rewardAddress} failed`);
+      return false;
+    }
+  }
+  /**
+   * Sets the reward address for the validator.
+   */
+  async setStakeAddress() {
+    const stakeAddress = await inputWithCancel('Enter stake address(Input "q" to return): ', (input: string) => {
+      if (!/^0x[a-fA-F0-9]{40}$/.test(input)) {
+        return 'Please enter a valid account name.';
+      }
+      return true;
+    });
+    if (!stakeAddress) {
+      return false;
+    }
+    const data = {
+      validator: this.exsatAccountInfo.accountName,
+      stake_addr: evmAddressToChecksum(stakeAddress),
+    };
+
+    const res: any = await this.exsatApi.executeAction(ContractName.endrmng, 'evmsetstaker', data);
+    if (res && res.transaction_id) {
+      logger.info(`Set stake address: ${stakeAddress} successfully`);
+      await this.updateValidatorInfo();
+      return true;
+    } else {
+      logger.error(`Validator[${this.exsatAccountInfo.accountName}] Set stake address: ${stakeAddress} failed`);
       return false;
     }
   }
@@ -375,7 +427,7 @@ export class ValidatorCommander {
    * Decrypts the keystore file to retrieve account information.
    */
   async decryptKeystore() {
-    let password = getConfigPassword(ClientType.Validator);
+    let password = getConfigPassword(ClientType.BTCValidator);
     let accountInfo;
     if (password) {
       password = password.trim();
@@ -401,26 +453,27 @@ export class ValidatorCommander {
    */
   async checkValidatorRegistrationStatus() {
     const validatorInfo = await this.tableApi.getValidatorInfo(this.exsatAccountInfo.accountName);
-    const btcBalance = await this.tableApi.getAccountBalance(this.exsatAccountInfo.accountName);
 
-    if (validatorInfo) {
-      this.validatorInfo = validatorInfo;
-      return true;
+    if (!validatorInfo) {
+      const menus = [
+        { name: 'Register Validator', value: 'registerValidator' },
+        new Separator(),
+        { name: 'Quit', value: 'quit', description: 'Quit' },
+      ];
+
+      const actions: { [key: string]: () => Promise<any> } = {
+        registerValidator: async () => await this.registerValidator(),
+        quit: async () => process.exit(0),
+      };
+      let action;
+      let res;
+      do {
+        action = await select({ message: 'Select an Action: ', choices: menus });
+        res = await (actions[action] || (() => {}))();
+      } while (!res);
+      this.validatorInfo = await this.tableApi.getValidatorInfo(this.exsatAccountInfo.accountName);
     } else {
-      showInfo({
-        'Account Name': this.exsatAccountInfo.accountName,
-        'Public Key': this.exsatAccountInfo.publicKey,
-        'BTC Balance Used for Gas Fee': btcBalance,
-        'Account Registration Status': 'Registered',
-        'Validator Registration Status': 'Registering',
-      });
-      //todo notice a url to check the status of registration
-      console.log(
-        'The account has been registered, and a confirmation email has been sent to your inbox. \n' +
-          'Please follow the instructions in the email to complete the Validator registration. \n' +
-          'If you have already followed the instructions, please wait patiently for the next confirmation email.'
-      );
-      process.exit(0);
+      this.validatorInfo = validatorInfo;
     }
   }
 
@@ -428,36 +481,16 @@ export class ValidatorCommander {
    * Checks the registration status of the account.
    */
   async checkAccountRegistrationStatus() {
-    let checkAccountInfo;
-    do {
-      checkAccountInfo = await checkUserAccountExist(this.exsatAccountInfo.accountName);
-      let menus;
-      switch (checkAccountInfo.status) {
-        case 'completed':
-          this.exsatAccountInfo = {
-            ...this.exsatAccountInfo,
-            ...checkAccountInfo,
-          };
-          break;
-        case 'failed':
-        case 'initial':
-          break;
-        case 'charging':
-          showInfo({
-            'Account Name': this.exsatAccountInfo.accountName,
-            'Public Key': this.exsatAccountInfo.publicKey,
-            'Account Registration Status': 'Registering',
-          });
-          //todo notice a url to check the status of registration
-          console.log(
-            `${Font.fgCyan}${Font.bright}Account registration may take a moment, please wait.\nConfirmation email will be sent to your inbox after the account registration is complete.\nPlease follow the instructions in the email to complete the subsequent Validator registration.\n-----------------------------------------------${Font.reset}`
-          );
-          process.exit(0);
-          return;
-        default:
-          throw new Error(`Invalid account: status_${checkAccountInfo.status}`);
-      }
-    } while (checkAccountInfo.status !== 'completed');
+    const checkAccountInfo = await getUserAccount(this.exsatAccountInfo.accountName);
+    if (!checkAccountInfo) {
+      showInfo({
+        'Account Name': this.exsatAccountInfo.accountName,
+        'Public Key': this.exsatAccountInfo.publicKey,
+        'Register Url': `${REGISTER_URL}?account=${this.exsatAccountInfo.accountName}&pubkey=${this.exsatAccountInfo.publicKey}`,
+      });
+      process.exit(0);
+    }
+    return true;
   }
 
   /**
@@ -467,7 +500,7 @@ export class ValidatorCommander {
     const accountName = this.exsatAccountInfo.accountName;
     const btcBalance = await this.tableApi.getAccountBalance(accountName);
     const validatorInfo = this.validatorInfo;
-    if (!validatorInfo.memo) {
+    if (!validatorInfo.reward_address) {
       logger.info('Reward address is not set.');
       showInfo({
         'Account Name': accountName,
@@ -512,7 +545,7 @@ export class ValidatorCommander {
         'Account Name': accountName,
         'Public Key': this.exsatAccountInfo.publicKey,
         'BTC Balance Used for Gas Fee': btcBalance,
-        'Reward Address': validatorInfo.memo ?? validatorInfo.reward_recipient,
+        'Reward Address': validatorInfo.reward_address ? `0x${validatorInfo.reward_address}` : '',
         'Commission Ratio': 'Unset',
         'Account Registration Status': 'Registered',
         'Validator Registration Status': 'Registered',
@@ -567,7 +600,7 @@ export class ValidatorCommander {
         'Account Name': accountName,
         'Public Key': this.exsatAccountInfo.publicKey,
         'BTC Balance Used for Gas Fee': btcBalance,
-        'Reward Address': validatorInfo.memo ?? validatorInfo.reward_recipient,
+        'Reward Address': validatorInfo.reward_address ? `0x${validatorInfo.reward_address}` : '',
         'BTC PRC Node': 'Unset',
         'Account Registration Status': 'Registered',
         'Validator Registration Status': 'Registered',
@@ -601,5 +634,49 @@ export class ValidatorCommander {
   async updateValidatorInfo() {
     await sleep(1000);
     this.validatorInfo = await this.tableApi.getValidatorInfo(this.exsatAccountInfo.accountName);
+  }
+
+  async registerValidator() {
+    const role = this.exsatAccountInfo.role;
+    const stakeAddress = await input({
+      message: 'Enter your stake address: ',
+      validate: (value) => {
+        return isValidEvmAddress(value) ? true : 'Invalid address';
+      },
+    });
+    let claimableAddress;
+    let commissionRate;
+    if (role === Client.BTCValidator) {
+      claimableAddress = await input({
+        message: 'Enter your claimable address: ',
+        validate: (value) => {
+          return isValidEvmAddress(value) ? true : 'Invalid address';
+        },
+      });
+      commissionRate = await input({
+        message: 'Enter your commission rate (0-100): ',
+        validate: (value) => {
+          //Determine whether it is a number between 0.00-100.00
+          const num = parseFloat(value);
+          // Check if it is a valid number and within the range
+          if (!isNaN(num) && num >= 0 && num <= 100 && /^\d+(\.\d{1,2})?$/.test(value)) {
+            return true;
+          }
+          return 'Please enter a valid number between 0.00 and 100.00';
+        },
+      });
+    }
+    const data = {
+      validator: this.exsatAccountInfo.accountName,
+      role: role == Client.BTCValidator ? 0 : 1,
+      stake_addr: evmAddressToChecksum(stakeAddress),
+      reward_addr: claimableAddress ? evmAddressToChecksum(claimableAddress) : null,
+      commission_rate: commissionRate ? parseFloat(commissionRate) * 100 : null,
+    };
+
+    const res: any = await this.exsatApi.executeAction(ContractName.endrmng, 'newregvldtor', data);
+    await sleep(1000);
+
+    return res;
   }
 }

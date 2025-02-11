@@ -265,7 +265,7 @@ class ExsatApi {
   }
 
   public async heartbeat(type: number) {
-    const clientType = type === ClientType.Synchronizer ? Client.Synchronizer : Client.Validator;
+    const clientType = type === ClientType.Synchronizer ? Client.Synchronizer : Client.BTCValidator;
     try {
       const version = await Version.getLocalVersion();
       const result = await this.executeAction(ContractName.rescmng, 'checkclient', {
