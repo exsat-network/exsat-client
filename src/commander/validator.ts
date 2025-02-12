@@ -105,7 +105,7 @@ export class ValidatorCommander {
         name: 'Change Stake Address',
         value: 'set_stake_address',
         description: 'Set/Change Stake Address',
-        disabled: validator.role ? parseFloat(validator.xsat_quantity) == 0 : parseFloat(validator.quantity) == 0,
+        disabled: validator.role ? parseFloat(validator.xsat_quantity) != 0 : parseFloat(validator.quantity) != 0,
       },
 
       /* {
