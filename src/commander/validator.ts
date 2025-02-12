@@ -74,7 +74,13 @@ export class ValidatorCommander {
       'Commission Ratio': `${validator.commission_rate / 100}%` ?? '0%',
       'BTC Staked': validator.quantity,
       'XSAT Staked': validator.xsat_quantity,
-      'Eligible for Verification': parseFloat(validator.quantity) >= 100 ? 'Yes' : 'No, requires min 100 BTC staked',
+      'Eligible for Verification': validator.role
+        ? parseFloat(validator.xsat_quantity) >= 2100
+          ? 'Yes'
+          : 'No, requires min 2100 XSAT staked'
+        : parseFloat(validator.quantity) >= 100
+          ? 'Yes'
+          : 'No, requires min 100 BTC staked',
       'Account Registration Status': 'Registered',
       'Validator Registration Status': 'Registered',
       'BTC PRC Node': process.env.BTC_RPC_URL ?? '',
