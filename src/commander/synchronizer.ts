@@ -59,34 +59,16 @@ export class SynchronizerCommander {
       'BTC PRC Node': process.env.BTC_RPC_URL ?? '',
       'Account Registration Status': 'Registered',
       'Synchronizer Registration Status': 'Registered',
-      'Memory Slot': synchronizer.num_slots,
     };
     showInfo(showMessageInfo);
 
     const menus = [
-      /*      {
-        name: 'Recharge Gas',
-        value: 'recharge_btc',
-        description: 'Recharge Gas',
-      },*/
       {
         name: synchronizer?.reward_recipient ? 'Change Reward Address' : 'Set Reward Address',
         value: 'set_reward_address',
         description: 'Set/Change Reward Address',
         disabled: !synchronizer,
       },
-      /*      {
-        name: `${synchronizer?.donate_rate ? 'Change' : 'Set'} Donation Ratio`,
-        value: 'set_donation_ratio',
-        description: 'Set/Change Donation Ratio',
-        disabled: !synchronizer,
-      },
-      {
-        name: 'Purchase Memory Slot',
-        value: 'purchase_memory_slot',
-        description: 'Purchase Memory Slot',
-        disabled: !synchronizer,
-      },*/
       {
         name: 'Change BTC RPC Node',
         value: 'reset_btc_rpc',
