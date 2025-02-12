@@ -33,7 +33,7 @@ async function main() {
   }
   // Prompt user to select a client to start
   const role = await select({
-    message: 'Please select the client to start: ',
+    message: 'Please select a role to start: ',
     choices: menus,
   });
 

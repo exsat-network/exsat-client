@@ -54,11 +54,10 @@ export class SynchronizerCommander {
     const showMessageInfo = {
       'Account Name': accountName,
       'Public Key': this.exsatAccountInfo.publicKey,
-      'BTC Balance Used for Gas Fee': btcBalance,
+      'Gas Balance': `${btcBalance} BTC`,
       'Reward Address': synchronizer.memo ?? synchronizer.reward_recipient,
-      'BTC PRC Node': process.env.BTC_RPC_URL ?? '',
-      'Account Registration Status': 'Registered',
-      'Synchronizer Registration Status': 'Registered',
+      'BTC RPC Node': process.env.BTC_RPC_URL ?? '',
+      'Eligible for Consensus': 'Yes',
     };
     showInfo(showMessageInfo);
 
@@ -293,7 +292,7 @@ export class SynchronizerCommander {
       return true;
     } else {
       console.log(
-        `To become a Synchronizer, please send an email to ${Font.fgCyan}${Font.bright}support@exsat.org${Font.reset} to submit your application.\n`
+        `In order to activate your account, please contact our admin via email (${Font.fgCyan}${Font.bright}support@exsat.org${Font.reset}).\n`
       );
       process.exit(0);
     }
@@ -310,6 +309,9 @@ export class SynchronizerCommander {
         'Public Key': this.exsatAccountInfo.publicKey,
         'Register Url': `${REGISTER_URL}?account=${this.exsatAccountInfo.accountName}&pubkey=${this.exsatAccountInfo.publicKey}`,
       });
+      console.log(
+        'Please note that your registration has not finished yet! \nPlease copy the Register Url and paste to your browser to finish the registration.'
+      );
       process.exit(0);
     }
     return true;

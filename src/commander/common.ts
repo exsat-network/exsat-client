@@ -45,7 +45,7 @@ export async function notAccountMenu(role) {
   let res;
   do {
     const action = await select({
-      message: 'Select an Action: ',
+      message: 'Create a new account or use your exist account: ',
       choices: menus,
     });
     res = await (actions[action] || (async () => {}))();
