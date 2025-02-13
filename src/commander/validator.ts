@@ -484,8 +484,9 @@ export class ValidatorCommander {
     if (!checkAccountInfo) {
       showInfo({
         'Account Name': this.exsatAccountInfo.accountName,
+        'Account Role': this.exsatAccountInfo.role == Client.BTCValidator ? 'BTC Validator' : 'XSAT Validator',
         'Public Key': this.exsatAccountInfo.publicKey,
-        'Register Url': `${REGISTER_URL}?account=${this.exsatAccountInfo.accountName}&pubkey=${this.exsatAccountInfo.publicKey}`,
+        'Register Url': `${REGISTER_URL}?account=${this.exsatAccountInfo.accountName}&pubkey=${this.exsatAccountInfo.publicKey}&role=${this.exsatAccountInfo.role}`,
       });
       console.log(
         'Please note that your registration has not finished yet! \nPlease copy the Register Url and paste to your browser to finish the registration.'
