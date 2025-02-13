@@ -17,6 +17,7 @@ import {
 
 export class ValidatorState {
   accountName: string = '';
+  accountRole: 0;
   exsatApi: ExsatApi | null = null;
   tableApi: TableApi | null = null;
   lastEndorseHeight: number = 0;
@@ -95,6 +96,7 @@ async function main() {
 
   const state = new ValidatorState();
   state.accountName = accountInfo.accountName;
+  state.accountRole = (await tableApi.getValidatorInfo(accountInfo.accountName)).role;
   state.exsatApi = exsatApi;
   state.tableApi = tableApi;
 

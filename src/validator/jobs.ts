@@ -9,6 +9,7 @@ import {
 } from '../utils/prom';
 import { ValidatorState } from './index';
 import { getblockcount, getblockhash } from '../utils/bitcoin';
+import BN from 'bn.js';
 
 export class ValidatorJobs {
   constructor(public state: ValidatorState) {}
@@ -26,7 +27,8 @@ export class ValidatorJobs {
 
   // Check if an endorsement is needed and submit if necessary
   async checkAndSubmit(accountName: string, height: number, hash: string) {
-    const endorsement = await this.state.tableApi!.getEndorsementByBlockId(height, hash);
+    const scope = this.state ? this.xsatScope(height) : height;
+    const endorsement = await this.state.tableApi!.getEndorsementByBlockId(scope, hash);
     if (endorsement) {
       let isQualified = this.isEndorserQualified(endorsement.requested_validators, accountName);
       if (isQualified && !this.isEndorserQualified(endorsement.provider_validators, accountName)) {
@@ -150,6 +152,13 @@ export class ValidatorJobs {
       this.state.endorseCheckRunning = false;
     }
   };
+  xsatScope(height: number) {
+    const num1 = new BN(338896);
+    const num2 = new BN('100000000', 16);
+
+    const result = num1.or(num2);
+    return Number(result);
+  }
 
   heartbeat = async () => {
     await this.state.exsatApi!.heartbeat(ClientType.Validator);
