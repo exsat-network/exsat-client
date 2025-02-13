@@ -142,32 +142,21 @@ async function generateKeystore(username, role) {
 }
 
 async function importAccountAndSaveKeystore(privateKey) {
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    try {
-      const accountName = await input({
-        message: 'Enter your account name (1-8 characters): ',
-      });
-      const fullAccountName = accountName.endsWith('.sat') ? accountName : `${accountName}.sat`;
-      const accountInfo: any = await getUserAccount(fullAccountName);
-
-      if (
-        privateKey.toPublic().toString() === accountInfo.pubkey ||
-        privateKey.toPublic().toLegacyString() === accountInfo.pubkey
-      ) {
-        return { accountName, ...accountInfo };
-      }
-
-      console.log(`Attempt ${attempt}: Account name is not matched.`);
-    } catch (error: any) {
-      console.log(`Attempt ${attempt}: ${error.message}`);
+  return await retry(async () => {
+    const accountName = await input({
+      message: 'Enter your account name (1-8 characters): ',
+    });
+    const fullAccountName = accountName.endsWith('.sat') ? accountName : `${accountName}.sat`;
+    const accountInfo: any = await getUserAccount(fullAccountName);
+    if (
+      privateKey.toPublic().toString() === accountInfo.pubkey ||
+      privateKey.toPublic().toLegacyString() === accountInfo.pubkey
+    ) {
+      return { accountName, ...accountInfo };
     }
-
-    if (attempt < 3) {
-      console.log('Retrying...');
-    }
-  }
-
-  throw new Error('Failed after 3 attempts.');
+    console.log(`${Font.fgYellow}${Font.bright}Account name is not matched, please try again.${Font.reset}`);
+    throw new Error('Account name is not matched.');
+  }, 3);
 }
 
 async function inputMnemonic() {
