@@ -12,6 +12,8 @@ import { inputWithCancel } from '../utils/input';
 import { chargeBtcGas, checkExsatUrls, exportPrivateKey, notAccountMenu, resetBtcRpcUrl, setBtcRpcUrl } from './common';
 import { Font } from '../utils/font';
 import { getUserAccount } from './account';
+import { getblockcount } from '../utils/bitcoin';
+import { evmAddressToChecksum } from '../utils/key';
 
 export class SynchronizerCommander {
   private exsatAccountInfo: any;
@@ -69,6 +71,12 @@ export class SynchronizerCommander {
         disabled: !synchronizer,
       },
       {
+        name: 'Revote For Consensus',
+        value: 'revote',
+        description: 'Revote For Consensus',
+        disabled: !synchronizer,
+      },
+      {
         name: 'Change BTC RPC Node',
         value: 'reset_btc_rpc',
         description: 'Change BTC RPC Node',
@@ -91,6 +99,7 @@ export class SynchronizerCommander {
       recharge_btc: async () => {
         return await chargeBtcGas();
       },
+      revote: async () => await this.revoteForConsensus(),
       set_reward_address: async () => await this.setRewardAddress(),
       set_donation_ratio: async () => await this.setDonationRatio(),
       purchase_memory_slot: async () => await this.purchaseSlots(),
@@ -417,5 +426,39 @@ export class SynchronizerCommander {
   async updateSynchronizerInfo() {
     await sleep(1000);
     this.synchronizerInfo = await this.tableApi.getSynchronizerInfo(this.exsatAccountInfo.accountName);
+  }
+
+  async revoteForConsensus() {
+    const height = await inputWithCancel('Enter the height you want to revote for: ', async (value) => {
+      const num = parseInt(value.trim());
+      if (isNaN(num)) {
+        return 'Please enter a valid number.';
+      }
+      let irreversibleHeight = (await this.tableApi.getChainstate()).irreversible_height;
+      if (num <= irreversibleHeight || num > irreversibleHeight + 7) {
+        return `Please enter a height between ${irreversibleHeight + 1} and ${irreversibleHeight + 7}.`;
+      }
+      return true;
+    });
+    if (!height) return false;
+    const data = {
+      synchronizer: this.exsatAccountInfo.accountName,
+      height: parseInt(height),
+    };
+    try {
+      const res: any = await this.exsatApi.executeAction(ContractName.blkendt, 'revote', data, false);
+      return res;
+    } catch (e: any) {
+      if (e.message.startsWith('assertion failure with message: 2006')) {
+        console.error('Revote failed, you must produce a block within 72 hours.');
+        return true;
+      } else {
+        logger.info(
+          `Transaction result, account: ${ContractName.blkendt}, name: 'revote', data: ${JSON.stringify(data)}`,
+          e
+        );
+        throw e;
+      }
+    }
   }
 }
