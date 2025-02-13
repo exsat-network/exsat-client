@@ -27,7 +27,7 @@ export class ValidatorJobs {
 
   // Check if an endorsement is needed and submit if necessary
   async checkAndSubmit(accountName: string, height: number, hash: string) {
-    const scope = this.state ? this.xsatScope(height) : height;
+    const scope = this.state.accountRole ? this.xsatScope(height) : height;
     const endorsement = await this.state.tableApi!.getEndorsementByBlockId(scope, hash);
     if (endorsement) {
       let isQualified = this.isEndorserQualified(endorsement.requested_validators, accountName);
