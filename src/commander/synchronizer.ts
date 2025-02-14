@@ -1,9 +1,9 @@
-import { isValidUrl, reloadEnv, retry, showInfo, sleep, updateEnvFile } from '../utils/common';
+import { getErrorMessage, isValidUrl, reloadEnv, retry, showInfo, sleep, updateEnvFile } from '../utils/common';
 import { EXSAT_RPC_URLS, REGISTER_URL, SET_SYNCHRONIZER_DONATE_RATIO } from '../utils/config';
-import { password, select, Separator } from '@inquirer/prompts';
+import { input, password, select, Separator } from '@inquirer/prompts';
 import process from 'node:process';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
-import { Client, ClientType, ContractName } from '../utils/enumeration';
+import { Client, ClientType, ContractName, ErrorCode } from '../utils/enumeration';
 import { logger } from '../utils/logger';
 import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
@@ -56,7 +56,7 @@ export class SynchronizerCommander {
     const showMessageInfo = {
       'Account Name': accountName,
       'Public Key': this.exsatAccountInfo.publicKey,
-      'Gas Balance': `${btcBalance} BTC`,
+      'Gas Balance': btcBalance ? btcBalance : `${btcBalance} BTC`,
       'Reward Address': synchronizer.memo ?? synchronizer.reward_recipient,
       'BTC RPC Node': process.env.BTC_RPC_URL ?? '',
       'Eligible for Consensus': 'Yes',
@@ -429,17 +429,20 @@ export class SynchronizerCommander {
   }
 
   async revoteForConsensus() {
-    const height = await inputWithCancel('Enter the height you want to revote for: ', async (value) => {
-      const num = parseInt(value.trim());
-      if (isNaN(num)) {
-        return 'Please enter a valid number.';
+    const height = await inputWithCancel(
+      'Enter the height you want to revote for(Input "q" to return): ',
+      async (value) => {
+        const num = parseInt(value.trim());
+        if (isNaN(num)) {
+          return 'Please enter a valid number.';
+        }
+        let irreversibleHeight = (await this.tableApi.getChainstate()).irreversible_height;
+        if (num <= irreversibleHeight || num > irreversibleHeight + 7) {
+          return `Please enter a height between ${irreversibleHeight + 1} and ${irreversibleHeight + 7}.`;
+        }
+        return true;
       }
-      let irreversibleHeight = (await this.tableApi.getChainstate()).irreversible_height;
-      if (num <= irreversibleHeight || num > irreversibleHeight + 7) {
-        return `Please enter a height between ${irreversibleHeight + 1} and ${irreversibleHeight + 7}.`;
-      }
-      return true;
-    });
+    );
     if (!height) return false;
     const data = {
       synchronizer: this.exsatAccountInfo.accountName,
@@ -447,10 +450,12 @@ export class SynchronizerCommander {
     };
     try {
       const res: any = await this.exsatApi.executeAction(ContractName.blkendt, 'revote', data, false);
+      await input({ message: `Revote successfully at height: ${data.height}, press [Enter] to continue...` });
       return res;
     } catch (e: any) {
-      if (e.message.startsWith('assertion failure with message: 2006')) {
-        console.error('Revote failed, you must produce a block within 72 hours.');
+      const errorMessage = getErrorMessage(e);
+      if (errorMessage.startsWith(ErrorCode.Code2006) || errorMessage.startsWith(ErrorCode.Code2007)) {
+        console.error(errorMessage);
         return true;
       } else {
         logger.info(
