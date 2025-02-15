@@ -94,7 +94,7 @@ class ExsatApi {
    * @returns Boolean indicating if the switch was successful.
    */
   private async switchNode(attemptCount: number = 0): Promise<boolean> {
-    if (this.nodes.length <= 1 || attemptCount >= this.nodes.length) {
+    if (attemptCount >= this.nodes.length) {
       return false;
     }
 
@@ -163,12 +163,16 @@ class ExsatApi {
       logger.warn(`Operation failed, retrying in ${delay}ms...`);
       await sleep(delay);
 
-      const switchResult = await this.switchNode();
-      if (!switchResult) {
-        throw new Error('All nodes are invalid');
+      let switchRetryCount = 0;
+      while (!(await this.switchNode())) {
+        // Go to sleep when all nodes are unavailable
+        const sleepTime = Math.min(1000 * Math.pow(2, switchRetryCount), 10000); // Maximum sleep time is 10 minutes
+        logger.warn(`All nodes are unavailable. Sleeping for ${sleepTime / 1000} seconds.`);
+        await sleep(sleepTime);
+        switchRetryCount++;
       }
 
-      return this.retryWithExponentialBackoff(operation, retryCount + 1);
+      return await this.retryWithExponentialBackoff(operation, retryCount + 1);
     }
   }
 
@@ -331,7 +335,7 @@ class ExsatApi {
       fetch_all: false,
     }
   ): Promise<T[]> {
-    return this.retryWithExponentialBackoff(async () => {
+    return await this.retryWithExponentialBackoff(async () => {
       let rows: T[] = [];
       let lower_bound = options.lower_bound;
       let more = true;
