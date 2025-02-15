@@ -30,12 +30,16 @@ export function getAmountFromQuantity(quantity: string): number {
  * @returns A promise that resolves to the data containing RPC URLs.
  */
 export async function getRpcUrls() {
-  const response = await axios.get(`${process.env.ACCOUNT_INITIALIZER_API_BASE_URL}/api/config/exsat_config`, {
-    headers: {
-      'x-api-key': process.env.ACCOUNT_INITIALIZER_API_SECRET,
-    },
-  });
-  return response.data;
+  const network = process.env.NETWORK || 'mainnet';
+  try {
+    const response = await axios.get(
+      `https://raw.githubusercontent.com/exsat-network/configurations/refs/heads/main/src/${network}-rpc.json`
+    );
+    return response.data.native.nodes;
+  } catch (error) {
+    logger.error('Failed to get ExSat RPC URLs', error);
+    throw error;
+  }
 }
 
 /**
@@ -53,9 +57,9 @@ export async function envCheck(keystoreFile: string) {
   }
   if (EXSAT_RPC_URLS.length === 0) {
     const result = await getRpcUrls();
-    if (result && result.status === 'success' && result.info?.exsat_rpc) {
+    if (result) {
       // @ts-ignore
-      EXSAT_RPC_URLS = result.info.exsat_rpc;
+      EXSAT_RPC_URLS = result;
     }
   }
   if (EXSAT_RPC_URLS.length === 0) {
