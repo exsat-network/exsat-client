@@ -68,7 +68,7 @@ export class ValidatorCommander {
       'Account Name': accountName,
       'Account Role': validator.role ? 'XSAT Validator' : 'BTC Validator',
       'Public Key': this.exsatAccountInfo.publicKey,
-      'Gas Balance': btcBalance ? btcBalance : `${btcBalance} BTC`,
+      'Gas Balance': btcBalance ? btcBalance : `0.00000000 BTC`,
       'Commission Ratio': `${validator.commission_rate / 100}%` ?? '0%',
       'Commission Address': validator.reward_address ? `0x${validator.reward_address}` : '',
       'BTC Staked': validator.quantity,

@@ -56,7 +56,7 @@ export class SynchronizerCommander {
     const showMessageInfo = {
       'Account Name': accountName,
       'Public Key': this.exsatAccountInfo.publicKey,
-      'Gas Balance': btcBalance ? btcBalance : `${btcBalance} BTC`,
+      'Gas Balance': btcBalance ? btcBalance : `0.00000000 BTC`,
       'Reward Address': synchronizer.memo ?? synchronizer.reward_recipient,
       'BTC RPC Node': process.env.BTC_RPC_URL ?? '',
       'Eligible for Consensus': 'Yes',
