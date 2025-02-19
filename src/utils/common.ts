@@ -1,6 +1,6 @@
 import axios from 'axios';
 import fs from 'node:fs';
-import { BTC_RPC_URL, CHUNK_SIZE, EXSAT_RPC_URLS } from './config';
+import { BTC_RPC_URL, CHUNK_SIZE, EXSAT_RPC_URLS, NETWORK_CONFIG } from './config';
 import { logger } from './logger';
 import { getblockcount } from './bitcoin';
 import path from 'node:path';
@@ -36,6 +36,27 @@ export async function getRpcUrls() {
       `https://raw.githubusercontent.com/exsat-network/configurations/refs/heads/main/src/${network}-rpc.json`
     );
     return response.data.native.nodes;
+  } catch (error) {
+    logger.error('Failed to get ExSat RPC URLs', error);
+    throw error;
+  }
+}
+
+export async function loadNetworkConfigurations() {
+  const network = process.env.NETWORK || 'mainnet';
+  try {
+    const response = await axios.get(
+      `https://raw.githubusercontent.com/exsat-network/configurations/refs/heads/main/src/${network}-network.json`
+    );
+
+    if (!EXSAT_RPC_URLS) {
+      // @ts-ignore
+      EXSAT_RPC_URLS = response.data.native.nodes;
+    }
+    if (!NETWORK_CONFIG) {
+      // @ts-ignore
+      NETWORK_CONFIG = response.data.app;
+    }
   } catch (error) {
     logger.error('Failed to get ExSat RPC URLs', error);
     throw error;

@@ -1,7 +1,7 @@
 import { confirm, input, select, Separator } from '@inquirer/prompts';
 import process from 'node:process';
 import { Font } from '../utils/font';
-import { CHARGE_BTC_URL, EXSAT_RPC_URLS } from '../utils/config';
+import { EXSAT_RPC_URLS } from '../utils/config';
 import { getRpcUrls, isValidUrl, updateEnvFile } from '../utils/common';
 import { Client } from '../utils/enumeration';
 import { logger } from '../utils/logger';
@@ -165,20 +165,6 @@ export async function resetBtcRpcUrl() {
     }
   }
   return await setBtcRpcUrl();
-}
-
-/**
- * Recharges the BTC gas.
- */
-export async function chargeBtcGas() {
-  console.log(
-    `\n${Font.bright}Please copy the link below and visit it in your browser to complete the BTC Gas recharge. \n${Font.fgCyan}Url: ${Font.reset}${Font.bright}${CHARGE_BTC_URL}${Font.reset}\n`
-  );
-  await input({ message: 'Press [Enter] to continue...' });
-  clearLines(1);
-  // deprecated
-  // await chargeBtcForResource(process.env.SYNCHRONIZER_KEYSTORE_FILE)
-  return true;
 }
 
 /**

@@ -5,9 +5,10 @@ import { ValidatorCommander } from './validator';
 import { Version } from '../utils/version';
 import { updateMenu } from './common';
 import { Client } from '../utils/enumeration';
-import { isExsatDocker, showInfo } from '../utils/common';
+import { isExsatDocker, loadNetworkConfigurations, showInfo } from '../utils/common';
 import fs from 'node:fs';
 import process from 'node:process';
+import { NETWORK_CONFIG } from '../utils/config';
 
 export const account = {};
 /**
@@ -15,10 +16,11 @@ export const account = {};
  * Checks for updates, displays user guide information, and prompts user to select a client to start.
  */
 async function main() {
+  await loadNetworkConfigurations();
   showInfo({
     'Please note':
       'It is highly recommended that you carefully read the user guide and follow the instructions precisely to avoid any unnecessary issues.',
-    'User Guide': 'https://docs.exsat.network/guides-of-data-consensus/quick-start',
+    'User Guide': `${NETWORK_CONFIG.user_guide}`,
   });
 
   // Define menu options for client selection

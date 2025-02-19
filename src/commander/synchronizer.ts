@@ -1,5 +1,5 @@
 import { getErrorMessage, isValidUrl, reloadEnv, retry, showInfo, sleep, updateEnvFile } from '../utils/common';
-import { EXSAT_RPC_URLS, REGISTER_URL, SET_SYNCHRONIZER_DONATE_RATIO } from '../utils/config';
+import { EXSAT_RPC_URLS, NETWORK_CONFIG, SET_SYNCHRONIZER_DONATE_RATIO } from '../utils/config';
 import { input, password, select, Separator } from '@inquirer/prompts';
 import process from 'node:process';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
@@ -9,11 +9,9 @@ import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
 import fs from 'node:fs';
 import { inputWithCancel } from '../utils/input';
-import { chargeBtcGas, checkExsatUrls, exportPrivateKey, notAccountMenu, resetBtcRpcUrl, setBtcRpcUrl } from './common';
+import { checkExsatUrls, exportPrivateKey, notAccountMenu, resetBtcRpcUrl, setBtcRpcUrl } from './common';
 import { Font } from '../utils/font';
 import { getUserAccount } from './account';
-import { getblockcount } from '../utils/bitcoin';
-import { evmAddressToChecksum } from '../utils/key';
 
 export class SynchronizerCommander {
   private exsatAccountInfo: any;
@@ -96,9 +94,6 @@ export class SynchronizerCommander {
     ];
 
     const actions: { [key: string]: () => Promise<any> } = {
-      recharge_btc: async () => {
-        return await chargeBtcGas();
-      },
       revote: async () => await this.revoteForConsensus(),
       set_reward_address: async () => await this.setRewardAddress(),
       set_donation_ratio: async () => await this.setDonationRatio(),
@@ -301,7 +296,7 @@ export class SynchronizerCommander {
       return true;
     } else {
       console.log(
-        `In order to activate your account, please contact our admin via email (${Font.fgCyan}${Font.bright}support@exsat.org${Font.reset}).\n`
+        `In order to activate your account, please contact our admin via email (${Font.fgCyan}${Font.bright}${NETWORK_CONFIG.sync_reg_email}${Font.reset}).\n`
       );
       process.exit(0);
     }
@@ -316,7 +311,7 @@ export class SynchronizerCommander {
       showInfo({
         'Account Name': this.exsatAccountInfo.accountName,
         'Public Key': this.exsatAccountInfo.publicKey,
-        'Register Url': `${REGISTER_URL}?account=${this.exsatAccountInfo.accountName}&pubkey=${this.exsatAccountInfo.publicKey}`,
+        'Register Url': `${NETWORK_CONFIG.register}?account=${this.exsatAccountInfo.accountName}&pubkey=${this.exsatAccountInfo.publicKey}`,
       });
       console.log(
         'Please note that your registration has not finished yet! \nPlease copy the Register Url and paste to your browser to finish the registration.'

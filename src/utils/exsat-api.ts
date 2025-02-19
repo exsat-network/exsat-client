@@ -7,7 +7,7 @@ import { getAmountFromQuantity, sleep } from './common';
 import { Client, ClientType, ContractName, IndexPosition } from './enumeration';
 import { Version } from './version';
 import { WalletPluginPrivateKey } from '@wharfkit/wallet-plugin-privatekey';
-import { RES_PERMISSION } from './config';
+import { NETWORK_CONFIG, RES_PERMISSION } from './config';
 
 class ExsatApi {
   private session: Session;
@@ -257,7 +257,7 @@ class ExsatApi {
       const balance = getAmountFromQuantity(returnValueData.balance);
       if (balance < 0.0001) {
         logger.error(
-          `The account[${this.accountName}] gas fee balance[${balance}] is insufficient. Please recharge through the menu`
+          `The account[${this.accountName}] gas fee balance[${balance}] is insufficient. \nPlease recharge at ${NETWORK_CONFIG.recharge}`
         );
         process.exit(1);
       }
@@ -293,7 +293,7 @@ class ExsatApi {
       const balance = getAmountFromQuantity(returnValueData.balance);
       if (balance < 0.0001) {
         logger.warn(
-          `The account[${this.accountName}] gas fee balance[${balance}] is insufficient. Please recharge through the menu`
+          `The account[${this.accountName}] gas fee balance[${balance}] is insufficient. \nPlease recharge at ${NETWORK_CONFIG.recharge}`
         );
       }
     } catch (e) {

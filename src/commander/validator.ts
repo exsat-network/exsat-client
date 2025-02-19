@@ -1,6 +1,6 @@
 import TableApi from '../utils/table-api';
 import ExsatApi from '../utils/exsat-api';
-import { chargeBtcGas, checkExsatUrls, exportPrivateKey, notAccountMenu, resetBtcRpcUrl, setBtcRpcUrl } from './common';
+import { checkExsatUrls, exportPrivateKey, notAccountMenu, resetBtcRpcUrl, setBtcRpcUrl } from './common';
 import fs from 'node:fs';
 import process from 'node:process';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
@@ -15,13 +15,12 @@ import {
   updateEnvFile,
 } from '../utils/common';
 import { confirm, input, password, select, Separator } from '@inquirer/prompts';
-import { EXSAT_RPC_URLS, REGISTER_URL, SET_VALIDATOR_DONATE_RATIO } from '../utils/config';
+import { EXSAT_RPC_URLS, NETWORK_CONFIG, SET_VALIDATOR_DONATE_RATIO } from '../utils/config';
 import { logger } from '../utils/logger';
 import { inputWithCancel } from '../utils/input';
 import { Client, ClientType, ContractName } from '../utils/enumeration';
 import { Font } from '../utils/font';
 import { getUserAccount } from './account';
-import { Checksum160 } from '@wharfkit/antelope';
 import { evmAddressToChecksum } from '../utils/key';
 
 export class ValidatorCommander {
@@ -149,9 +148,6 @@ export class ValidatorCommander {
       );
     }
     const actions: { [key: string]: () => Promise<any> } = {
-      recharge_btc: async () => {
-        return await chargeBtcGas();
-      },
       set_reward_address: async () => await this.setRewardAddress(),
       set_stake_address: async () => await this.setStakeAddress(),
       set_commission_ratio: async () => await this.setCommissionRatio(),
@@ -486,7 +482,7 @@ export class ValidatorCommander {
         'Account Name': this.exsatAccountInfo.accountName,
         'Account Role': this.exsatAccountInfo.role == Client.BTCValidator ? 'BTC Validator' : 'XSAT Validator',
         'Public Key': this.exsatAccountInfo.publicKey,
-        'Register Url': `${REGISTER_URL}/${btoa(`account=${this.exsatAccountInfo.accountName}&pubkey=${this.exsatAccountInfo.publicKey}&role=${this.exsatAccountInfo.role}`)}`,
+        'Register Url': `${NETWORK_CONFIG.register}/${btoa(`account=${this.exsatAccountInfo.accountName}&pubkey=${this.exsatAccountInfo.publicKey}&role=${this.exsatAccountInfo.role}`)}`,
       });
       console.log(
         'Please note that your registration has not finished yet! \nPlease copy the Register Url and paste to your browser to finish the registration.'
@@ -657,7 +653,7 @@ export class ValidatorCommander {
         },
       });
       commissionRate = await input({
-        message: 'Enter your commission rate (0-100): ',
+        message: 'Enter your commission ratio (0-100): ',
         validate: (value) => {
           //Determine whether it is a number between 0.00-100.00
           const num = parseFloat(value);
