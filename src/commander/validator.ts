@@ -498,16 +498,26 @@ export class ValidatorCommander {
   async checkRewardsAddress() {
     const accountName = this.exsatAccountInfo.accountName;
     const btcBalance = await this.tableApi.getAccountBalance(accountName);
-    const validatorInfo = this.validatorInfo;
-    if (!validatorInfo.reward_address) {
+    const validator = this.validatorInfo;
+    if (!validator.reward_address) {
       logger.info('Commission address is not set.');
       showInfo({
         'Account Name': accountName,
+        'Account Role': validator.role ? 'XSAT Validator' : 'BTC Validator',
         'Public Key': this.exsatAccountInfo.publicKey,
-        'BTC Balance Used for Gas Fee': btcBalance,
-        'Commission Address': 'Unset',
-        'Account Registration Status': 'Registered',
-        'Validator Registration Status': 'Registered',
+        'Gas Balance': btcBalance ? btcBalance : `0.00000000 BTC`,
+        'Commission Ratio': `${validator.commission_rate / 100}%` ?? '0%',
+        'Commission Address': 'unset',
+        'BTC Staked': validator.quantity,
+        'XSAT Staked': validator.xsat_quantity,
+        'Eligible for Consensus': validator.role
+          ? parseFloat(validator.xsat_quantity) >= 2100
+            ? 'Yes'
+            : 'No, requires min 2100 XSAT staked'
+          : parseFloat(validator.quantity) >= 100
+            ? 'Yes'
+            : 'No, requires min 100 BTC staked',
+        'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
       });
 
       const menus = [
@@ -592,17 +602,27 @@ export class ValidatorCommander {
     const rpcUrl = process.env.BTC_RPC_URL;
     const accountName = this.exsatAccountInfo.accountName;
     const btcBalance = await this.tableApi.getAccountBalance(accountName);
-    const validatorInfo = this.validatorInfo;
+    const validator = this.validatorInfo;
     if (!rpcUrl || !isValidUrl(rpcUrl)) {
       logger.info('BTC_RPC_URL is not set or is in an incorrect format');
       const showMessageInfo = {
         'Account Name': accountName,
+        'Account Role': validator.role ? 'XSAT Validator' : 'BTC Validator',
         'Public Key': this.exsatAccountInfo.publicKey,
-        'BTC Balance Used for Gas Fee': btcBalance,
-        'Commission Address': validatorInfo.reward_address ? `0x${validatorInfo.reward_address}` : '',
-        'BTC PRC Node': 'Unset',
-        'Account Registration Status': 'Registered',
-        'Validator Registration Status': 'Registered',
+        'Gas Balance': btcBalance ? btcBalance : `0.00000000 BTC`,
+        'Commission Ratio': `${validator.commission_rate / 100}%` ?? '0%',
+        'Commission Address': validator.reward_address ? `0x${validator.reward_address}` : '',
+        'BTC Staked': validator.quantity,
+        'XSAT Staked': validator.xsat_quantity,
+        'Eligible for Consensus': validator.role
+          ? parseFloat(validator.xsat_quantity) >= 2100
+            ? 'Yes'
+            : 'No, requires min 2100 XSAT staked'
+          : parseFloat(validator.quantity) >= 100
+            ? 'Yes'
+            : 'No, requires min 100 BTC staked',
+        'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
+        'BTC RPC Node': 'unset',
       };
       showInfo(showMessageInfo);
 

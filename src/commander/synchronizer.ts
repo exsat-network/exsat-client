@@ -333,11 +333,10 @@ export class SynchronizerCommander {
       showInfo({
         'Account Name': accountName,
         'Public Key': this.exsatAccountInfo.publicKey,
-        'BTC Balance Used for Gas Fee': btcBalance,
-        'Reward Address': 'Unset',
-        'Account Registration Status': 'Registered',
-        'Synchronizer Registration Status': 'Registered',
-        'Memory Slot': synchronizer.num_slots,
+        'Gas Balance': btcBalance ? btcBalance : `0.00000000 BTC`,
+        'Reward Address': 'unset',
+        'BTC RPC Node': process.env.BTC_RPC_URL ?? '',
+        'Eligible for Consensus': 'Yes',
       });
 
       const menus = [
@@ -388,12 +387,10 @@ export class SynchronizerCommander {
       const showMessageInfo = {
         'Account Name': accountName,
         'Public Key': this.exsatAccountInfo.publicKey,
-        'BTC Balance Used for Gas Fee': btcBalance,
+        'Gas Balance': btcBalance ? btcBalance : `0.00000000 BTC`,
         'Reward Address': synchronizer.memo ?? synchronizer.reward_recipient,
-        'BTC PRC Node': 'Unset',
-        'Account Registration Status': 'Registered',
-        'Synchronizer Registration Status': 'Registered',
-        'Memory Slot': synchronizer.num_slots,
+        'BTC RPC Node': 'unset',
+        'Eligible for Consensus': 'Yes',
       };
       showInfo(showMessageInfo);
 
