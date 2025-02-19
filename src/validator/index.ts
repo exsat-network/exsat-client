@@ -7,17 +7,19 @@ import TableApi from '../utils/table-api';
 import { Client, ClientType } from '../utils/enumeration';
 import { errorTotalCounter, setupPrometheus, startTimeGauge, warnTotalCounter } from '../utils/prom';
 import { ValidatorJobs } from './jobs';
+import * as yargs from 'yargs';
 import {
   EXSAT_RPC_URLS,
   HEARTBEAT_JOBS,
   VALIDATOR_JOBS_ENDORSE,
   VALIDATOR_JOBS_ENDORSE_CHECK,
   VALIDATOR_KEYSTORE_FILE,
+  XSAT_VALIDATOR_KEYSTORE_FILE,
 } from '../utils/config';
 
 export class ValidatorState {
   accountName: string = '';
-  accountRole: 0;
+  client: string = '';
   exsatApi: ExsatApi | null = null;
   tableApi: TableApi | null = null;
   lastEndorseHeight: number = 0;
@@ -26,16 +28,16 @@ export class ValidatorState {
   endorseCheckRunning: boolean = false;
 }
 
-async function initializeAccount(): Promise<{
+async function initializeAccount(client): Promise<{
   accountInfo: any;
   password: string;
 }> {
-  let password = getConfigPassword(ClientType.Validator);
+  let password = getConfigPassword(client == Client.Validator ? ClientType.Validator : ClientType.XsatValidator);
   let accountInfo;
-
+  const keystoreFile = client == Client.Validator ? VALIDATOR_KEYSTORE_FILE : XSAT_VALIDATOR_KEYSTORE_FILE;
   if (password) {
     password = password.trim();
-    accountInfo = await getAccountInfo(VALIDATOR_KEYSTORE_FILE, password);
+    accountInfo = await getAccountInfo(keystoreFile, password);
   } else {
     while (!accountInfo) {
       try {
@@ -43,12 +45,12 @@ async function initializeAccount(): Promise<{
         if (password.trim() === 'q') {
           process.exit(0);
         }
-        accountInfo = await getAccountInfo(VALIDATOR_KEYSTORE_FILE, password);
+        accountInfo = await getAccountInfo(keystoreFile, password);
       } catch (e) {
         logger.warn(e);
         warnTotalCounter.inc({
           account: accountInfo?.accountName,
-          client: Client.Validator,
+          client: client,
         });
       }
     }
@@ -57,11 +59,11 @@ async function initializeAccount(): Promise<{
   return { accountInfo, password };
 }
 
-async function setupApis(accountInfo: any): Promise<{ exsatApi: ExsatApi; tableApi: TableApi }> {
+async function setupApis(accountInfo: any, client): Promise<{ exsatApi: ExsatApi; tableApi: TableApi }> {
   const exsatApi = new ExsatApi(accountInfo, EXSAT_RPC_URLS);
   await exsatApi.initialize();
   const tableApi = new TableApi(exsatApi);
-  await exsatApi.checkClient(ClientType.Validator);
+  await exsatApi.checkClient(client == Client.Validator ? ClientType.Validator : ClientType.XsatValidator);
   return { exsatApi, tableApi };
 }
 
@@ -86,17 +88,23 @@ function setupCronJobs(jobs: ValidatorJobs) {
     });
   });
 }
-
 async function main() {
-  configureLogger(Client.Validator);
-  await envCheck(VALIDATOR_KEYSTORE_FILE);
+  const client = yargs.options({
+    client: { type: 'string', describe: '', default: Client.Validator },
+  }).argv.client;
+  if (![Client.Validator, Client.XSATValidaotr].includes(client)) {
+    throw new Error(`Invalid client type: ${client}`);
+  }
 
-  const { accountInfo } = await initializeAccount();
-  const { exsatApi, tableApi } = await setupApis(accountInfo);
+  configureLogger(client);
+  await envCheck(client == Client.Validator ? VALIDATOR_KEYSTORE_FILE : XSAT_VALIDATOR_KEYSTORE_FILE);
+
+  const { accountInfo } = await initializeAccount(client);
+  const { exsatApi, tableApi } = await setupApis(accountInfo, client);
 
   const state = new ValidatorState();
   state.accountName = accountInfo.accountName;
-  state.accountRole = (await tableApi.getValidatorInfo(accountInfo.accountName)).role;
+  state.client = client;
   state.exsatApi = exsatApi;
   state.tableApi = tableApi;
 
@@ -104,7 +112,7 @@ async function main() {
 
   setupCronJobs(jobs);
   setupPrometheus();
-  startTimeGauge.set({ account: accountInfo.accountName, client: Client.Validator }, Date.now());
+  startTimeGauge.set({ account: accountInfo.accountName, client: client }, Date.now());
 }
 
 (async () => {

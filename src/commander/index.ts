@@ -11,6 +11,7 @@ import process from 'node:process';
 import { NETWORK_CONFIG } from '../utils/config';
 
 export const account = {};
+
 /**
  * Main entry point for the application.
  * Checks for updates, displays user guide information, and prompts user to select a client to start.
@@ -24,15 +25,11 @@ async function main() {
   });
 
   // Define menu options for client selection
-  const menus = [{ name: 'Synchronizer', value: Client.Synchronizer }];
-  if (fs.existsSync(process.env.VALIDATOR_KEYSTORE_FILE)) {
-    menus.push({ name: 'Validator', value: Client.Validator });
-  } else {
-    menus.push(
-      { name: 'BTC Validator', value: Client.BTCValidator },
-      { name: 'XSAT Validator', value: Client.XSATValidaotr }
-    );
-  }
+  const menus = [
+    { name: 'Synchronizer', value: Client.Synchronizer },
+    { name: 'BTC Validator', value: Client.Validator },
+    { name: 'XSAT Validator', value: Client.XSATValidaotr },
+  ];
   // Prompt user to select a client to start
   const role = await select({
     message: 'Please select a role to start: ',
@@ -57,7 +54,6 @@ async function main() {
       clientCommander = new SynchronizerCommander();
       break;
     case Client.Validator:
-    case Client.BTCValidator:
     case Client.XSATValidaotr:
       clientCommander = new ValidatorCommander(role);
       break;

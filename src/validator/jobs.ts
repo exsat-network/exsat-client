@@ -27,7 +27,7 @@ export class ValidatorJobs {
 
   // Check if an endorsement is needed and submit if necessary
   async checkAndSubmit(accountName: string, height: number, hash: string) {
-    const scope = this.state.accountRole ? this.xsatScope(height) : height;
+    const scope = this.state.client == Client.XSATValidaotr ? this.xsatScope(height) : height;
     const endorsement = await this.state.tableApi!.getEndorsementByBlockId(scope, hash);
     if (endorsement) {
       let isQualified = this.isEndorserQualified(endorsement.requested_validators, accountName);
@@ -52,10 +52,10 @@ export class ValidatorJobs {
       this.state.lastEndorseHeight = height;
       blockValidateTotalCounter.inc({
         account: this.state.accountName,
-        client: Client.Validator,
+        client: this.state.client,
       });
-      validateLatestBlockGauge.set({ account: this.state.accountName, client: Client.Validator }, height);
-      validateLatestTimeGauge.set({ account: this.state.accountName, client: Client.Validator }, Date.now());
+      validateLatestBlockGauge.set({ account: this.state.accountName, client: this.state.client }, height);
+      validateLatestTimeGauge.set({ account: this.state.accountName, client: this.state.client }, Date.now());
       logger.info(
         `Submit endorsement success, accountName: ${validator}, height: ${height}, hash: ${hash}, transaction_id: ${result?.transaction_id}`
       );
@@ -94,7 +94,7 @@ export class ValidatorJobs {
         logger.error('Endorse task error', e);
         errorTotalCounter.inc({
           account: this.state.accountName,
-          client: Client.Validator,
+          client: this.state.client,
         });
       }
     } finally {
@@ -135,7 +135,7 @@ export class ValidatorJobs {
             logger.error(`Submit endorsement failed, height: ${i}, hash: ${hash}`, e);
             errorTotalCounter.inc({
               account: this.state.accountName,
-              client: Client.Validator,
+              client: this.state.client,
             });
           }
         }
@@ -144,7 +144,7 @@ export class ValidatorJobs {
       logger.error('Endorse check task error', e);
       errorTotalCounter.inc({
         account: this.state.accountName,
-        client: Client.Validator,
+        client: this.state.client,
       });
       await sleep();
     } finally {

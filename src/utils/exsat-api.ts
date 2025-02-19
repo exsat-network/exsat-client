@@ -233,7 +233,20 @@ class ExsatApi {
    * @param type - The type of client (e.g., Synchronizer or Validator).
    */
   public async checkClient(type: number) {
-    const clientType = type === ClientType.Synchronizer ? 'Synchronizer' : 'Validator';
+    let clientType;
+    switch (type) {
+      case ClientType.Synchronizer:
+        clientType = Client.Synchronizer;
+        break;
+      case ClientType.Validator:
+        clientType = Client.Validator;
+        break;
+      case ClientType.XsatValidator:
+        clientType = Client.XSATValidaotr;
+        break;
+      default:
+        throw new Error('Invalid client type');
+    }
     try {
       const version = await Version.getLocalVersion();
       const result = await this.executeAction(ContractName.rescmng, 'checkclient', {
@@ -269,7 +282,20 @@ class ExsatApi {
   }
 
   public async heartbeat(type: number) {
-    const clientType = type === ClientType.Synchronizer ? Client.Synchronizer : Client.BTCValidator;
+    let clientType;
+    switch (type) {
+      case ClientType.Synchronizer:
+        clientType = Client.Synchronizer;
+        break;
+      case ClientType.Validator:
+        clientType = Client.Validator;
+        break;
+      case ClientType.XsatValidator:
+        clientType = Client.XSATValidaotr;
+        break;
+      default:
+        throw new Error('Invalid client type');
+    }
     try {
       const version = await Version.getLocalVersion();
       const result = await this.executeAction(ContractName.rescmng, 'checkclient', {

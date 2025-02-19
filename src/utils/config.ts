@@ -33,6 +33,8 @@ export const SYNCHRONIZER_KEYSTORE_PASSWORD: string = process.env.SYNCHRONIZER_K
 export const VALIDATOR_JOBS_ENDORSE: string = process.env.VALIDATOR_JOBS_ENDORSE || '*/1 * * * * *';
 export const VALIDATOR_JOBS_ENDORSE_CHECK: string = process.env.VALIDATOR_JOBS_ENDORSE_CHECK || '0 * * * * *';
 export const VALIDATOR_KEYSTORE_FILE: string = process.env.VALIDATOR_KEYSTORE_FILE || '';
+export const XSAT_VALIDATOR_KEYSTORE_FILE: string = process.env.XSAT_VALIDATOR_KEYSTORE_FILE || '';
+
 export const VALIDATOR_KEYSTORE_PASSWORD: string = process.env.VALIDATOR_KEYSTORE_PASSWORD || '';
 
 export const PROMETHEUS: boolean = process.env.PROMETHEUS === 'true';

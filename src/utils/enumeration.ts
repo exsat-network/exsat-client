@@ -1,13 +1,13 @@
 export enum Client {
   Synchronizer = 'synchronizer',
-  BTCValidator = 'btc_validator',
-  XSATValidaotr = 'xsat_validator',
   Validator = 'validator',
+  XSATValidaotr = 'xsat_validator',
 }
 
 export enum ClientType {
   Synchronizer = 1,
   Validator = 2,
+  XsatValidator,
 }
 
 export enum ContractName {

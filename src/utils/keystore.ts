@@ -84,10 +84,19 @@ export function getConfigPassword(clientType: number) {
 
   // Priority 2: Get passwords from environment variables
   if (!password) {
-    password =
-      clientType === ClientType.Synchronizer
-        ? process.env.SYNCHRONIZER_KEYSTORE_PASSWORD
-        : process.env.VALIDATOR_KEYSTORE_PASSWORD;
+    switch (clientType) {
+      case ClientType.Validator:
+        password = process.env.VALIDATOR_KEYSTORE_PASSWORD;
+        break;
+      case ClientType.XsatValidator:
+        password = process.env.XSAT_VALIDATOR_KEYSTORE_PASSWORD;
+        break;
+      case ClientType.Synchronizer:
+        password = process.env.SYNCHRONIZER_KEYSTORE_PASSWORD;
+        break;
+      default:
+        throw new Error('Invalid client type');
+    }
   }
   return password.replace(/\\'/g, "'").replace(/\\"/g, '"').replace(/\\`/g, '`').replace(/\\\\/g, '\\');
 }

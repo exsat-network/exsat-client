@@ -28,8 +28,12 @@ export class ValidatorCommander {
   private validatorInfo: any;
   private tableApi: TableApi;
   private exsatApi: ExsatApi;
-
-  constructor(private role) {}
+  private keystoreFile: string;
+  private clientType: ClientType;
+  constructor(private role) {
+    this.keystoreFile =
+      this.role == Client.Validator ? process.env.VALIDATOR_KEYSTORE_FILE : process.env.XSAT_VALIDATOR_KEYSTORE_FILE;
+  }
 
   /**
    * Main entry point for the ValidatorCommander.
@@ -37,7 +41,7 @@ export class ValidatorCommander {
    */
   async main() {
     // Check if keystore exists
-    while (!fs.existsSync(process.env.VALIDATOR_KEYSTORE_FILE)) {
+    while (!fs.existsSync(this.keystoreFile)) {
       await notAccountMenu(this.role);
       reloadEnv();
     }
@@ -46,6 +50,8 @@ export class ValidatorCommander {
     await this.init();
     await this.checkAccountRegistrationStatus();
     await this.checkValidatorRegistrationStatus();
+    this.checkRole();
+
     await this.checkRewardsAddress();
     // await this.checkCommission();
     // await this.checkDonateSetting();
@@ -194,8 +200,8 @@ export class ValidatorCommander {
         if (passwordInput === 'q') {
           return false;
         }
-        await getAccountInfo(process.env.VALIDATOR_KEYSTORE_FILE, passwordInput);
-        fs.unlinkSync(process.env.VALIDATOR_KEYSTORE_FILE);
+        await getAccountInfo(this.keystoreFile, passwordInput);
+        fs.unlinkSync(this.keystoreFile);
         logger.info('Remove account successfully');
         process.exit();
       }, 5);
@@ -429,11 +435,11 @@ export class ValidatorCommander {
    * Decrypts the keystore file to retrieve account information.
    */
   async decryptKeystore() {
-    let password = getConfigPassword(ClientType.Validator);
+    let password = getConfigPassword(this.role == Client.Validator ? ClientType.Validator : ClientType.XsatValidator);
     let accountInfo;
     if (password) {
       password = password.trim();
-      accountInfo = await getAccountInfo(process.env.VALIDATOR_KEYSTORE_FILE, password);
+      accountInfo = await getAccountInfo(this.keystoreFile, password);
     } else {
       while (!accountInfo) {
         try {
@@ -441,7 +447,7 @@ export class ValidatorCommander {
           if (password === 'q') {
             process.exit(0);
           }
-          accountInfo = await getAccountInfo(process.env.VALIDATOR_KEYSTORE_FILE, password);
+          accountInfo = await getAccountInfo(this.keystoreFile, password);
         } catch (e) {
           logger.warn(e);
         }
@@ -480,7 +486,7 @@ export class ValidatorCommander {
     if (!checkAccountInfo) {
       showInfo({
         'Account Name': this.exsatAccountInfo.accountName,
-        'Account Role': this.exsatAccountInfo.role == Client.BTCValidator ? 'BTC Validator' : 'XSAT Validator',
+        'Account Role': this.exsatAccountInfo.role == Client.Validator ? 'BTC Validator' : 'XSAT Validator',
         'Public Key': this.exsatAccountInfo.publicKey,
         'Registration Url': `${NETWORK_CONFIG.register}/${btoa(`account=${this.exsatAccountInfo.accountName}&pubkey=${this.exsatAccountInfo.publicKey}&role=${this.exsatAccountInfo.role}`)}`,
       });
@@ -661,7 +667,15 @@ export class ValidatorCommander {
       logger.info('BTC_RPC_URL is already set correctly.');
     }
   }
-
+  checkRole() {
+    if (!this.validatorInfo.role && this.role == Client.XSATValidaotr) {
+      throw new Error('You are not a XSAT validator');
+    }
+    if (this.validatorInfo.role && this.role == Client.Validator) {
+      throw new Error('You are not a BTC validator');
+    }
+    return true;
+  }
   /**
    * Update the validator info.
    */
@@ -680,7 +694,7 @@ export class ValidatorCommander {
     });
     let claimableAddress;
     let commissionRate;
-    if (role === Client.BTCValidator) {
+    if (role === Client.Validator) {
       claimableAddress = await input({
         message: 'Enter your commission address: ',
         validate: (value) => {
@@ -702,7 +716,7 @@ export class ValidatorCommander {
     }
     const data = {
       validator: this.exsatAccountInfo.accountName,
-      role: role == Client.BTCValidator ? 0 : 1,
+      role: role == Client.Validator ? 0 : 1,
       stake_addr: evmAddressToChecksum(stakeAddress),
       reward_addr: claimableAddress ? evmAddressToChecksum(claimableAddress) : null,
       commission_rate: commissionRate ? parseFloat(commissionRate) * 100 : null,
