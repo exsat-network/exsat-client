@@ -653,7 +653,7 @@ export class ValidatorCommander {
         },
       });
       commissionRate = await input({
-        message: 'Enter your commission ratio (0-100): ',
+        message: 'Enter your commission ratio (0.00-100.00): ',
         validate: (value) => {
           //Determine whether it is a number between 0.00-100.00
           const num = parseFloat(value);
