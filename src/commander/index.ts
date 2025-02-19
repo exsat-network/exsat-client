@@ -20,7 +20,7 @@ async function main() {
   showInfo({
     'Please note':
       'It is highly recommended that you carefully read the user guide and follow the instructions precisely to avoid any unnecessary issues.',
-    'User Guide': `${NETWORK_CONFIG.user_guide}`,
+    'User Guide': `${NETWORK_CONFIG.userGuide}`,
   });
 
   // Define menu options for client selection

@@ -296,7 +296,7 @@ export class SynchronizerCommander {
       return true;
     } else {
       console.log(
-        `In order to activate your account, please contact our admin via email (${Font.fgCyan}${Font.bright}${NETWORK_CONFIG.sync_reg_email}${Font.reset}).\n`
+        `In order to activate your account, please contact our admin via email (${Font.fgCyan}${Font.bright}${NETWORK_CONFIG.syncRegEmail}${Font.reset}).\n`
       );
       process.exit(0);
     }
