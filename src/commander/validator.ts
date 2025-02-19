@@ -501,7 +501,7 @@ export class ValidatorCommander {
     const validator = this.validatorInfo;
     if (!validator.reward_address) {
       logger.info('Commission address is not set.');
-      showInfo({
+      const showMessageInfo = {
         'Account Name': accountName,
         'Account Role': validator.role ? 'XSAT Validator' : 'BTC Validator',
         'Public Key': this.exsatAccountInfo.publicKey,
@@ -518,7 +518,15 @@ export class ValidatorCommander {
             ? 'Yes'
             : 'No, requires min 100 BTC staked',
         'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
-      });
+      };
+      if (validator.role) {
+        delete showMessageInfo['BTC Staked'];
+        delete showMessageInfo['Commission Address'];
+        delete showMessageInfo['Commission Ratio'];
+      } else {
+        delete showMessageInfo['XSAT Staked'];
+      }
+      showInfo(showMessageInfo);
 
       const menus = [
         { name: 'Set Commission Address(EVM)', value: 'set_reward_address' },
@@ -624,6 +632,13 @@ export class ValidatorCommander {
         'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
         'BTC RPC Node': 'unset',
       };
+      if (validator.role) {
+        delete showMessageInfo['BTC Staked'];
+        delete showMessageInfo['Commission Address'];
+        delete showMessageInfo['Commission Ratio'];
+      } else {
+        delete showMessageInfo['XSAT Staked'];
+      }
       showInfo(showMessageInfo);
 
       const menus = [
