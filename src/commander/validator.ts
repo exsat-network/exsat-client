@@ -482,10 +482,10 @@ export class ValidatorCommander {
         'Account Name': this.exsatAccountInfo.accountName,
         'Account Role': this.exsatAccountInfo.role == Client.BTCValidator ? 'BTC Validator' : 'XSAT Validator',
         'Public Key': this.exsatAccountInfo.publicKey,
-        'Register Url': `${NETWORK_CONFIG.register}/${btoa(`account=${this.exsatAccountInfo.accountName}&pubkey=${this.exsatAccountInfo.publicKey}&role=${this.exsatAccountInfo.role}`)}`,
+        'Registration Url': `${NETWORK_CONFIG.register}/${btoa(`account=${this.exsatAccountInfo.accountName}&pubkey=${this.exsatAccountInfo.publicKey}&role=${this.exsatAccountInfo.role}`)}`,
       });
       console.log(
-        'Please note that your registration has not finished yet! \nPlease copy the Register Url and paste to your browser to finish the registration.'
+        `Please note that your registration has not finished yet!\n${Font.fgGreen}${Font.bright}Please copy the Registration Url above and past to your browser to finish the registration.${Font.reset}`
       );
       process.exit(0);
     }
