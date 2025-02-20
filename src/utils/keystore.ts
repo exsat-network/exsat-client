@@ -119,7 +119,7 @@ export async function getAccountInfo(keystoreFile: string, password: string) {
 
 export function keystoreExist(role?: string) {
   if (role) {
-    const keystoreFileKey = (role.toUpperCase() == 'SYNCHRONIZER' ? 'SYNCHRONIZER' : 'VALIDATOR') + '_KEYSTORE_FILE';
+    const keystoreFileKey = `${role.toUpperCase()}_KEYSTORE_FILE`;
     if (process.env[keystoreFileKey] && fs.existsSync(process.env[keystoreFileKey] ?? '')) {
       return process.env[keystoreFileKey];
     }

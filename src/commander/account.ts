@@ -106,7 +106,7 @@ async function saveKeystore(privateKey, username, role) {
   const keystoreFilePath = `${selectedPath}/${username}_keystore.json`;
   writeFileSync(keystoreFilePath, JSON.stringify(keystore), { mode: 0o600 });
 
-  const keystoreFileKey = (role.toUpperCase() == 'SYNCHRONIZER' ? 'SYNCHRONIZER' : 'VALIDATOR') + '_KEYSTORE';
+  const keystoreFileKey = `${role.toUpperCase()}_KEYSTORE`;
   const updateDatas = {
     [`${keystoreFileKey}_FILE`]: keystoreFilePath,
     [`${keystoreFileKey}_PASSWORD`]: savePassword ? processAndUpdatePassword(passwordInput) : '',
