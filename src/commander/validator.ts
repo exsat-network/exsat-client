@@ -44,6 +44,8 @@ export class ValidatorCommander {
     while (!fs.existsSync(this.keystoreFile)) {
       await notAccountMenu(this.role);
       reloadEnv();
+      this.keystoreFile =
+        this.role == Client.Validator ? process.env.VALIDATOR_KEYSTORE_FILE : process.env.XSAT_VALIDATOR_KEYSTORE_FILE;
     }
 
     // Initialize APIs and check account and validator status
