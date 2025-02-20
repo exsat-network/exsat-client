@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
 import { configureLogger, logger } from '../utils/logger';
-import { envCheck } from '../utils/common';
+import { envCheck, loadNetworkConfigurations } from '../utils/common';
 import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
 import { Client, ClientType } from '../utils/enumeration';
@@ -95,7 +95,7 @@ async function main() {
   if (![Client.Validator, Client.XSATValidaotr].includes(client)) {
     throw new Error(`Invalid client type: ${client}`);
   }
-
+  await loadNetworkConfigurations();
   configureLogger(client);
   await envCheck(client == Client.Validator ? VALIDATOR_KEYSTORE_FILE : XSAT_VALIDATOR_KEYSTORE_FILE);
 
