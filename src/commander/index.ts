@@ -6,8 +6,6 @@ import { Version } from '../utils/version';
 import { updateMenu } from './common';
 import { Client } from '../utils/enumeration';
 import { isExsatDocker, loadNetworkConfigurations, showInfo } from '../utils/common';
-import fs from 'node:fs';
-import process from 'node:process';
 import { NETWORK_CONFIG } from '../utils/config';
 
 export const account = {};

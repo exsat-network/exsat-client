@@ -132,6 +132,17 @@ export function keystoreExist(role?: string) {
   return false;
 }
 
+export function keystoreExistStatus() {
+  let s = 0;
+  if (process.env.SYNCHRONIZER_KEYSTORE_FILE) {
+    s = s + 1;
+  }
+  if (process.env.VALIDATOR_KEYSTORE_FILE) {
+    s = s + 2;
+  }
+  return s;
+}
+
 /**
  * Get the private key Uint8Array after the validation.
  * Note: This function is not exported through main web3 package, so for using it directly import from accounts package.

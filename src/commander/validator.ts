@@ -22,6 +22,7 @@ import { Client, ClientType, ContractName } from '../utils/enumeration';
 import { Font } from '../utils/font';
 import { getUserAccount } from './account';
 import { evmAddressToChecksum } from '../utils/key';
+import ExsatNode from '../utils/exsat-node';
 
 export class ValidatorCommander {
   private exsatAccountInfo: any;
@@ -428,9 +429,10 @@ export class ValidatorCommander {
   async init() {
     this.exsatAccountInfo = await this.decryptKeystore();
     await checkExsatUrls();
-    this.exsatApi = new ExsatApi(this.exsatAccountInfo, EXSAT_RPC_URLS);
+    const exsatNode = new ExsatNode(EXSAT_RPC_URLS);
+    this.exsatApi = new ExsatApi(this.exsatAccountInfo, exsatNode);
     await this.exsatApi.initialize();
-    this.tableApi = new TableApi(this.exsatApi);
+    this.tableApi = new TableApi(exsatNode);
   }
 
   /**

@@ -16,6 +16,7 @@ import {
   VALIDATOR_KEYSTORE_FILE,
   XSAT_VALIDATOR_KEYSTORE_FILE,
 } from '../utils/config';
+import ExsatNode from '../utils/exsat-node';
 
 export class ValidatorState {
   accountName: string = '';
@@ -60,16 +61,20 @@ async function initializeAccount(client): Promise<{
 }
 
 async function setupApis(accountInfo: any, client): Promise<{ exsatApi: ExsatApi; tableApi: TableApi }> {
-  const exsatApi = new ExsatApi(accountInfo, EXSAT_RPC_URLS);
+  const exsatNode = new ExsatNode(EXSAT_RPC_URLS);
+  const exsatApi = new ExsatApi(accountInfo, exsatNode);
   await exsatApi.initialize();
-  const tableApi = new TableApi(exsatApi);
+  const tableApi = new TableApi(exsatNode);
+  await tableApi.initialize();
   await exsatApi.checkClient(client == Client.Validator ? ClientType.Validator : ClientType.XsatValidator);
   return { exsatApi, tableApi };
 }
 
 function setupCronJobs(jobs: ValidatorJobs) {
   const cronJobs = [
+    /*
     { schedule: VALIDATOR_JOBS_ENDORSE, job: jobs.endorse },
+*/
     { schedule: VALIDATOR_JOBS_ENDORSE_CHECK, job: jobs.endorseCheck },
     { schedule: HEARTBEAT_JOBS, job: jobs.heartbeat },
   ];

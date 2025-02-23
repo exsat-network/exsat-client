@@ -1,56 +1,44 @@
 import { API, Chains, Session } from '@wharfkit/session';
 import { logger } from './logger';
 import process from 'process';
-import axios from 'axios';
-import moment from 'moment';
 import { getAmountFromQuantity, sleep } from './common';
 import { Client, ClientType, ContractName, IndexPosition } from './enumeration';
 import { Version } from './version';
 import { WalletPluginPrivateKey } from '@wharfkit/wallet-plugin-privatekey';
+import ExsatNode from './exsat-node';
 import { NETWORK_CONFIG, RES_PERMISSION } from './config';
 
 class ExsatApi {
   private session: Session;
   private walletPlugin: WalletPluginPrivateKey;
-  private nodes: string[];
-  private currentNodeIndex: number;
+  private exsatNodesManager: ExsatNode;
   private accountName: string;
   private maxRetries: number = 3;
   private retryDelay: number = 1000;
   private executeActions: number = 0;
-  private chainId: string;
 
-  /**
-   * Constructor initializes the API with account information and node list.
-   * @param accountInfo - The account name and private key.
-   * @param nodes - List of nodes to connect to.
-   */
   constructor(
     private accountInfo: {
       accountName: string;
       privateKey: string;
     },
-    nodes: string[]
+    exsatNode: ExsatNode
   ) {
-    this.nodes = nodes;
-    this.currentNodeIndex = 0;
+    this.exsatNodesManager = exsatNode;
     this.accountName = accountInfo.accountName;
     this.walletPlugin = new WalletPluginPrivateKey(accountInfo.privateKey);
   }
 
-  /**
-   * Initializes the API by finding a valid node and setting up RPC and API objects.
-   */
   public async initialize(): Promise<void> {
-    const validNodeFound = await this.findValidNode();
+    const validNodeFound = await this.exsatNodesManager.findValidNode();
     if (!validNodeFound) {
       throw new Error('No valid exsat node available.');
     }
     this.session = new Session(
       {
         chain: {
-          id: this.chainId,
-          url: this.getCurrentNode(),
+          id: this.exsatNodesManager.getChainId(),
+          url: this.exsatNodesManager.getCurrentNode(),
         },
         actor: this.accountName,
         permission: 'active',
@@ -64,93 +52,6 @@ class ExsatApi {
     logger.info('ExsatApi initialized successfully.');
   }
 
-  /**
-   * Returns the currently active node URL.
-   * @returns The current node URL.
-   */
-  private getCurrentNode(): string {
-    return this.nodes[this.currentNodeIndex];
-  }
-
-  /**
-   * Iterates through nodes to find a valid one.
-   * @returns Boolean indicating if a valid node was found.
-   */
-  private async findValidNode(): Promise<boolean> {
-    for (let i = 0; i < this.nodes.length; i++) {
-      this.currentNodeIndex = i;
-      const valid = await this.isValidNode(this.getCurrentNode());
-      if (valid) {
-        logger.info(`Using node: ${this.getCurrentNode()}`);
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /**
-   * Switches to the next available node if the current one is invalid.
-   * @param attemptCount - The number of attempts made to switch nodes.
-   * @returns Boolean indicating if the switch was successful.
-   */
-  private async switchNode(attemptCount: number = 0): Promise<boolean> {
-    if (attemptCount >= this.nodes.length) {
-      return false;
-    }
-
-    this.currentNodeIndex = (this.currentNodeIndex + 1) % this.nodes.length;
-    const valid = await this.isValidNode(this.getCurrentNode());
-
-    if (valid) {
-      this.session = new Session(
-        {
-          chain: {
-            id: this.chainId,
-            url: this.getCurrentNode(),
-          },
-          actor: this.accountName,
-          permission: 'active',
-          walletPlugin: this.walletPlugin,
-        },
-        {
-          fetch,
-        }
-      );
-      logger.info(`Switched to node: ${this.getCurrentNode()}`);
-      return true;
-    }
-
-    return this.switchNode(attemptCount + 1);
-  }
-
-  /**
-   * Validates if a node is responsive and synchronized with the network.
-   * @param url - The node URL to validate.
-   * @returns Boolean indicating if the node is valid.
-   */
-  private async isValidNode(url: string) {
-    try {
-      const response = await axios.get(`${url}/v1/chain/get_info`, {
-        timeout: 3000,
-      });
-      if (response.status === 200 && response.data) {
-        this.chainId = response.data.chain_id;
-        const diffMS: number =
-          moment(response.data.head_block_time).diff(moment().valueOf()) + moment().utcOffset() * 60_000;
-        return Math.abs(diffMS) <= 300_000;
-      }
-    } catch (e) {
-      logger.error(`getInfo from exsat rpc error: [${url}]`);
-    }
-    return false;
-  }
-
-  /**
-   * Retries an operation with exponential backoff and switches nodes on failure.
-   * @param operation - The operation to retry.
-   * @param retryCount - The current retry attempt count.
-   * @returns The result of the operation.
-   */
   private async retryWithExponentialBackoff<T>(operation: () => Promise<T>, retryCount: number = 0): Promise<T> {
     try {
       return await operation();
@@ -165,8 +66,7 @@ class ExsatApi {
 
       let switchRetryCount = 0;
       while (!(await this.switchNode())) {
-        // Go to sleep when all nodes are unavailable
-        const sleepTime = Math.min(1000 * Math.pow(2, switchRetryCount), 10000); // Maximum sleep time is 10 minutes
+        const sleepTime = Math.min(1000 * Math.pow(2, switchRetryCount), 10000);
         logger.warn(`All nodes are unavailable. Sleeping for ${sleepTime / 1000} seconds.`);
         await sleep(sleepTime);
         switchRetryCount++;
@@ -391,6 +291,27 @@ class ExsatApi {
       } while (more && options.fetch_all);
       return rows;
     });
+  }
+
+  async switchNode() {
+    if (await this.exsatNodesManager.switchNode()) {
+      this.session = new Session(
+        {
+          chain: {
+            id: this.exsatNodesManager.getChainId(),
+            url: this.exsatNodesManager.getCurrentNode(),
+          },
+          actor: this.accountName,
+          permission: 'active',
+          walletPlugin: this.walletPlugin,
+        },
+        {
+          fetch,
+        }
+      );
+      return true;
+    }
+    return false;
   }
 }
 
