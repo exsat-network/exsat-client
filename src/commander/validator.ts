@@ -43,7 +43,7 @@ export class ValidatorCommander {
   async main() {
     // Check if keystore exists
     while (!fs.existsSync(this.keystoreFile)) {
-      await notAccountMenu(this.role);
+      await notAccountMenu();
       reloadEnv();
       this.keystoreFile =
         this.role == Client.Validator ? process.env.VALIDATOR_KEYSTORE_FILE : process.env.XSAT_VALIDATOR_KEYSTORE_FILE;
@@ -428,11 +428,10 @@ export class ValidatorCommander {
    */
   async init() {
     this.exsatAccountInfo = await this.decryptKeystore();
-    await checkExsatUrls();
     const exsatNode = new ExsatNode(EXSAT_RPC_URLS);
-    this.exsatApi = new ExsatApi(this.exsatAccountInfo, exsatNode);
-    await this.exsatApi.initialize();
-    this.tableApi = new TableApi(exsatNode);
+    const exsatApi = new ExsatApi(this.exsatAccountInfo, exsatNode);
+    await exsatApi.initialize();
+    const tableApi = TableApi.getInstance();
   }
 
   /**

@@ -3,12 +3,11 @@ import { select } from '@inquirer/prompts';
 import { SynchronizerCommander } from './synchronizer';
 import { ValidatorCommander } from './validator';
 import { Version } from '../utils/version';
-import { updateMenu } from './common';
-import { Client } from '../utils/enumeration';
+import { notAccountMenu, updateMenu } from './common';
+import { Client, KeystoreExistStatus } from '../utils/enumeration';
 import { isExsatDocker, loadNetworkConfigurations, showInfo } from '../utils/common';
 import { NETWORK_CONFIG } from '../utils/config';
-
-export const account = {};
+import { keystoreExistStatus } from '../utils/keystore';
 
 /**
  * Main entry point for the application.
@@ -21,6 +20,19 @@ async function main() {
       'It is highly recommended that you carefully read the user guide and follow the instructions precisely to avoid any unnecessary issues.',
     'User Guide': `${NETWORK_CONFIG.userGuide}`,
   });
+  const keystoreEXistStatus = keystoreExistStatus();
+  switch (keystoreEXistStatus) {
+    case KeystoreExistStatus.None:
+      await notAccountMenu();
+      break;
+    case KeystoreExistStatus.Validator:
+    case KeystoreExistStatus.Synchronizer:
+      break;
+    case KeystoreExistStatus.Both:
+      break;
+    default:
+      break;
+  }
 
   // Define menu options for client selection
   const menus = [

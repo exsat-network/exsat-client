@@ -186,7 +186,6 @@ export const createKeystore = async (
   privateKey: Bytes,
   password: string,
   username: string,
-  role: string,
   options?: CipherOptions
 ): Promise<any> => {
   const privateKeyUint8Array = parseAndValidatePrivateKey(privateKey);
@@ -266,7 +265,6 @@ export const createKeystore = async (
     id: uuidV4(),
     address: publicKey,
     username,
-    role: role,
     crypto: {
       ciphertext,
       cipherparams: {

@@ -13,6 +13,7 @@ import {
 } from '@wharfkit/session';
 import ExsatNode from './exsat-node';
 import { sleep } from './common';
+import { EXSAT_RPC_URLS } from './config';
 
 class TableApi {
   private client: APIClient;
@@ -23,8 +24,12 @@ class TableApi {
   constructor(exsatNode: ExsatNode) {
     this.exsatNodesManager = exsatNode;
   }
-
-  public async initialize(): Promise<void> {
+  public static async getInstance(): Promise<TableApi> {
+    const instance = new TableApi(new ExsatNode(EXSAT_RPC_URLS));
+    await instance.initialize();
+    return instance;
+  }
+  private async initialize(): Promise<void> {
     const validNodeFound = await this.exsatNodesManager.findValidNode();
     if (!validNodeFound) {
       throw new Error('No valid exsat node available.');

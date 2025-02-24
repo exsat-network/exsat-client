@@ -16,6 +16,7 @@ import {
   SYNCHRONIZER_JOBS_BLOCK_VERIFY,
   SYNCHRONIZER_KEYSTORE_FILE,
 } from '../utils/config';
+import ExsatNode from '../utils/exsat-node';
 
 export class SynchronizerState {
   accountName: string = '';
@@ -58,9 +59,11 @@ async function initializeAccount(): Promise<{
 }
 
 async function setupApis(accountInfo: any): Promise<{ exsatApi: ExsatApi; tableApi: TableApi }> {
-  const exsatApi = new ExsatApi(accountInfo, EXSAT_RPC_URLS);
+  const exsatNode = new ExsatNode(EXSAT_RPC_URLS);
+  const exsatApi = new ExsatApi(accountInfo, exsatNode);
   await exsatApi.initialize();
-  const tableApi = new TableApi(exsatApi);
+  const tableApi = new TableApi(exsatNode);
+  await tableApi.initialize();
   await exsatApi.checkClient(ClientType.Synchronizer);
   return { exsatApi, tableApi };
 }

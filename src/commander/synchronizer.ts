@@ -12,6 +12,7 @@ import { inputWithCancel } from '../utils/input';
 import { checkExsatUrls, exportPrivateKey, notAccountMenu, resetBtcRpcUrl, setBtcRpcUrl } from './common';
 import { Font } from '../utils/font';
 import { getUserAccount } from './account';
+import ExsatNode from '../utils/exsat-node';
 
 export class SynchronizerCommander {
   private exsatAccountInfo: any;
@@ -26,7 +27,7 @@ export class SynchronizerCommander {
   async main() {
     // Check if keystore exists
     while (!fs.existsSync(process.env.SYNCHRONIZER_KEYSTORE_FILE)) {
-      await notAccountMenu(Client.Synchronizer);
+      await notAccountMenu();
       reloadEnv();
     }
 
@@ -255,10 +256,9 @@ export class SynchronizerCommander {
    */
   async init() {
     this.exsatAccountInfo = await this.decryptKeystore();
-    await checkExsatUrls();
-    this.exsatApi = new ExsatApi(this.exsatAccountInfo, EXSAT_RPC_URLS);
-    await this.exsatApi.initialize();
-    this.tableApi = new TableApi(this.exsatApi);
+    const exsatApi = new ExsatApi(this.exsatAccountInfo);
+    await exsatApi.initialize();
+    const tableApi = TableApi.getInstance();
   }
 
   /**

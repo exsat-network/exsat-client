@@ -19,6 +19,7 @@ import { createKeystore, keystoreExist } from '../utils/keystore';
 import axios from 'axios';
 import { logger } from '../utils/logger';
 import { EXSAT_RPC_URLS } from '../utils/config';
+import { Client } from "../utils/enumeration";
 
 function validateUsername(username) {
   return /^[a-z1-5]{1,8}$/.test(username);
@@ -61,7 +62,7 @@ async function getInputRole() {
   return role;
 }
 
-async function saveKeystore(privateKey, username, role) {
+async function saveKeystore(privateKey, username, role?) {
   const getPasswordInput = async (message) => {
     return await password({
       message,
@@ -84,7 +85,6 @@ async function saveKeystore(privateKey, username, role) {
     `${bytesToHex(WIF.decode(privateKey.toWif(), 128).privateKey)}`,
     passwordInput,
     username,
-    role
   );
   const savePassword = await confirm({
     message: 'Do you want to save the password in the .env file?',
@@ -105,12 +105,25 @@ async function saveKeystore(privateKey, username, role) {
 
   const keystoreFilePath = `${selectedPath}/${username}_keystore.json`;
   writeFileSync(keystoreFilePath, JSON.stringify(keystore), { mode: 0o600 });
+  let updateDatas = {};
+  if(role){
+    const keystoreFileKey = `${role.toUpperCase()}_KEYSTORE`;
+    updateDatas = {
+      [`${keystoreFileKey}_FILE`]: keystoreFilePath,
+      [`${keystoreFileKey}_PASSWORD`]: savePassword ? processAndUpdatePassword(passwordInput) : '',
+    };
+  }else{
+    const syncKeystoreFileKey = `${Client.Synchronizer.toUpperCase()}_KEYSTORE`;
+    const valiKeystoreFileKey = `${Client.Validator.toUpperCase()}_KEYSTORE`;
 
-  const keystoreFileKey = `${role.toUpperCase()}_KEYSTORE`;
-  const updateDatas = {
-    [`${keystoreFileKey}_FILE`]: keystoreFilePath,
-    [`${keystoreFileKey}_PASSWORD`]: savePassword ? processAndUpdatePassword(passwordInput) : '',
-  };
+    updateDatas = {
+      [`${syncKeystoreFileKey}_FILE`]: keystoreFilePath,
+      [`${syncKeystoreFileKey}_PASSWORD`]: savePassword ? processAndUpdatePassword(passwordInput) : '',
+      [`${valiKeystoreFileKey}_FILE`]: keystoreFilePath,
+      [`${valiKeystoreFileKey}_PASSWORD`]: savePassword ? processAndUpdatePassword(passwordInput) : '',
+    };
+  }
+
   updateEnvFile(updateDatas);
 
   console.log(`\n${Font.colorize('!!!Remember to backup this file!!!', Font.fgRed)}`);
@@ -118,7 +131,7 @@ async function saveKeystore(privateKey, username, role) {
   return keystoreFilePath;
 }
 
-async function generateKeystore(username, role) {
+async function generateKeystore(username) {
   const mnemonic = generateMnemonic(wordlist);
   console.log(`${Font.colorize(`\nYour seed phrase: \n${mnemonic}`, Font.fgYellow)}\n`);
   await input({
@@ -136,7 +149,7 @@ async function generateKeystore(username, role) {
   const publicKey = privateKey.toPublic().toString();
 
   console.log(`\n${Font.fgCyan}${Font.bright}Key pair generation successful.${Font.reset}\n`);
-  await saveKeystore(privateKey, username, role);
+  await saveKeystore(privateKey, username);
 
   return { privateKey, publicKey, username };
 }
@@ -171,10 +184,10 @@ async function inputMnemonic() {
   return privateKey;
 }
 
-export async function importFromMnemonic(role) {
-  if (!role) {
-    role = await getInputRole();
-  }
+async function getAccountRole(accountName){
+
+}
+export async function importFromMnemonic() {
   let accountInfo;
   let privateKey;
   try {
@@ -219,10 +232,9 @@ export async function processAccount({ accountName, pubkey, status, btcAddress, 
   return true;
 }
 
-export async function initializeAccount(role) {
-  const keystoreFile = keystoreExist(role);
-  if (keystoreFile) {
-    console.log(`\n${Font.fgYellow}${Font.bright}An account has already been created in ${keystoreFile}.${Font.reset}`);
+export async function initializeAccount() {
+  if(keystoreExist(Client.Synchronizer) || keystoreExist(Client.Validator)) {
+    console.log(`\n${Font.fgYellow}${Font.bright}Keystore file is exist.${Font.reset}`);
     return;
   }
   let registryStatus;
@@ -245,10 +257,7 @@ export async function initializeAccount(role) {
   if (username === 'q') return false;
   console.log(Font.colorize(`  Your account : ${username}.sat`, Font.fgGreen));
 
-  if (!role) {
-    role = await getInputRole();
-  }
-  const { publicKey } = await generateKeystore(username, role);
+  const { publicKey } = await generateKeystore(username);
   const infoJson = '{}';
   try {
     //todo notice a url

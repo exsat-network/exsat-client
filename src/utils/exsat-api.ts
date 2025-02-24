@@ -22,9 +22,13 @@ class ExsatApi {
       accountName: string;
       privateKey: string;
     },
-    exsatNode: ExsatNode
+    exsatNode?: ExsatNode
   ) {
-    this.exsatNodesManager = exsatNode;
+    if (!exsatNode) {
+      this.exsatNodesManager = exsatNode;
+    }else {
+      this.exsatNodesManager = new ExsatNode();
+    }
     this.accountName = accountInfo.accountName;
     this.walletPlugin = new WalletPluginPrivateKey(accountInfo.privateKey);
   }

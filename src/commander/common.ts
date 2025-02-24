@@ -8,7 +8,7 @@ import { logger } from '../utils/logger';
 import { clearLines, inputWithCancel } from '../utils/input';
 import { importFromMnemonic, importFromPrivateKey, initializeAccount } from './account';
 
-export async function notAccountMenu(role) {
+export async function notAccountMenu() {
   const menus = [
     {
       name: 'Create New Account',
@@ -31,13 +31,13 @@ export async function notAccountMenu(role) {
   //
   const actions: { [key: string]: () => Promise<any> } = {
     create_account: async () => {
-      return await initializeAccount(role);
+      return await initializeAccount();
     },
     import_seed_phrase: async () => {
-      return await importFromMnemonic(role);
+      return await importFromMnemonic();
     },
     import_private_key: async () => {
-      return await importFromPrivateKey(role);
+      return await importFromPrivateKey();
     },
     quit: async () => process.exit(0),
   };
