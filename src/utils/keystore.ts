@@ -88,9 +88,6 @@ export function getConfigPassword(clientType: number) {
       case ClientType.Validator:
         password = process.env.VALIDATOR_KEYSTORE_PASSWORD;
         break;
-      case ClientType.XsatValidator:
-        password = process.env.XSAT_VALIDATOR_KEYSTORE_PASSWORD;
-        break;
       case ClientType.Synchronizer:
         password = process.env.SYNCHRONIZER_KEYSTORE_PASSWORD;
         break;

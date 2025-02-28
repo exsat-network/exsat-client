@@ -19,6 +19,10 @@ export class SynchronizerCommander {
   private synchronizerInfo: any;
   private tableApi: TableApi;
   private exsatApi: ExsatApi;
+  private registion;
+  constructor(retistion = false) {
+    this.registion = retistion;
+  }
 
   /**
    * Main entry point for the SynchronizerCommander.
@@ -298,6 +302,9 @@ export class SynchronizerCommander {
       console.log(
         `In order to activate your account, please contact our admin via email (${Font.fgCyan}${Font.bright}${NETWORK_CONFIG.contact}${Font.reset}).\n`
       );
+      if (this.registion && process.env.SYNCHRONIZER_KEYSTORE_FILE == process.env.VALIDATOR_KEYSTORE_FILE) {
+        updateEnvFile({ VALIDATOR_KEYSTORE_FILE: '' });
+      }
       process.exit(0);
     }
   }

@@ -31,29 +31,19 @@ export class ValidatorCommander {
   private exsatApi: ExsatApi;
   private keystoreFile: string;
   private clientType: ClientType;
-  constructor(private role) {
-    this.keystoreFile =
-      this.role == Client.Validator ? process.env.VALIDATOR_KEYSTORE_FILE : process.env.XSAT_VALIDATOR_KEYSTORE_FILE;
+  private registion;
+  constructor(registion = false) {
+    this.registion = registion;
   }
-
   /**
    * Main entry point for the ValidatorCommander.
    * Checks the keystore, initializes APIs, and manages the validator menu.
    */
   async main() {
-    // Check if keystore exists
-    while (!fs.existsSync(this.keystoreFile)) {
-      await notAccountMenu();
-      reloadEnv();
-      this.keystoreFile =
-        this.role == Client.Validator ? process.env.VALIDATOR_KEYSTORE_FILE : process.env.XSAT_VALIDATOR_KEYSTORE_FILE;
-    }
-
     // Initialize APIs and check account and validator status
     await this.init();
     await this.checkAccountRegistrationStatus();
     await this.checkValidatorRegistrationStatus();
-    this.checkRole();
 
     await this.checkRewardsAddress();
     // await this.checkCommission();
@@ -438,11 +428,11 @@ export class ValidatorCommander {
    * Decrypts the keystore file to retrieve account information.
    */
   async decryptKeystore() {
-    let password = getConfigPassword(this.role == Client.Validator ? ClientType.Validator : ClientType.XsatValidator);
+    let password = getConfigPassword(ClientType.Validator);
     let accountInfo;
     if (password) {
       password = password.trim();
-      accountInfo = await getAccountInfo(this.keystoreFile, password);
+      accountInfo = await getAccountInfo(process.env.VALIDATOR_KEYSTORE_FILE, password);
     } else {
       while (!accountInfo) {
         try {
@@ -473,6 +463,9 @@ export class ValidatorCommander {
       if (!confirmInput) {
         process.exit(0);
       } else {
+        if (this.registion && process.env.SYNCHRONIZER_KEYSTORE_FILE == process.env.VALIDATOR_KEYSTORE_FILE) {
+          updateEnvFile({ SYNCHRONIZER_KEYSTORE_FILE: '' });
+        }
         await this.registerValidator();
       }
       this.validatorInfo = await this.tableApi.getValidatorInfo(this.exsatAccountInfo.accountName);
@@ -670,15 +663,6 @@ export class ValidatorCommander {
       logger.info('BTC_RPC_URL is already set correctly.');
     }
   }
-  checkRole() {
-    if (!this.validatorInfo.role && this.role == Client.XSATValidaotr) {
-      throw new Error('You are not a XSAT validator');
-    }
-    if (this.validatorInfo.role && this.role == Client.Validator) {
-      throw new Error('You are not a BTC validator');
-    }
-    return true;
-  }
   /**
    * Update the validator info.
    */
@@ -688,7 +672,13 @@ export class ValidatorCommander {
   }
 
   async registerValidator() {
-    const role = this.exsatAccountInfo.role;
+    const validatorRole = await select({
+      message: 'Select Role',
+      choices: [
+        { name: 'BTC Validator', value: Client.Validator },
+        { name: 'XSAT Validator', value: Client.XSATValidaotr },
+      ],
+    });
     const stakeAddress = await input({
       message: 'Enter your stake address: ',
       validate: (value) => {
@@ -697,7 +687,7 @@ export class ValidatorCommander {
     });
     let claimableAddress;
     let commissionRate;
-    if (role === Client.Validator) {
+    if (validatorRole === Client.Validator) {
       claimableAddress = await input({
         message: 'Enter your commission address: ',
         validate: (value) => {
@@ -719,7 +709,7 @@ export class ValidatorCommander {
     }
     const data = {
       validator: this.exsatAccountInfo.accountName,
-      role: role == Client.Validator ? 0 : 1,
+      role: validatorRole == Client.Validator ? 0 : 1,
       stake_addr: evmAddressToChecksum(stakeAddress),
       reward_addr: claimableAddress ? evmAddressToChecksum(claimableAddress) : null,
       commission_rate: commissionRate ? parseFloat(commissionRate) * 100 : null,

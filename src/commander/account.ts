@@ -6,18 +6,11 @@ import { writeFileSync } from 'fs';
 import WIF from 'wif';
 import { bytesToHex } from 'web3-utils';
 import { confirm, input, password, select } from '@inquirer/prompts';
-import {
-  capitalizeFirstLetter,
-  clearLines,
-  inputWithCancel,
-  processAndUpdatePassword,
-  selectDirPrompt,
-} from '../utils/input';
+import { clearLines, inputWithCancel, processAndUpdatePassword, selectDirPrompt } from '../utils/input';
 import { isExsatDocker, retry, updateEnvFile } from '../utils/common';
 import { Font } from '../utils/font';
 import { createKeystore, keystoreExist } from '../utils/keystore';
 import axios from 'axios';
-import { logger } from '../utils/logger';
 import { EXSAT_RPC_URLS } from '../utils/config';
 import { Client } from '../utils/enumeration';
 import TableApi from '../utils/table-api';
@@ -51,12 +44,12 @@ export async function getUserAccount(accountName) {
     throw error;
   }
 }
-async function getInputRole() {
+export async function getInputRole() {
   const role = await select({
     message: 'Select a role',
     choices: [
-      { name: 'Synchronizer', value: 'synchronizer' },
-      { name: 'Validator', value: 'validator' },
+      { name: 'Synchronizer', value: Client.Synchronizer },
+      { name: 'Validator', value: Client.Validator },
     ],
   });
   return role;
@@ -223,7 +216,7 @@ export async function importFromPrivateKey() {
   await saveKeystore(privateKey, account.accountName, role);
   return await processAccount(account);
 }
-async function getAcccountRole(accountName) {
+export async function getAcccountRole(accountName) {
   const tableApi = await TableApi.getInstance();
   const sync = await tableApi.getSynchronizerInfo(accountName);
   const vali = await tableApi.getValidatorInfo(accountName);

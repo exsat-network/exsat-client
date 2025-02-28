@@ -7,7 +7,6 @@
     "start-commander": "ts-node src/commander/index.ts",
     "start-synchronizer": "ts-node src/synchronizer/index.ts",
     "start-validator": "ts-node src/validator/index.ts",
-    "start-xsat-validator": "ts-node src/validator/index.ts --client xsat_validator",
     "build": "tsc",
     "format": "prettier --write ."
   },

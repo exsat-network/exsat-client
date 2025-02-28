@@ -5,9 +5,10 @@ import { ValidatorCommander } from './validator';
 import { Version } from '../utils/version';
 import { notAccountMenu, updateMenu } from './common';
 import { Client, KeystoreExistStatus } from '../utils/enumeration';
-import { isExsatDocker, loadNetworkConfigurations, showInfo } from '../utils/common';
+import { isExsatDocker, loadNetworkConfigurations, reloadEnv, showInfo } from '../utils/common';
 import { NETWORK_CONFIG } from '../utils/config';
 import { keystoreExistStatus } from '../utils/keystore';
+import { getInputRole } from './account';
 
 /**
  * Main entry point for the application.
@@ -20,31 +21,41 @@ async function main() {
       'It is highly recommended that you carefully read the user guide and follow the instructions precisely to avoid any unnecessary issues.',
     'User Guide': `${NETWORK_CONFIG.userGuide}`,
   });
-  const keystoreEXistStatus = keystoreExistStatus();
-  switch (keystoreEXistStatus) {
-    case KeystoreExistStatus.None:
+
+  let keystoreEXistStatus = keystoreExistStatus();
+
+  while (keystoreEXistStatus === KeystoreExistStatus.None || keystoreEXistStatus === KeystoreExistStatus.Both) {
+    if (keystoreEXistStatus === KeystoreExistStatus.None) {
       await notAccountMenu();
-      break;
+    }
+    reloadEnv();
+    keystoreEXistStatus = keystoreExistStatus();
+  }
+  let clientCommander;
+  let role;
+  switch (keystoreEXistStatus) {
     case KeystoreExistStatus.Validator:
+      role = Client.Validator;
+      clientCommander = new ValidatorCommander();
+      break;
     case KeystoreExistStatus.Synchronizer:
+      role = Client.Synchronizer;
+      clientCommander = new SynchronizerCommander();
       break;
     case KeystoreExistStatus.Both:
+      role = await getInputRole();
+      switch (role) {
+        case Client.Validator:
+          clientCommander = new ValidatorCommander(true);
+          break;
+        case Client.Synchronizer:
+          clientCommander = new SynchronizerCommander(true);
+          break;
+      }
       break;
     default:
       break;
   }
-
-  // Define menu options for client selection
-  const menus = [
-    { name: 'Synchronizer', value: Client.Synchronizer },
-    { name: 'BTC Validator', value: Client.Validator },
-    { name: 'XSAT Validator', value: Client.XSATValidaotr },
-  ];
-  // Prompt user to select a client to start
-  const role = await select({
-    message: 'Please select a role to start: ',
-    choices: menus,
-  });
 
   const isDocker = isExsatDocker();
   // Check for software updates
@@ -56,19 +67,6 @@ async function main() {
   }
   if (versions.newVersion) {
     await updateMenu(versions, isDocker, role);
-  }
-  // Initialize the selected client and configure logger
-  let clientCommander;
-  switch (role) {
-    case Client.Synchronizer:
-      clientCommander = new SynchronizerCommander();
-      break;
-    case Client.Validator:
-    case Client.XSATValidaotr:
-      clientCommander = new ValidatorCommander(role);
-      break;
-    default:
-      throw new Error('Invalid client selection');
   }
 
   // Start the selected client
