@@ -32,7 +32,8 @@ export class ValidatorCommander {
   private keystoreFile: string;
   private clientType: ClientType;
   private registion;
-  constructor(registion = false) {
+  constructor(exsatAccountInfo, registion = false) {
+    this.exsatAccountInfo = exsatAccountInfo;
     this.registion = registion;
   }
   /**
@@ -417,36 +418,9 @@ export class ValidatorCommander {
    * Decrypts the keystore and initializes exsatApi and tableApi.
    */
   async init() {
-    this.exsatAccountInfo = await this.decryptKeystore();
-    const exsatNode = new ExsatNode(EXSAT_RPC_URLS);
-    const exsatApi = new ExsatApi(this.exsatAccountInfo, exsatNode);
-    await exsatApi.initialize();
-    const tableApi = TableApi.getInstance();
-  }
-
-  /**
-   * Decrypts the keystore file to retrieve account information.
-   */
-  async decryptKeystore() {
-    let password = getConfigPassword(ClientType.Validator);
-    let accountInfo;
-    if (password) {
-      password = password.trim();
-      accountInfo = await getAccountInfo(process.env.VALIDATOR_KEYSTORE_FILE, password);
-    } else {
-      while (!accountInfo) {
-        try {
-          password = await getInputPassword();
-          if (password === 'q') {
-            process.exit(0);
-          }
-          accountInfo = await getAccountInfo(this.keystoreFile, password);
-        } catch (e) {
-          logger.warn(e);
-        }
-      }
-    }
-    return accountInfo;
+    this.exsatApi = new ExsatApi(this.exsatAccountInfo);
+    await this.exsatApi.initialize();
+    this.tableApi = await TableApi.getInstance();
   }
 
   /**
@@ -464,7 +438,7 @@ export class ValidatorCommander {
         process.exit(0);
       } else {
         if (this.registion && process.env.SYNCHRONIZER_KEYSTORE_FILE == process.env.VALIDATOR_KEYSTORE_FILE) {
-          updateEnvFile({ SYNCHRONIZER_KEYSTORE_FILE: '' });
+          updateEnvFile({ SYNCHRONIZER_KEYSTORE_FILE: '', SYNCHRONIZER_KEYSTORE_PASSWORD: '' });
         }
         await this.registerValidator();
       }

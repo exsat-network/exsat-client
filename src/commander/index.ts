@@ -3,8 +3,14 @@ import { select } from '@inquirer/prompts';
 import { SynchronizerCommander } from './synchronizer';
 import { ValidatorCommander } from './validator';
 import { Version } from '../utils/version';
-import { notAccountMenu, updateMenu } from './common';
-import { Client, KeystoreExistStatus } from '../utils/enumeration';
+import {
+  checkAccountRegistrationStatus,
+  decryptKeystore,
+  getKeystoreBaseInfo,
+  notAccountMenu,
+  updateMenu,
+} from './common';
+import { Client, ClientType, KeystoreExistStatus } from '../utils/enumeration';
 import { isExsatDocker, loadNetworkConfigurations, reloadEnv, showInfo } from '../utils/common';
 import { NETWORK_CONFIG } from '../utils/config';
 import { keystoreExistStatus } from '../utils/keystore';
@@ -24,7 +30,7 @@ async function main() {
 
   let keystoreEXistStatus = keystoreExistStatus();
 
-  while (keystoreEXistStatus === KeystoreExistStatus.None || keystoreEXistStatus === KeystoreExistStatus.Both) {
+  while (keystoreEXistStatus === KeystoreExistStatus.None) {
     if (keystoreEXistStatus === KeystoreExistStatus.None) {
       await notAccountMenu();
     }
@@ -33,23 +39,32 @@ async function main() {
   }
   let clientCommander;
   let role;
+  let exsatAccount;
   switch (keystoreEXistStatus) {
     case KeystoreExistStatus.Validator:
       role = Client.Validator;
-      clientCommander = new ValidatorCommander();
+      exsatAccount = await decryptKeystore(ClientType.Validator);
+      clientCommander = new ValidatorCommander(exsatAccount);
       break;
     case KeystoreExistStatus.Synchronizer:
       role = Client.Synchronizer;
-      clientCommander = new SynchronizerCommander();
+      exsatAccount = await decryptKeystore(ClientType.Synchronizer);
+      clientCommander = new SynchronizerCommander(exsatAccount);
       break;
     case KeystoreExistStatus.Both:
+      if (process.env.SYNCHRONIZER_KEYSTORE_FILE == process.env.VALIDATOR_KEYSTORE_FILE) {
+        const baseInfo = await getKeystoreBaseInfo(ClientType.Synchronizer);
+        await checkAccountRegistrationStatus(baseInfo);
+      }
       role = await getInputRole();
       switch (role) {
         case Client.Validator:
-          clientCommander = new ValidatorCommander(true);
+          exsatAccount = await decryptKeystore(ClientType.Validator);
+          clientCommander = new ValidatorCommander(exsatAccount, true);
           break;
         case Client.Synchronizer:
-          clientCommander = new SynchronizerCommander(true);
+          exsatAccount = await decryptKeystore(ClientType.Synchronizer);
+          clientCommander = new SynchronizerCommander(exsatAccount, true);
           break;
       }
       break;

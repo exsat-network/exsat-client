@@ -9,7 +9,14 @@ import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
 import fs from 'node:fs';
 import { inputWithCancel } from '../utils/input';
-import { checkExsatUrls, exportPrivateKey, notAccountMenu, resetBtcRpcUrl, setBtcRpcUrl } from './common';
+import {
+  checkAccountRegistrationStatus,
+  checkExsatUrls,
+  exportPrivateKey,
+  notAccountMenu,
+  resetBtcRpcUrl,
+  setBtcRpcUrl,
+} from './common';
 import { Font } from '../utils/font';
 import { getUserAccount } from './account';
 import ExsatNode from '../utils/exsat-node';
@@ -20,7 +27,8 @@ export class SynchronizerCommander {
   private tableApi: TableApi;
   private exsatApi: ExsatApi;
   private registion;
-  constructor(retistion = false) {
+  constructor(exsatAccountInfo, retistion = false) {
+    this.exsatAccountInfo = exsatAccountInfo;
     this.registion = retistion;
   }
 
@@ -38,7 +46,7 @@ export class SynchronizerCommander {
     // Initialize APIs and check account and synchronizer status
     await this.init();
 
-    await this.checkAccountRegistrationStatus();
+    await checkAccountRegistrationStatus(this.exsatAccountInfo);
     await this.checkSynchronizerRegistrationStatus();
     await this.checkRewardsAddress();
     // await this.checkDonateSetting();
@@ -58,6 +66,7 @@ export class SynchronizerCommander {
 
     const showMessageInfo = {
       'Account Name': accountName,
+      Role: 'Synchronizer',
       'Public Key': this.exsatAccountInfo.publicKey,
       'Gas Balance': btcBalance ? btcBalance : `0.00000000 BTC`,
       'Reward Address': synchronizer.memo ?? synchronizer.reward_recipient,
@@ -259,35 +268,9 @@ export class SynchronizerCommander {
    * Decrypts the keystore and initializes exsatApi and tableApi.
    */
   async init() {
-    this.exsatAccountInfo = await this.decryptKeystore();
-    const exsatApi = new ExsatApi(this.exsatAccountInfo);
-    await exsatApi.initialize();
-    const tableApi = TableApi.getInstance();
-  }
-
-  /**
-   * Decrypts the keystore file to retrieve account information.
-   */
-  async decryptKeystore() {
-    let password = getConfigPassword(ClientType.Synchronizer);
-    let accountInfo;
-    if (password) {
-      password = password.trim();
-      accountInfo = await getAccountInfo(process.env.SYNCHRONIZER_KEYSTORE_FILE, password);
-    } else {
-      while (!accountInfo) {
-        try {
-          password = await getInputPassword();
-          if (password === 'q') {
-            process.exit(0);
-          }
-          accountInfo = await getAccountInfo(process.env.SYNCHRONIZER_KEYSTORE_FILE, password);
-        } catch (e) {
-          logger.warn(e);
-        }
-      }
-    }
-    return accountInfo;
+    this.exsatApi = new ExsatApi(this.exsatAccountInfo);
+    await this.exsatApi.initialize();
+    this.tableApi = await TableApi.getInstance();
   }
 
   /**
@@ -303,29 +286,10 @@ export class SynchronizerCommander {
         `In order to activate your account, please contact our admin via email (${Font.fgCyan}${Font.bright}${NETWORK_CONFIG.contact}${Font.reset}).\n`
       );
       if (this.registion && process.env.SYNCHRONIZER_KEYSTORE_FILE == process.env.VALIDATOR_KEYSTORE_FILE) {
-        updateEnvFile({ VALIDATOR_KEYSTORE_FILE: '' });
+        updateEnvFile({ VALIDATOR_KEYSTORE_FILE: '', VALIDATOR_KEYSTORE_PASSWORD: '' });
       }
       process.exit(0);
     }
-  }
-
-  /**
-   * Checks the registration status of the account.
-   */
-  async checkAccountRegistrationStatus() {
-    const checkAccountInfo = await getUserAccount(this.exsatAccountInfo.accountName);
-    if (!checkAccountInfo) {
-      showInfo({
-        'Account Name': this.exsatAccountInfo.accountName,
-        'Public Key': this.exsatAccountInfo.publicKey,
-        'Registration Url': `${NETWORK_CONFIG.register}/${btoa(`account=${this.exsatAccountInfo.accountName}&pubkey=${this.exsatAccountInfo.publicKey}&role=${this.exsatAccountInfo.role}`)}${NETWORK == 'mainnet' ? '' : `?net=${NETWORK}`}`,
-      });
-      console.log(
-        `Please note that your registration has not finished yet!\n${Font.fgGreen}${Font.bright}Please copy the Registration Url above and paste to your browser to finish the registration.${Font.reset}`
-      );
-      process.exit(0);
-    }
-    return true;
   }
 
   /**
@@ -339,6 +303,7 @@ export class SynchronizerCommander {
       logger.info('Reward address is not set.');
       showInfo({
         'Account Name': accountName,
+        Role: 'Synchronizer',
         'Public Key': this.exsatAccountInfo.publicKey,
         'Gas Balance': btcBalance ? btcBalance : `0.00000000 BTC`,
         'Reward Address': 'unset',

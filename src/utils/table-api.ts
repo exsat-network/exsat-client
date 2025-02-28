@@ -15,6 +15,7 @@ import ExsatNode from './exsat-node';
 import { sleep } from './common';
 import { EXSAT_RPC_URLS } from './config';
 
+let tableApiInstance: TableApi | null;
 class TableApi {
   private client: APIClient;
   private exsatNodesManager: ExsatNode;
@@ -25,9 +26,10 @@ class TableApi {
     this.exsatNodesManager = exsatNode;
   }
   public static async getInstance(): Promise<TableApi> {
-    const instance = new TableApi(new ExsatNode(EXSAT_RPC_URLS));
-    await instance.initialize();
-    return instance;
+    if (tableApiInstance) return tableApiInstance;
+    tableApiInstance = new TableApi(new ExsatNode());
+    await tableApiInstance.initialize();
+    return tableApiInstance;
   }
   private async initialize(): Promise<void> {
     const validNodeFound = await this.exsatNodesManager.findValidNode();

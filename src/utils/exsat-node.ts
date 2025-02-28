@@ -1,7 +1,8 @@
 import axios from 'axios';
 import moment from 'moment';
 import { logger } from './logger';
-import { EXSAT_RPC_URLS } from "./config";
+import { EXSAT_RPC_URLS } from './config';
+import { getRpcUrls, isValidUrl } from './common';
 
 class ExsatNode {
   private nodes: string[];
@@ -9,7 +10,7 @@ class ExsatNode {
   private chainId: string;
 
   constructor(nodes?: string[]) {
-    if (nodes && nodes.length > 0) {
+    if (nodes && nodes.length > 0 && isValidUrl(nodes[0])) {
       this.nodes = nodes;
     }
     this.nodes = EXSAT_RPC_URLS;

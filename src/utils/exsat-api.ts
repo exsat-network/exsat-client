@@ -24,9 +24,9 @@ class ExsatApi {
     },
     exsatNode?: ExsatNode
   ) {
-    if (!exsatNode) {
+    if (exsatNode) {
       this.exsatNodesManager = exsatNode;
-    }else {
+    } else {
       this.exsatNodesManager = new ExsatNode();
     }
     this.accountName = accountInfo.accountName;

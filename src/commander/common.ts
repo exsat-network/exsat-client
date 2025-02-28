@@ -1,12 +1,13 @@
 import { confirm, input, select, Separator } from '@inquirer/prompts';
 import process from 'node:process';
 import { Font } from '../utils/font';
-import { EXSAT_RPC_URLS } from '../utils/config';
-import { getRpcUrls, isValidUrl, updateEnvFile } from '../utils/common';
-import { Client } from '../utils/enumeration';
+import { EXSAT_RPC_URLS, NETWORK, NETWORK_CONFIG } from '../utils/config';
+import { getRpcUrls, isValidUrl, showInfo, updateEnvFile } from '../utils/common';
+import { Client, ClientType } from '../utils/enumeration';
 import { logger } from '../utils/logger';
 import { clearLines, inputWithCancel } from '../utils/input';
-import { importFromMnemonic, importFromPrivateKey, initializeAccount } from './account';
+import { getUserAccount, importFromMnemonic, importFromPrivateKey, initializeAccount } from './account';
+import { getAccountInfo, getBaseAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
 
 export async function notAccountMenu() {
   const menus = [
@@ -176,4 +177,52 @@ export async function exportPrivateKey(privateKey: string) {
   await input({ message: 'Press [Enter] to continue...' });
   clearLines(2);
   return true;
+}
+export async function checkAccountRegistrationStatus(exsatAccountInfo) {
+  const checkAccountInfo = await getUserAccount(exsatAccountInfo.accountName);
+  if (!checkAccountInfo) {
+    showInfo({
+      'Account Name': exsatAccountInfo.accountName,
+      'Public Key': exsatAccountInfo.publicKey,
+      'Registration Url': `${NETWORK_CONFIG.register}/${btoa(`account=${exsatAccountInfo.accountName}&pubkey=${exsatAccountInfo.publicKey}`)}${NETWORK == 'mainnet' ? '' : `?net=${NETWORK}`}`,
+    });
+    console.log(
+      `Please note that your registration has not finished yet!\n${Font.fgGreen}${Font.bright}Please copy the Registration Url above and paste to your browser to finish the registration.${Font.reset}`
+    );
+    process.exit(0);
+  }
+  return true;
+}
+export function getKeystoreBaseInfo(clientType) {
+  const keystoreFile =
+    clientType == ClientType.Synchronizer
+      ? process.env.SYNCHRONIZER_KEYSTORE_FILE
+      : process.env.VALIDATOR_KEYSTORE_FILE;
+  return getBaseAccountInfo(keystoreFile);
+}
+
+export async function decryptKeystore(clientType) {
+  const keystoreFile =
+    clientType == ClientType.Synchronizer
+      ? process.env.SYNCHRONIZER_KEYSTORE_FILE
+      : process.env.VALIDATOR_KEYSTORE_FILE;
+  let password = getConfigPassword(clientType);
+  let accountInfo;
+  if (password) {
+    password = password.trim();
+    accountInfo = await getAccountInfo(keystoreFile, password);
+  } else {
+    while (!accountInfo) {
+      try {
+        password = await getInputPassword();
+        if (password === 'q') {
+          process.exit(0);
+        }
+        accountInfo = await getAccountInfo(keystoreFile, password);
+      } catch (e) {
+        logger.warn(e);
+      }
+    }
+  }
+  return accountInfo;
 }
