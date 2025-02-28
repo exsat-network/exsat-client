@@ -41,3 +41,4 @@ export const PROMETHEUS: boolean = process.env.PROMETHEUS === 'true';
 export const PROMETHEUS_ADDRESS = process.env.PROMETHEUS_ADDRESS || '0.0.0.0:9900';
 
 export let NETWORK_CONFIG;
+export const NETWORK = process.env.NETWORK || 'mainnet';

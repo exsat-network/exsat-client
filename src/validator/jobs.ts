@@ -30,8 +30,7 @@ export class ValidatorJobs {
     const scope = this.state.client == Client.XSATValidaotr ? this.xsatScope(height) : height;
     const endorsement = await this.state.tableApi!.getEndorsementByBlockId(scope, hash);
     if (endorsement) {
-      let isQualified = this.isEndorserQualified(endorsement.requested_validators, accountName);
-      if (isQualified && !this.isEndorserQualified(endorsement.provider_validators, accountName)) {
+      if (!this.isEndorserQualified(endorsement.provider_validators, accountName)) {
         await this.submit(accountName, height, hash);
       } else {
         this.state.lastEndorseHeight = height;
@@ -79,7 +78,10 @@ export class ValidatorJobs {
       logger.info('Endorse task is running');
       const blockcountInfo = await getblockcount();
       const blockhashInfo = await getblockhash(blockcountInfo.result);
-      await this.checkAndSubmit(this.state.accountName, blockcountInfo.result, blockhashInfo.result);
+      const validatorInfo = await this.state.tableApi!.getValidatorInfo(this.state.accountName);
+      if (blockhashInfo.result > validatorInfo.latest_consensus_block) {
+        await this.checkAndSubmit(this.state.accountName, blockcountInfo.result, blockhashInfo.result);
+      }
     } catch (e) {
       const errorMessage = getErrorMessage(e);
       logger.info(`Endorse task info: ${errorMessage}`);
@@ -112,7 +114,8 @@ export class ValidatorJobs {
       logger.info('Endorse check task is running');
       const chainstate = await this.state.tableApi!.getChainstate();
       const blockcount = await getblockcount();
-      let startEndorseHeight = chainstate!.irreversible_height + 1;
+      const validatorInfo = await this.state.tableApi.getValidatorInfo(this.state.accountName);
+      let startEndorseHeight = Math.max(chainstate!.irreversible_height + 1, validatorInfo.latest_consensus_block + 1);
       for (let i = startEndorseHeight; i <= blockcount.result; i++) {
         let hash: string;
         try {

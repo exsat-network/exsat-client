@@ -15,7 +15,7 @@ import {
   updateEnvFile,
 } from '../utils/common';
 import { confirm, input, password, select, Separator } from '@inquirer/prompts';
-import { EXSAT_RPC_URLS, NETWORK_CONFIG, SET_VALIDATOR_DONATE_RATIO } from '../utils/config';
+import { EXSAT_RPC_URLS, NETWORK, NETWORK_CONFIG, SET_VALIDATOR_DONATE_RATIO } from '../utils/config';
 import { logger } from '../utils/logger';
 import { inputWithCancel } from '../utils/input';
 import { Client, ClientType, ContractName } from '../utils/enumeration';
@@ -491,7 +491,7 @@ export class ValidatorCommander {
         'Account Name': this.exsatAccountInfo.accountName,
         'Account Role': this.exsatAccountInfo.role == Client.Validator ? 'BTC Validator' : 'XSAT Validator',
         'Public Key': this.exsatAccountInfo.publicKey,
-        'Registration Url': `${NETWORK_CONFIG.register}/${btoa(`account=${this.exsatAccountInfo.accountName}&pubkey=${this.exsatAccountInfo.publicKey}&role=${this.exsatAccountInfo.role}`)}`,
+        'Registration Url': `${NETWORK_CONFIG.register}/${btoa(`account=${this.exsatAccountInfo.accountName}&pubkey=${this.exsatAccountInfo.publicKey}&role=${this.exsatAccountInfo.role}`)}${NETWORK == 'mainnet' ? '' : `?net=${NETWORK}`}`,
       });
       console.log(
         `Please note that your registration has not finished yet!\n${Font.fgGreen}${Font.bright}Please copy the Registration Url above and paste to your browser to finish the registration.${Font.reset}`

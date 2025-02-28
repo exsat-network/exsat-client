@@ -1,5 +1,5 @@
 import { getErrorMessage, isValidUrl, reloadEnv, retry, showInfo, sleep, updateEnvFile } from '../utils/common';
-import { EXSAT_RPC_URLS, NETWORK_CONFIG, SET_SYNCHRONIZER_DONATE_RATIO } from '../utils/config';
+import { EXSAT_RPC_URLS, NETWORK, NETWORK_CONFIG, SET_SYNCHRONIZER_DONATE_RATIO } from '../utils/config';
 import { input, password, select, Separator } from '@inquirer/prompts';
 import process from 'node:process';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
@@ -311,7 +311,7 @@ export class SynchronizerCommander {
       showInfo({
         'Account Name': this.exsatAccountInfo.accountName,
         'Public Key': this.exsatAccountInfo.publicKey,
-        'Registration Url': `${NETWORK_CONFIG.register}/${btoa(`account=${this.exsatAccountInfo.accountName}&pubkey=${this.exsatAccountInfo.publicKey}&role=${this.exsatAccountInfo.role}`)}`,
+        'Registration Url': `${NETWORK_CONFIG.register}/${btoa(`account=${this.exsatAccountInfo.accountName}&pubkey=${this.exsatAccountInfo.publicKey}&role=${this.exsatAccountInfo.role}`)}${NETWORK == 'mainnet' ? '' : `?net=${NETWORK}`}`,
       });
       console.log(
         `Please note that your registration has not finished yet!\n${Font.fgGreen}${Font.bright}Please copy the Registration Url above and paste to your browser to finish the registration.${Font.reset}`

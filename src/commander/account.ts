@@ -19,7 +19,8 @@ import { createKeystore, keystoreExist } from '../utils/keystore';
 import axios from 'axios';
 import { logger } from '../utils/logger';
 import { EXSAT_RPC_URLS } from '../utils/config';
-import { Client } from "../utils/enumeration";
+import { Client } from '../utils/enumeration';
+import TableApi from '../utils/table-api';
 
 function validateUsername(username) {
   return /^[a-z1-5]{1,8}$/.test(username);
@@ -55,8 +56,7 @@ async function getInputRole() {
     message: 'Select a role',
     choices: [
       { name: 'Synchronizer', value: 'synchronizer' },
-      { name: 'BTC Validator', value: 'btc_validator' },
-      { name: 'XSAT Validator', value: 'xsat_validator' },
+      { name: 'Validator', value: 'validator' },
     ],
   });
   return role;
@@ -84,7 +84,7 @@ async function saveKeystore(privateKey, username, role?) {
   const keystore = await createKeystore(
     `${bytesToHex(WIF.decode(privateKey.toWif(), 128).privateKey)}`,
     passwordInput,
-    username,
+    username
   );
   const savePassword = await confirm({
     message: 'Do you want to save the password in the .env file?',
@@ -106,13 +106,13 @@ async function saveKeystore(privateKey, username, role?) {
   const keystoreFilePath = `${selectedPath}/${username}_keystore.json`;
   writeFileSync(keystoreFilePath, JSON.stringify(keystore), { mode: 0o600 });
   let updateDatas = {};
-  if(role){
+  if (role) {
     const keystoreFileKey = `${role.toUpperCase()}_KEYSTORE`;
     updateDatas = {
       [`${keystoreFileKey}_FILE`]: keystoreFilePath,
       [`${keystoreFileKey}_PASSWORD`]: savePassword ? processAndUpdatePassword(passwordInput) : '',
     };
-  }else{
+  } else {
     const syncKeystoreFileKey = `${Client.Synchronizer.toUpperCase()}_KEYSTORE`;
     const valiKeystoreFileKey = `${Client.Validator.toUpperCase()}_KEYSTORE`;
 
@@ -184,9 +184,7 @@ async function inputMnemonic() {
   return privateKey;
 }
 
-async function getAccountRole(accountName){
-
-}
+async function getAccountRole(accountName) {}
 export async function importFromMnemonic() {
   let accountInfo;
   let privateKey;
@@ -199,14 +197,12 @@ export async function importFromMnemonic() {
     console.log(`${Font.fgYellow}${Font.bright}Seed Phrase not available${Font.reset}`);
     return false;
   }
+  const role = await getAcccountRole(accountInfo.accountName);
   await saveKeystore(privateKey, accountInfo.accountName, role);
   return await processAccount(accountInfo);
 }
 
-export async function importFromPrivateKey(role) {
-  if (!role) {
-    role = await getInputRole();
-  }
+export async function importFromPrivateKey() {
   let account;
   let privateKey;
   try {
@@ -223,17 +219,27 @@ export async function importFromPrivateKey(role) {
     console.log(`${Font.fgYellow}${Font.bright}Private key not available${Font.fgYellow}`);
     return;
   }
+  const role = await getAcccountRole(account.accountName);
   await saveKeystore(privateKey, account.accountName, role);
   return await processAccount(account);
 }
-
+async function getAcccountRole(accountName) {
+  const tableApi = await TableApi.getInstance();
+  const sync = await tableApi.getSynchronizerInfo(accountName);
+  const vali = await tableApi.getValidatorInfo(accountName);
+  if ((sync && vali) || (!sync && !vali)) {
+    return await getInputRole();
+  }
+  if (sync) return Client.Synchronizer;
+  if (vali) return Client.Validator;
+}
 export async function processAccount({ accountName, pubkey, status, btcAddress, amount }) {
   //todo processAccount
   return true;
 }
 
 export async function initializeAccount() {
-  if(keystoreExist(Client.Synchronizer) || keystoreExist(Client.Validator)) {
+  if (keystoreExist(Client.Synchronizer) || keystoreExist(Client.Validator)) {
     console.log(`\n${Font.fgYellow}${Font.bright}Keystore file is exist.${Font.reset}`);
     return;
   }

@@ -95,7 +95,7 @@ export async function updateMenu(versions, isDocker, role) {
 }
 
 export async function checkExsatUrls() {
-  if (EXSAT_RPC_URLS.length === 0) {
+  if (!EXSAT_RPC_URLS || EXSAT_RPC_URLS.length === 0 || !isValidUrl(EXSAT_RPC_URLS[0])) {
     const result = await getRpcUrls();
     if (result) {
       // @ts-ignore
