@@ -85,13 +85,13 @@ async function main() {
   }
 
   // Start the selected client
-  configureLogger('commander');
   await clientCommander.main();
 }
 
 // Execute the main function and handle any errors
 (async () => {
   try {
+    configureLogger('commander');
     await main();
   } catch (e) {
     logger.error(e);

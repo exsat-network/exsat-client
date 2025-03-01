@@ -62,8 +62,7 @@ async function setupApis(accountInfo: any): Promise<{ exsatApi: ExsatApi; tableA
   const exsatNode = new ExsatNode(EXSAT_RPC_URLS);
   const exsatApi = new ExsatApi(accountInfo, exsatNode);
   await exsatApi.initialize();
-  const tableApi = new TableApi(exsatNode);
-  await tableApi.initialize();
+  const tableApi = await TableApi.getInstance();
   await exsatApi.checkClient(ClientType.Synchronizer);
   return { exsatApi, tableApi };
 }
