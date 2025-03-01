@@ -217,6 +217,7 @@ export async function importFromPrivateKey() {
   return await processAccount(account);
 }
 export async function getAcccountRole(accountName) {
+  accountName = accountName.endsWith('.sat') ? accountName : `${accountName}.sat`;
   const tableApi = await TableApi.getInstance();
   const sync = await tableApi.getSynchronizerInfo(accountName);
   const vali = await tableApi.getValidatorInfo(accountName);

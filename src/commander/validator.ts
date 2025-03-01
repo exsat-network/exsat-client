@@ -402,18 +402,6 @@ export class ValidatorCommander {
     );
   }
 
-  async getValidatedInfo(): Promise<any> {
-    return await this.tableApi.getValidatorActivatedInfo(this.exsatAccountInfo.accountName);
-  }
-
-  async checkActovateValidatorQuotas() {
-    const activateValidatorQuotas: any = await this.tableApi.getActivateValidatorQuotas();
-    if (activateValidatorQuotas.total_quotas <= activateValidatorQuotas.total_activations) {
-      return false;
-    }
-    return true;
-  }
-
   /**
    * Decrypts the keystore and initializes exsatApi and tableApi.
    */
