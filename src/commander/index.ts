@@ -56,7 +56,7 @@ async function main() {
         const baseInfo = await getKeystoreBaseInfo(ClientType.Synchronizer);
         await checkAccountRegistrationStatus(baseInfo);
       }
-      role = await getInputRole();
+      role = await getInputRole('Do you want to set up a Synchronizer or a Validator?');
       switch (role) {
         case Client.Validator:
           exsatAccount = await decryptKeystore(ClientType.Validator);

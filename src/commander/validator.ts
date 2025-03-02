@@ -68,26 +68,26 @@ export class ValidatorCommander {
       'Account Role': validator.role ? 'XSAT Validator' : 'BTC Validator',
       'Public Key': this.exsatAccountInfo.publicKey,
       'Gas Balance': btcBalance ? btcBalance : `0.00000000 BTC`,
-      'Commission Ratio': `${validator.commission_rate / 100}%` ?? '0%',
+      'Commission Rate': `${validator.commission_rate / 100}%` ?? '0%',
       'Commission Address': validator.reward_address ? `0x${validator.reward_address}` : '',
-      'BTC Staked': validator.quantity,
-      'XSAT Staked': validator.xsat_quantity,
-      'Eligible for Consensus': validator.role
+      'Total BTC Staked': validator.quantity,
+      'Total XSAT Staked': validator.xsat_quantity,
+      'Is eligible for consensus': validator.role
         ? parseFloat(validator.xsat_quantity) >= 2100
           ? 'Yes'
-          : 'No, requires min 2100 XSAT staked'
+          : 'No, requires staking 2100 XSAT'
         : parseFloat(validator.quantity) >= 100
           ? 'Yes'
-          : 'No, requires min 100 BTC staked',
+          : 'No, requires staking 100 BTC',
       'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
       'BTC RPC Node': process.env.BTC_RPC_URL ?? '',
     };
     if (validator.role) {
-      delete showMessageInfo['BTC Staked'];
+      delete showMessageInfo['Total BTC Staked'];
       delete showMessageInfo['Commission Address'];
-      delete showMessageInfo['Commission Ratio'];
+      delete showMessageInfo['Commission Rate'];
     } else {
-      delete showMessageInfo['XSAT Staked'];
+      delete showMessageInfo['Total XSAT Staked'];
     }
 
     showInfo(showMessageInfo);
@@ -146,9 +146,9 @@ export class ValidatorCommander {
           disabled: !validator,
         },
         {
-          name: 'Change Commission Ratio',
+          name: 'Change Commission Rate',
           value: 'set_commission_ratio',
-          description: 'Set/Change Reward Address',
+          description: 'Set/Change Commission Rate',
           disabled: !validator,
         }
       );
@@ -273,7 +273,7 @@ export class ValidatorCommander {
    */
   async setCommissionRatio() {
     const commissionRatio = await inputWithCancel(
-      'Enter commission ratio (0.00-100.00, Input "q" to return): ',
+      'Enter commission rate (0.00-100.00, Input "q" to return): ',
       (value: string) => {
         //Determine whether it is a number between 0.00-100.00
         const num = parseFloat(value);
@@ -295,10 +295,10 @@ export class ValidatorCommander {
     const res: any = await this.exsatApi.executeAction(ContractName.endrmng, 'config', data);
     if (res && res.transaction_id) {
       await this.updateValidatorInfo();
-      logger.info(`${Font.fgCyan}${Font.bright}Set commission ratio: ${commissionRatio}% successfully.${Font.reset}\n`);
+      logger.info(`${Font.fgCyan}${Font.bright}Set commission rate: ${commissionRatio}% successfully.${Font.reset}\n`);
       return true;
     } else {
-      logger.error(`Validator[${this.exsatAccountInfo.accountName}] Set commission ratio: ${commissionRatio} failed`);
+      logger.error(`Validator[${this.exsatAccountInfo.accountName}] Set commission rate: ${commissionRatio} failed`);
       return false;
     }
   }
@@ -476,25 +476,25 @@ export class ValidatorCommander {
         'Account Role': validator.role ? 'XSAT Validator' : 'BTC Validator',
         'Public Key': this.exsatAccountInfo.publicKey,
         'Gas Balance': btcBalance ? btcBalance : `0.00000000 BTC`,
-        'Commission Ratio': `${validator.commission_rate / 100}%` ?? '0%',
+        'Commission Rate': `${validator.commission_rate / 100}%` ?? '0%',
         'Commission Address': 'unset',
-        'BTC Staked': validator.quantity,
-        'XSAT Staked': validator.xsat_quantity,
-        'Eligible for Consensus': validator.role
+        'Total BTC Staked': validator.quantity,
+        'Total XSAT Staked': validator.xsat_quantity,
+        'Is eligible for consensus': validator.role
           ? parseFloat(validator.xsat_quantity) >= 2100
             ? 'Yes'
-            : 'No, requires min 2100 XSAT staked'
+            : 'No, requires staking 2100 XSAT'
           : parseFloat(validator.quantity) >= 100
             ? 'Yes'
-            : 'No, requires min 100 BTC staked',
+            : 'No, requires staking 100 BTC',
         'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
       };
       if (validator.role) {
-        delete showMessageInfo['BTC Staked'];
+        delete showMessageInfo['Total BTC Staked'];
         delete showMessageInfo['Commission Address'];
-        delete showMessageInfo['Commission Ratio'];
+        delete showMessageInfo['Commission Rate'];
       } else {
-        delete showMessageInfo['XSAT Staked'];
+        delete showMessageInfo['Total XSAT Staked'];
       }
       showInfo(showMessageInfo);
 
@@ -527,19 +527,19 @@ export class ValidatorCommander {
     const btcBalance = await this.tableApi.getAccountBalance(accountName);
     const validatorInfo = this.validatorInfo;
     if (!validatorInfo.commission_rate) {
-      logger.info('Commission ratio is not set.');
+      logger.info('Commission rate is not set.');
       showInfo({
         'Account Name': accountName,
         'Public Key': this.exsatAccountInfo.publicKey,
         'BTC Balance Used for Gas Fee': btcBalance,
         'Commission Address': validatorInfo.reward_address ? `0x${validatorInfo.reward_address}` : '',
-        'Commission Ratio': 'Unset',
+        'Commission Rate': 'Unset',
         'Account Registration Status': 'Registered',
         'Validator Registration Status': 'Registered',
       });
 
       const menus = [
-        { name: 'Set Commission Ratio', value: 'set_commission_ratio' },
+        { name: 'Set Commission Rate', value: 'set_commission_ratio' },
         new Separator(),
         { name: 'Quit', value: 'quit', description: 'Quit' },
       ];
@@ -555,7 +555,7 @@ export class ValidatorCommander {
         res = await (actions[action] || (() => {}))();
       } while (!res);
     } else {
-      logger.info('Commission ratio is already set correctly.');
+      logger.info('Commission rate is already set correctly.');
     }
   }
 
@@ -588,26 +588,26 @@ export class ValidatorCommander {
         'Account Role': validator.role ? 'XSAT Validator' : 'BTC Validator',
         'Public Key': this.exsatAccountInfo.publicKey,
         'Gas Balance': btcBalance ? btcBalance : `0.00000000 BTC`,
-        'Commission Ratio': `${validator.commission_rate / 100}%` ?? '0%',
+        'Commission Rate': `${validator.commission_rate / 100}%` ?? '0%',
         'Commission Address': validator.reward_address ? `0x${validator.reward_address}` : '',
-        'BTC Staked': validator.quantity,
-        'XSAT Staked': validator.xsat_quantity,
-        'Eligible for Consensus': validator.role
+        'Total BTC Staked': validator.quantity,
+        'Total XSAT Staked': validator.xsat_quantity,
+        'Is eligible for consensus': validator.role
           ? parseFloat(validator.xsat_quantity) >= 2100
             ? 'Yes'
-            : 'No, requires min 2100 XSAT staked'
+            : 'No, requires staking 2100 XSAT'
           : parseFloat(validator.quantity) >= 100
             ? 'Yes'
-            : 'No, requires min 100 BTC staked',
+            : 'No, requires staking 100 BTC',
         'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
         'BTC RPC Node': 'unset',
       };
       if (validator.role) {
-        delete showMessageInfo['BTC Staked'];
+        delete showMessageInfo['Total BTC Staked'];
         delete showMessageInfo['Commission Address'];
-        delete showMessageInfo['Commission Ratio'];
+        delete showMessageInfo['Commission Rate'];
       } else {
-        delete showMessageInfo['XSAT Staked'];
+        delete showMessageInfo['Total XSAT Staked'];
       }
       showInfo(showMessageInfo);
 
@@ -641,7 +641,7 @@ export class ValidatorCommander {
 
   async registerValidator() {
     const validatorRole = await select({
-      message: 'Select Role',
+      message: 'Do you want to set up a BTC Validator or a XSAT Validator?',
       choices: [
         { name: 'BTC Validator', value: Client.Validator },
         { name: 'XSAT Validator', value: Client.XSATValidaotr },
@@ -663,7 +663,7 @@ export class ValidatorCommander {
         },
       });
       commissionRate = await input({
-        message: 'Enter your commission ratio (0.00-100.00): ',
+        message: 'Enter your commission rate (0.00-100.00): ',
         validate: (value) => {
           //Determine whether it is a number between 0.00-100.00
           const num = parseFloat(value);

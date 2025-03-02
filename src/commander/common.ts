@@ -194,18 +194,11 @@ export async function checkAccountRegistrationStatus(exsatAccountInfo) {
   return true;
 }
 export function getKeystoreBaseInfo(clientType) {
-  const keystoreFile =
-    clientType == ClientType.Synchronizer
-      ? process.env.SYNCHRONIZER_KEYSTORE_FILE
-      : process.env.VALIDATOR_KEYSTORE_FILE;
-  return getBaseAccountInfo(keystoreFile);
+  return getBaseAccountInfo(getKeystorePath(clientType));
 }
 
 export async function decryptKeystore(clientType) {
-  const keystoreFile =
-    clientType == ClientType.Synchronizer
-      ? process.env.SYNCHRONIZER_KEYSTORE_FILE
-      : process.env.VALIDATOR_KEYSTORE_FILE;
+  const keystoreFile = getKeystorePath(clientType);
   let password = getConfigPassword(clientType);
   let accountInfo;
   if (password) {
@@ -225,4 +218,10 @@ export async function decryptKeystore(clientType) {
     }
   }
   return accountInfo;
+}
+// 新增工具函数
+export function getKeystorePath(clientType: ClientType): string {
+  return clientType === ClientType.Synchronizer
+    ? process.env.SYNCHRONIZER_KEYSTORE_FILE
+    : process.env.VALIDATOR_KEYSTORE_FILE;
 }

@@ -44,7 +44,8 @@ export async function getUserAccount(accountName) {
     throw error;
   }
 }
-export async function getInputRole() {
+export async function getInputRole(title?) {
+  title = title ?? 'Select a role';
   const role = await select({
     message: 'Select a role',
     choices: [
@@ -177,7 +178,6 @@ async function inputMnemonic() {
   return privateKey;
 }
 
-async function getAccountRole(accountName) {}
 export async function importFromMnemonic() {
   let accountInfo;
   let privateKey;
@@ -190,9 +190,7 @@ export async function importFromMnemonic() {
     console.log(`${Font.fgYellow}${Font.bright}Seed Phrase not available${Font.reset}`);
     return false;
   }
-  const role = await getAcccountRole(accountInfo.accountName);
-  await saveKeystore(privateKey, accountInfo.accountName, role);
-  return await processAccount(accountInfo);
+  return await processAccount(privateKey, accountInfo.accountName);
 }
 
 export async function importFromPrivateKey() {
@@ -212,9 +210,7 @@ export async function importFromPrivateKey() {
     console.log(`${Font.fgYellow}${Font.bright}Private key not available${Font.fgYellow}`);
     return;
   }
-  const role = await getAcccountRole(account.accountName);
-  await saveKeystore(privateKey, account.accountName, role);
-  return await processAccount(account);
+  return await processAccount(privateKey, account.accountName);
 }
 export async function getAcccountRole(accountName) {
   accountName = accountName.endsWith('.sat') ? accountName : `${accountName}.sat`;
@@ -227,8 +223,9 @@ export async function getAcccountRole(accountName) {
   if (sync) return Client.Synchronizer;
   if (vali) return Client.Validator;
 }
-export async function processAccount({ accountName, pubkey, status, btcAddress, amount }) {
-  //todo processAccount
+export async function processAccount(privateKey, accountName) {
+  const role = await getAcccountRole(accountName);
+  await saveKeystore(privateKey, accountName, role);
   return true;
 }
 
@@ -258,11 +255,5 @@ export async function initializeAccount() {
   console.log(Font.colorize(`  Your account : ${username}.sat`, Font.fgGreen));
 
   const { publicKey } = await generateKeystore(username);
-  const infoJson = '{}';
-  try {
-    //todo notice a url
-    return username;
-  } catch (error: any) {
-    console.error('Error creating account: ', error.message);
-  }
+  return username;
 }
