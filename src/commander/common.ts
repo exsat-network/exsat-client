@@ -219,7 +219,6 @@ export async function decryptKeystore(clientType) {
   }
   return accountInfo;
 }
-// 新增工具函数
 export function getKeystorePath(clientType: ClientType): string {
   return clientType === ClientType.Synchronizer
     ? process.env.SYNCHRONIZER_KEYSTORE_FILE

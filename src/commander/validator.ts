@@ -68,10 +68,14 @@ export class ValidatorCommander {
       'Account Role': validator.role ? 'XSAT Validator' : 'BTC Validator',
       'Public Key': this.exsatAccountInfo.publicKey,
       'Gas Balance': btcBalance ? btcBalance : `0.00000000 BTC`,
-      'Commission Rate': `${validator.commission_rate / 100}%` ?? '0%',
-      'Commission Address': validator.reward_address ? `0x${validator.reward_address}` : '',
-      'Total BTC Staked': validator.quantity,
-      'Total XSAT Staked': validator.xsat_quantity,
+      'Commission Rate': validator.role ? undefined : (`${validator.commission_rate / 100}%` ?? '0%'),
+      'Commission Address': validator.role
+        ? undefined
+        : validator.reward_address
+          ? `0x${validator.reward_address}`
+          : '',
+      'Total BTC Staked': validator.role ? undefined : validator.quantity,
+      'Total XSAT Staked': validator.role ? validator.xsat_quantity : undefined,
       'Is eligible for consensus': validator.role
         ? parseFloat(validator.xsat_quantity) >= 2100
           ? 'Yes'
@@ -82,22 +86,15 @@ export class ValidatorCommander {
       'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
       'BTC RPC Node': process.env.BTC_RPC_URL ?? '',
     };
-    if (validator.role) {
-      delete showMessageInfo['Total BTC Staked'];
-      delete showMessageInfo['Commission Address'];
-      delete showMessageInfo['Commission Rate'];
-    } else {
-      delete showMessageInfo['Total XSAT Staked'];
-    }
+    Object.keys(showMessageInfo).forEach((key) => {
+      if (showMessageInfo[key] === undefined) {
+        delete showMessageInfo[key];
+      }
+    });
 
     showInfo(showMessageInfo);
 
     let menus = [
-      /* {
-        name: 'Recharge Gas',
-        value: 'recharge_btc',
-        description: 'Recharge Gas',
-      },*/
       {
         name: 'Change Stake Address',
         value: 'set_stake_address',
@@ -110,13 +107,6 @@ export class ValidatorCommander {
             ? '(Disabled, The BTC staking amount must be 0.)'
             : false,
       },
-
-      /* {
-        name: `${validator?.donate_rate ? 'Change' : 'Set'} Donation Ratio`,
-        value: 'set_donation_ratio',
-        description: 'Set/Change Donation Ratio',
-        disabled: !validator,
-      },*/
       {
         name: 'Change BTC RPC Node',
         value: 'reset_btc_rpc',
@@ -157,16 +147,9 @@ export class ValidatorCommander {
       set_reward_address: async () => await this.setRewardAddress(),
       set_stake_address: async () => await this.setStakeAddress(),
       set_commission_ratio: async () => await this.setCommissionRatio(),
-      set_donation_ratio: async () => await this.setDonationRatio(),
       reset_btc_rpc: async () => await resetBtcRpcUrl(),
       export_private_key: async () => {
         return await exportPrivateKey(this.exsatAccountInfo.privateKey);
-      },
-      activate_validator: async () => {
-        const res = await this.toActivateValidator();
-        if (res) {
-          menus.shift();
-        }
       },
       remove_account: async () => await this.removeKeystore(),
       quit: async () => process.exit(),
@@ -337,78 +320,6 @@ export class ValidatorCommander {
   }
 
   /**
-   * To activate and become a official validator.
-   * @returns {Promise<boolean>}
-   */
-  async toActivateValidator() {
-    const activateValidatorQuotas: any = await this.tableApi.getActivateValidatorQuotas();
-    if (!activateValidatorQuotas || activateValidatorQuotas.total_quotas == 0) {
-      console.log(Font.importMessageCyan("The competition hasn't started yet. Please wait."));
-      await input({ message: 'Press [Enter] to continue...' });
-      return false;
-    }
-    if (activateValidatorQuotas.total_quotas <= activateValidatorQuotas.total_activations) {
-      console.log(Font.importMessageCyan('The number of quotas has been used up. Please wait for the next round.'));
-      await input({ message: 'Press [Enter] to continue...' });
-      return false;
-    }
-    if (
-      !(await confirm({
-        message: Font.importMessageCyan('Please confirm to start participating in the competition.'),
-      }))
-    ) {
-      return false;
-    }
-    do {
-      try {
-        const res: any = await this.activeValidator();
-        if (res && res.transaction_id) {
-          console.log(Font.importMessageCyan('Congratulations on securing a quota and becoming a validator.'));
-          await input({ message: 'Press [Enter] to continue...' });
-          return true;
-        } else {
-          logger.error(`${this.exsatAccountInfo.accountName} Failed to activate validator.`);
-          process.exit(0);
-        }
-      } catch (e) {
-        const errorMessage = getErrorMessage(e);
-        // network error or timeout
-        if (errorMessage.includes('Round has not started yet')) {
-          const menu = [
-            {
-              name: 'Retry Activation',
-              value: 'retry',
-            },
-            {
-              name: 'Quit',
-              value: 'quit',
-            },
-          ];
-          const action = await select({ choices: menu, message: 'Please select an action: ' });
-          if (action === 'quit') {
-            return false;
-          }
-        } else {
-          logger.error(errorMessage.replace('compete.xsat::activate: ', ''));
-          return false;
-        }
-      }
-    } while (true);
-  }
-
-  async activeValidator() {
-    console.log(Font.importMessageCyan('Competing for a quota...'));
-    return await this.exsatApi.executeAction(
-      ContractName.compete,
-      'activate',
-      {
-        validator: this.exsatAccountInfo.accountName,
-      },
-      false
-    );
-  }
-
-  /**
    * Decrypts the keystore and initializes exsatApi and tableApi.
    */
   async init() {
@@ -476,10 +387,14 @@ export class ValidatorCommander {
         'Account Role': validator.role ? 'XSAT Validator' : 'BTC Validator',
         'Public Key': this.exsatAccountInfo.publicKey,
         'Gas Balance': btcBalance ? btcBalance : `0.00000000 BTC`,
-        'Commission Rate': `${validator.commission_rate / 100}%` ?? '0%',
-        'Commission Address': 'unset',
-        'Total BTC Staked': validator.quantity,
-        'Total XSAT Staked': validator.xsat_quantity,
+        'Commission Rate': validator.role ? undefined : (`${validator.commission_rate / 100}%` ?? '0%'),
+        'Commission Address': validator.role
+          ? undefined
+          : validator.reward_address
+            ? `0x${validator.reward_address}`
+            : '',
+        'Total BTC Staked': validator.role ? undefined : validator.quantity,
+        'Total XSAT Staked': validator.role ? validator.xsat_quantity : undefined,
         'Is eligible for consensus': validator.role
           ? parseFloat(validator.xsat_quantity) >= 2100
             ? 'Yes'
@@ -489,13 +404,11 @@ export class ValidatorCommander {
             : 'No, requires staking 100 BTC',
         'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
       };
-      if (validator.role) {
-        delete showMessageInfo['Total BTC Staked'];
-        delete showMessageInfo['Commission Address'];
-        delete showMessageInfo['Commission Rate'];
-      } else {
-        delete showMessageInfo['Total XSAT Staked'];
-      }
+      Object.keys(showMessageInfo).forEach((key) => {
+        if (showMessageInfo[key] === undefined) {
+          delete showMessageInfo[key];
+        }
+      });
       showInfo(showMessageInfo);
 
       const menus = [
@@ -518,61 +431,6 @@ export class ValidatorCommander {
       logger.info('Commission address is already set correctly.');
     }
   }
-
-  /**
-   * Checks if the commission ratio is set for the validator.
-   */
-  async checkCommission() {
-    const accountName = this.exsatAccountInfo.accountName;
-    const btcBalance = await this.tableApi.getAccountBalance(accountName);
-    const validatorInfo = this.validatorInfo;
-    if (!validatorInfo.commission_rate) {
-      logger.info('Commission rate is not set.');
-      showInfo({
-        'Account Name': accountName,
-        'Public Key': this.exsatAccountInfo.publicKey,
-        'BTC Balance Used for Gas Fee': btcBalance,
-        'Commission Address': validatorInfo.reward_address ? `0x${validatorInfo.reward_address}` : '',
-        'Commission Rate': 'Unset',
-        'Account Registration Status': 'Registered',
-        'Validator Registration Status': 'Registered',
-      });
-
-      const menus = [
-        { name: 'Set Commission Rate', value: 'set_commission_ratio' },
-        new Separator(),
-        { name: 'Quit', value: 'quit', description: 'Quit' },
-      ];
-
-      const actions: { [key: string]: () => Promise<any> } = {
-        set_commission_ratio: async () => await this.setCommissionRatio(),
-        quit: async () => process.exit(0),
-      };
-      let action;
-      let res;
-      do {
-        action = await select({ message: 'Select an Action: ', choices: menus });
-        res = await (actions[action] || (() => {}))();
-      } while (!res);
-    } else {
-      logger.info('Commission rate is already set correctly.');
-    }
-  }
-
-  /**
-   * Checks if the donate setting is set for the synchronizer.
-   */
-  async checkDonateSetting() {
-    if (!this.validatorInfo.donate_rate && !SET_VALIDATOR_DONATE_RATIO) {
-      console.log(
-        `\n${Font.fgCyan}${Font.bright}You haven't set the donation ratio yet. Please set it first.${Font.reset}`
-      );
-      await this.setDonationRatio();
-      updateEnvFile({ SET_VALIDATOR_DONATE_RATIO: true });
-    }
-    return true;
-  }
-
   /**
    * Checks if the BTC RPC URL is set and valid.
    */
@@ -588,10 +446,14 @@ export class ValidatorCommander {
         'Account Role': validator.role ? 'XSAT Validator' : 'BTC Validator',
         'Public Key': this.exsatAccountInfo.publicKey,
         'Gas Balance': btcBalance ? btcBalance : `0.00000000 BTC`,
-        'Commission Rate': `${validator.commission_rate / 100}%` ?? '0%',
-        'Commission Address': validator.reward_address ? `0x${validator.reward_address}` : '',
-        'Total BTC Staked': validator.quantity,
-        'Total XSAT Staked': validator.xsat_quantity,
+        'Commission Rate': validator.role ? undefined : (`${validator.commission_rate / 100}%` ?? '0%'),
+        'Commission Address': validator.role
+          ? undefined
+          : validator.reward_address
+            ? `0x${validator.reward_address}`
+            : '',
+        'Total BTC Staked': validator.role ? undefined : validator.quantity,
+        'Total XSAT Staked': validator.role ? validator.xsat_quantity : undefined,
         'Is eligible for consensus': validator.role
           ? parseFloat(validator.xsat_quantity) >= 2100
             ? 'Yes'
@@ -602,13 +464,6 @@ export class ValidatorCommander {
         'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
         'BTC RPC Node': 'unset',
       };
-      if (validator.role) {
-        delete showMessageInfo['Total BTC Staked'];
-        delete showMessageInfo['Commission Address'];
-        delete showMessageInfo['Commission Rate'];
-      } else {
-        delete showMessageInfo['Total XSAT Staked'];
-      }
       showInfo(showMessageInfo);
 
       const menus = [

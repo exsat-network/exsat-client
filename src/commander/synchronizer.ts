@@ -110,8 +110,6 @@ export class SynchronizerCommander {
     const actions: { [key: string]: () => Promise<any> } = {
       revote: async () => await this.revoteForConsensus(),
       set_reward_address: async () => await this.setRewardAddress(),
-      set_donation_ratio: async () => await this.setDonationRatio(),
-      purchase_memory_slot: async () => await this.purchaseSlots(),
       reset_btc_rpc: async () => await resetBtcRpcUrl(),
       export_private_key: async () => {
         return await exportPrivateKey(this.exsatAccountInfo.privateKey);
@@ -157,25 +155,6 @@ export class SynchronizerCommander {
       logger.error('Invalid password');
       process.exit();
     }
-  }
-
-  /**
-   * Purchases memory slots for the synchronizer.
-   */
-  async purchaseSlots() {
-    const numberSlots = await inputWithCancel('Input number of slots(Input "q" to return): ', (value) => {
-      const num = Number(value);
-      if (!Number.isInteger(num) || num < 1) {
-        return 'Please enter a valid number more than 0';
-      }
-      return true;
-    });
-    if (!numberSlots) {
-      return;
-    }
-
-    await this.buySlots(parseInt(numberSlots));
-    logger.info(`Buy slots: ${numberSlots} successfully`);
   }
 
   /**
@@ -240,26 +219,6 @@ export class SynchronizerCommander {
       return true;
     } else {
       logger.error(`Synchronizer[${this.exsatAccountInfo.accountName}] Set reward address: ${account} failed`);
-      return false;
-    }
-  }
-
-  /**
-   * Buys memory slots for the synchronizer.
-   */
-  async buySlots(slots: number) {
-    const data = {
-      synchronizer: this.exsatAccountInfo.accountName,
-      receiver: this.exsatAccountInfo.accountName,
-      num_slots: slots,
-    };
-
-    const res: any = await this.exsatApi.executeAction(ContractName.poolreg, 'buyslot', data);
-    if (res && res.transaction_id) {
-      await this.updateSynchronizerInfo();
-      return true;
-    } else {
-      logger.error(`Synchronizer[${this.exsatAccountInfo.accountName}] Buy slots: ${slots} failed`);
       return false;
     }
   }
@@ -330,20 +289,6 @@ export class SynchronizerCommander {
     } else {
       logger.info('Reward Address is already set correctly.');
     }
-  }
-
-  /**
-   * Checks if the donate setting is set for the synchronizer.
-   */
-  async checkDonateSetting() {
-    if (!this.synchronizerInfo.donate_rate && !SET_SYNCHRONIZER_DONATE_RATIO) {
-      console.log(
-        `\n${Font.fgCyan}${Font.bright}You haven't set the donation ratio yet. Please set it first.${Font.reset}`
-      );
-      await this.setDonationRatio();
-      updateEnvFile({ SET_SYNCHRONIZER_DONATE_RATIO: true });
-    }
-    return true;
   }
 
   /**
