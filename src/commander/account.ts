@@ -47,7 +47,7 @@ export async function getUserAccount(accountName) {
 export async function getInputRole(title?) {
   title = title ?? 'Select a role';
   const role = await select({
-    message: 'Select a role',
+    message: title,
     choices: [
       { name: 'Synchronizer', value: Client.Synchronizer },
       { name: 'Validator', value: Client.Validator },
