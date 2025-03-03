@@ -82,7 +82,7 @@ export class ValidatorCommander {
           : 'No, requires staking 2100 XSAT'
         : parseFloat(validator.quantity) >= 100
           ? 'Yes'
-          : 'No, requires staking 100 BTC',
+          : 'No, requires staking at least 100 BTC',
       'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
       'BTC RPC Node': process.env.BTC_RPC_URL ?? '',
     };
@@ -401,7 +401,7 @@ export class ValidatorCommander {
             : 'No, requires staking 2100 XSAT'
           : parseFloat(validator.quantity) >= 100
             ? 'Yes'
-            : 'No, requires staking 100 BTC',
+            : 'No, requires staking at least 100 BTC',
         'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
       };
       Object.keys(showMessageInfo).forEach((key) => {
@@ -460,7 +460,7 @@ export class ValidatorCommander {
             : 'No, requires staking 2100 XSAT'
           : parseFloat(validator.quantity) >= 100
             ? 'Yes'
-            : 'No, requires staking 100 BTC',
+            : 'No, requires staking at least 100 BTC',
         'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
         'BTC RPC Node': 'unset',
       };
