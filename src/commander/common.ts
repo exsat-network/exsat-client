@@ -191,7 +191,7 @@ export async function checkAccountRegistrationStatus(exsatAccountInfo) {
     showInfo({
       'Account Name': exsatAccountInfo.accountName,
       'Public Key': exsatAccountInfo.publicKey,
-      'Registration Url': `${NETWORK_CONFIG.register}/${btoa(`account=${exsatAccountInfo.accountName}&pubkey=${exsatAccountInfo.publicKey}`)}${NETWORK == 'mainnet' ? '' : `?net=${NETWORK}`}`,
+      'Registration Url': `${NETWORK_CONFIG.register}?account=${exsatAccountInfo.accountName}&pubkey=${exsatAccountInfo.publicKey}${NETWORK == 'mainnet' ? '' : `&net=${NETWORK}`}`,
     });
     console.log(
       `Please note that your registration has not finished yet!\n${Font.fgGreen}${Font.bright}Please copy the Registration Url above and paste to your browser to finish the registration.${Font.reset}`
