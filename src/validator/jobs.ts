@@ -157,11 +157,7 @@ export class ValidatorJobs {
     }
   };
   xsatScope(height: number) {
-    const num1 = new BN(height);
-    const num2 = new BN('100000000', 16);
-
-    const result = num1.or(num2);
-    return Number(result);
+    return new BN(height).or(new BN('100000000', 16)).toNumber();
   }
 
   heartbeat = async () => {
