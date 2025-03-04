@@ -31,17 +31,18 @@ export class ValidatorJobs {
     const scope = validatorInfo.role ? this.xsatScope(height) : height;
     const endorsement = await this.state.tableApi!.getEndorsementByBlockId(scope, hash);
     if (endorsement) {
-      const isQualifiedEndorser = this.isEndorserQualified(endorsement.requested_validators, accountName);
       const isProviderEndorser = this.isEndorserQualified(endorsement.provider_validators, accountName);
-      if (isQualifiedEndorser && !isProviderEndorser) {
+      if (isProviderEndorser) {
+        return;
+      }
+      const isQualifiedEndorser = this.isEndorserQualified(endorsement.requested_validators, accountName);
+      if (isQualifiedEndorser || validatorInfo.last_consensus_height < height) {
         await this.submit(accountName, height, hash);
-      } else if (validatorInfo.last_consensus_height < height) {
-        await this.submit(accountName, height, hash);
-      } else {
-        this.state.lastEndorseHeight = height;
       }
     } else {
-      await this.submit(accountName, height, hash);
+      if (validatorInfo.active_flag !== 0) {
+        await this.submit(accountName, height, hash);
+      }
     }
   }
 
@@ -53,7 +54,6 @@ export class ValidatorJobs {
       hash,
     });
     if (result && result.transaction_id) {
-      this.state.lastEndorseHeight = height;
       blockValidateTotalCounter.inc({
         account: this.state.accountName,
         client: Client.Validator,

@@ -20,7 +20,6 @@ export class ValidatorState {
   accountName: string = '';
   exsatApi: ExsatApi | null = null;
   tableApi: TableApi | null = null;
-  lastEndorseHeight: number = 0;
   startupStatus: boolean = false;
   endorseRunning: boolean = false;
   endorseCheckRunning: boolean = false;
