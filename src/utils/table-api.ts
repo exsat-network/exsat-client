@@ -28,9 +28,15 @@ class TableApi {
   }
 
   public static async getInstance(): Promise<TableApi> {
-    if (tableApiInstance) return tableApiInstance;
-    tableApiInstance = new TableApi(new ExsatNode());
-    await tableApiInstance.initialize();
+    if (!tableApiInstance) {
+      try {
+        tableApiInstance = new TableApi(new ExsatNode());
+        await tableApiInstance.initialize();
+      } catch (error) {
+        tableApiInstance = null;
+        throw error;
+      }
+    }
     return tableApiInstance;
   }
 

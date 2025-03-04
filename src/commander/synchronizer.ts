@@ -35,11 +35,11 @@ export class SynchronizerCommander {
   private synchronizerInfo: any;
   private tableApi: TableApi;
   private exsatApi: ExsatApi;
-  private registion;
+  private registration: boolean;
 
-  constructor(exsatAccountInfo, retistion = false) {
+  constructor(exsatAccountInfo, registration = false) {
     this.exsatAccountInfo = exsatAccountInfo;
-    this.registion = retistion;
+    this.registration = registration;
   }
 
   /**
@@ -254,7 +254,7 @@ export class SynchronizerCommander {
       console.log(
         `In order to activate your account, please contact our admin via email (${Font.fgCyan}${Font.bright}${NETWORK_CONFIG.contact}${Font.reset}).\n`
       );
-      if (this.registion && process.env.SYNCHRONIZER_KEYSTORE_FILE === process.env.VALIDATOR_KEYSTORE_FILE) {
+      if (this.registration && process.env.SYNCHRONIZER_KEYSTORE_FILE === process.env.VALIDATOR_KEYSTORE_FILE) {
         updateEnvFile({ VALIDATOR_KEYSTORE_FILE: '', VALIDATOR_KEYSTORE_PASSWORD: '' });
       }
       process.exit(0);

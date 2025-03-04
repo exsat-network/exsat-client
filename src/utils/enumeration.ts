@@ -1,7 +1,7 @@
 export enum Client {
   Synchronizer = 'synchronizer',
   Validator = 'validator',
-  XSATValidaotr = 'xsat_validator',
+  XSATValidator = 'xsat_validator',
 }
 
 export enum ClientType {

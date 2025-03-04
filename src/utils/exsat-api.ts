@@ -146,7 +146,7 @@ class ExsatApi {
         clientType = Client.Validator;
         break;
       case ClientType.XsatValidator:
-        clientType = Client.XSATValidaotr;
+        clientType = Client.XSATValidator;
         break;
       default:
         throw new Error('Invalid client type');
@@ -195,7 +195,7 @@ class ExsatApi {
         clientType = Client.Validator;
         break;
       case ClientType.XsatValidator:
-        clientType = Client.XSATValidaotr;
+        clientType = Client.XSATValidator;
         break;
       default:
         throw new Error('Invalid client type');

@@ -28,19 +28,17 @@ async function main() {
     'User Guide': `${NETWORK_CONFIG.userGuide}`,
   });
 
-  let keystoreEXistStatus = keystoreExistStatus();
+  let keystoreStatus = keystoreExistStatus();
 
-  while (keystoreEXistStatus === KeystoreExistStatus.None) {
-    if (keystoreEXistStatus === KeystoreExistStatus.None) {
-      await notAccountMenu();
-    }
+  while (keystoreStatus === KeystoreExistStatus.None) {
+    await notAccountMenu();
     reloadEnv();
-    keystoreEXistStatus = keystoreExistStatus();
+    keystoreStatus = keystoreExistStatus();
   }
   let clientCommander;
   let role;
   let exsatAccount;
-  switch (keystoreEXistStatus) {
+  switch (keystoreStatus) {
     case KeystoreExistStatus.Validator:
       role = Client.Validator;
       exsatAccount = await decryptKeystore(ClientType.Validator);
@@ -93,6 +91,6 @@ async function main() {
     configureLogger('commander');
     await main();
   } catch (e) {
-    logger.error(e);
+    logger.error('An unhandled error occurred:', e);
   }
 })();

@@ -77,8 +77,14 @@ export async function updateMenu(versions, isDocker, role) {
   switch (action) {
     case 'get_upgrade_method':
       if (isDocker) {
+        // URLs for Docker upgrade instructions based on user role
+        const synchronizerDocUrl =
+          'https://docs.exsat.network/guides-of-data-consensus/others/operation-references/synchronizer-operations/update-to-new-docker-version-for-synchronizer';
+        const validatorDocUrl =
+          'https://docs.exsat.network/guides-of-data-consensus/others/operation-references/validator-operations/update-to-new-docker-version-for-validator';
+
         console.log(
-          `\n${Font.fgCyan}${Font.bright}Please exit the Docker container and follow the instructions in the documentation to upgrade your Docker: \n${Font.reset}${Font.bright}${role === Client.Synchronizer ? 'https://docs.exsat.network/guides-of-data-consensus/others/operation-references/synchronizer-operations/update-to-new-docker-version-for-synchronizer' : 'https://docs.exsat.network/guides-of-data-consensus/others/operation-references/validator-operations/update-to-new-docker-version-for-validator'}${Font.reset}`
+          `\n${Font.fgCyan}${Font.bright}Please exit the Docker container and follow the instructions in the documentation to upgrade your Docker: \n${Font.reset}${Font.bright}${role === Client.Synchronizer ? synchronizerDocUrl : validatorDocUrl}${Font.reset}`
         );
       } else {
         console.log(
@@ -215,7 +221,8 @@ export async function decryptKeystore(clientType) {
         }
         accountInfo = await getAccountInfo(keystoreFile, password);
       } catch (e) {
-        logger.warn(e);
+        logger.warn('Failed to decrypt keystore with provided password.');
+        console.log('Please try again with the correct password.');
       }
     }
   }

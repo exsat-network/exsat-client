@@ -30,11 +30,11 @@ export class ValidatorCommander {
   private exsatApi: ExsatApi;
   private keystoreFile: string;
   private blkendtConfig: any;
-  private registion: boolean;
+  private registration: boolean;
 
-  constructor(exsatAccountInfo, registion = false) {
+  constructor(exsatAccountInfo, registration = false) {
     this.exsatAccountInfo = exsatAccountInfo;
-    this.registion = registion;
+    this.registration = registration;
   }
 
   /**
@@ -339,7 +339,7 @@ export class ValidatorCommander {
       if (!confirmInput) {
         process.exit(0);
       } else {
-        if (this.registion && process.env.SYNCHRONIZER_KEYSTORE_FILE === process.env.VALIDATOR_KEYSTORE_FILE) {
+        if (this.registration && process.env.SYNCHRONIZER_KEYSTORE_FILE === process.env.VALIDATOR_KEYSTORE_FILE) {
           updateEnvFile({ SYNCHRONIZER_KEYSTORE_FILE: '', SYNCHRONIZER_KEYSTORE_PASSWORD: '' });
         }
         await this.registerValidator();
@@ -497,7 +497,7 @@ export class ValidatorCommander {
       message: 'Do you want to set up a BTC Validator or a XSAT Validator?',
       choices: [
         { name: 'BTC Validator', value: Client.Validator },
-        { name: 'XSAT Validator', value: Client.XSATValidaotr },
+        { name: 'XSAT Validator', value: Client.XSATValidator },
       ],
     });
     const stakeAddress = await input({
