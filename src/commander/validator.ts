@@ -29,7 +29,8 @@ export class ValidatorCommander {
   private tableApi: TableApi;
   private exsatApi: ExsatApi;
   private keystoreFile: string;
-  private registion;
+  private blkendtConfig: any;
+  private registion: boolean;
 
   constructor(exsatAccountInfo, registion = false) {
     this.exsatAccountInfo = exsatAccountInfo;
@@ -69,7 +70,9 @@ export class ValidatorCommander {
         'Gas Balance': btcBalance ? btcBalance : `0.00000000 BTC`,
         'Total XSAT Staked': validator.xsat_quantity,
         'Is eligible for consensus':
-          parseFloat(validator.xsat_quantity) >= 2100 ? 'Yes' : 'No, requires staking 2100 XSAT',
+          parseFloat(validator.xsat_quantity) >= parseFloat(this.blkendtConfig.min_xsat_qualification)
+            ? 'Yes'
+            : `No, requires staking ${this.blkendtConfig.min_xsat_qualification}`,
         'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
         'BTC RPC Node': process.env.BTC_RPC_URL ?? '',
       };
@@ -83,7 +86,9 @@ export class ValidatorCommander {
         'Commission Address': validator.reward_address ? `0x${validator.reward_address}` : '',
         'Total BTC Staked': validator.quantity,
         'Is eligible for consensus':
-          parseFloat(validator.quantity) >= 100 ? 'Yes' : 'No, requires staking at least 100 BTC',
+          parseFloat(validator.quantity) >= parseFloat(this.blkendtConfig.min_btc_qualification)
+            ? 'Yes'
+            : `No, requires staking at least ${this.blkendtConfig.min_btc_qualification}`,
         'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
         'BTC RPC Node': process.env.BTC_RPC_URL ?? '',
       };
@@ -317,6 +322,7 @@ export class ValidatorCommander {
     this.exsatApi = new ExsatApi(this.exsatAccountInfo);
     await this.exsatApi.initialize();
     this.tableApi = await TableApi.getInstance();
+    this.blkendtConfig = await this.tableApi.getBlkendtConfig();
   }
 
   /**
@@ -381,7 +387,9 @@ export class ValidatorCommander {
         'Commission Address': 'unset',
         'Total BTC Staked': validator.quantity,
         'Is eligible for consensus':
-          parseFloat(validator.quantity) >= 100 ? 'Yes' : 'No, requires staking at least 100 BTC',
+          parseFloat(validator.quantity) >= parseFloat(this.blkendtConfig.min_btc_qualification)
+            ? 'Yes'
+            : `No, requires staking at least ${this.blkendtConfig.min_btc_qualification}`,
         'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
         'BTC RPC Node': process.env.BTC_RPC_URL ?? '',
       };
@@ -427,7 +435,9 @@ export class ValidatorCommander {
           'Gas Balance': btcBalance ? btcBalance : `0.00000000 BTC`,
           'Total XSAT Staked': validator.xsat_quantity,
           'Is eligible for consensus':
-            parseFloat(validator.xsat_quantity) >= 2100 ? 'Yes' : 'No, requires staking 2100 XSAT',
+            parseFloat(validator.xsat_quantity) >= parseFloat(this.blkendtConfig.min_xsat_qualification)
+              ? 'Yes'
+              : `No, requires staking ${this.blkendtConfig.min_xsat_qualification}`,
           'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
           'BTC RPC Node': 'unset',
         };
@@ -441,7 +451,9 @@ export class ValidatorCommander {
           'Commission Address': validator.reward_address ? `0x${validator.reward_address}` : '',
           'Total BTC Staked': validator.quantity,
           'Is eligible for consensus':
-            parseFloat(validator.quantity) >= 100 ? 'Yes' : 'No, requires staking at least 100 BTC',
+            parseFloat(validator.quantity) >= parseFloat(this.blkendtConfig.min_btc_qualification)
+              ? 'Yes'
+              : `No, requires staking at least ${this.blkendtConfig.min_btc_qualification}`,
           'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
           'BTC RPC Node': 'unset',
         };

@@ -314,14 +314,8 @@ class TableApi {
     return null;
   }
 
-  /**
-   * Retrieves the become validator quatos.
-   * @returns The become validator quatos data or null if not found.
-   */
-  public async getActivateValidatorQuotas() {
-    const rows = await this.getTableRows(ContractName.compete, ContractName.compete, 'globals', {
-      limit: 1,
-    });
+  public async getBlkendtConfig() {
+    const rows = await this.getTableRows(ContractName.blkendt, ContractName.blkendt, 'config');
     if (rows && rows.length > 0) {
       return rows[0];
     }
