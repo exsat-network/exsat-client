@@ -83,7 +83,6 @@ async function main() {
   if (versions.newVersion) {
     await updateMenu(versions, isDocker, role);
   }
-
   // Start the selected client
   await clientCommander.main();
 }

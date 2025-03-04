@@ -86,6 +86,7 @@ function setupCronJobs(jobs: ValidatorJobs) {
     });
   });
 }
+
 async function main() {
   await loadNetworkConfigurations();
   configureLogger(Client.Validator);

@@ -17,6 +17,7 @@ export class Version {
       throw new Error('Failed to fetch latest version:');
     }
   }
+
   // Get the latest version number of the remote Docker hub
   static async getDockerLatestVersion(): Promise<string | null> {
     try {

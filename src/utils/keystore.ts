@@ -113,12 +113,14 @@ export async function getAccountInfo(keystoreFile: string, password: string) {
   const privateKey = await decryptKeystore(keystore, password);
   return { accountName, privateKey, publicKey: keystoreInfo.address };
 }
+
 export async function getBaseAccountInfo(keystoreFile) {
   const keystore = readFileSync(keystoreFile, 'utf-8');
   const keystoreInfo = JSON.parse(keystore);
   const accountName = keystoreInfo.username.endsWith('.sat') ? keystoreInfo.username : `${keystoreInfo.username}.sat`;
   return { accountName, publicKey: keystoreInfo.address };
 }
+
 export function keystoreExist(role?: string) {
   if (role) {
     const keystoreFileKey = `${role.toUpperCase()}_KEYSTORE_FILE`;

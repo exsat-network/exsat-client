@@ -44,6 +44,7 @@ export async function getUserAccount(accountName) {
     throw error;
   }
 }
+
 export async function getInputRole(title?) {
   title = title ?? 'Select a role';
   const role = await select({
@@ -212,6 +213,7 @@ export async function importFromPrivateKey() {
   }
   return await processAccount(privateKey, account.accountName);
 }
+
 export async function getAcccountRole(accountName) {
   accountName = accountName.endsWith('.sat') ? accountName : `${accountName}.sat`;
   const tableApi = await TableApi.getInstance();
@@ -223,6 +225,7 @@ export async function getAcccountRole(accountName) {
   if (sync) return Client.Synchronizer;
   if (vali) return Client.Validator;
 }
+
 export async function processAccount(privateKey, accountName) {
   const role = await getAcccountRole(accountName);
   await saveKeystore(privateKey, accountName, role);

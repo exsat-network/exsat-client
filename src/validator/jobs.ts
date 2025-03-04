@@ -156,6 +156,7 @@ export class ValidatorJobs {
       this.state.endorseCheckRunning = false;
     }
   };
+
   xsatScope(height: number) {
     return new BN(height).or(new BN('100000000', 16)).toNumber();
   }

@@ -63,6 +63,7 @@ export enum KeystoreExistStatus {
   Validator = 2,
   Both = 3,
 }
+
 export enum ErrorCode {
   Code1001 = '1001', //1001:blkendt.xsat::endorse: the current endorsement status is disabled
   Code1002 = '1002', //1002:blkendt.xsat::endorse: the block has been parsed and does not need to be endorsed

@@ -36,6 +36,7 @@ export class SynchronizerCommander {
   private tableApi: TableApi;
   private exsatApi: ExsatApi;
   private registion;
+
   constructor(exsatAccountInfo, retistion = false) {
     this.exsatAccountInfo = exsatAccountInfo;
     this.registion = retistion;

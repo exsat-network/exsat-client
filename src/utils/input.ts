@@ -27,6 +27,7 @@ export async function inputWithCancel(
   }
   return value;
 }
+
 export function clearLines(numLines: number) {
   for (let i = 0; i < numLines; i++) {
     process.stdout.write('\x1B[2K'); // Clear current line
@@ -157,6 +158,7 @@ export const selectDirPrompt = async () => {
     return selectedPath;
   }
 };
+
 /**
  * Process and update string
  * @param input

@@ -30,10 +30,12 @@ export class ValidatorCommander {
   private exsatApi: ExsatApi;
   private keystoreFile: string;
   private registion;
+
   constructor(exsatAccountInfo, registion = false) {
     this.exsatAccountInfo = exsatAccountInfo;
     this.registion = registion;
   }
+
   /**
    * Main entry point for the ValidatorCommander.
    * Checks the keystore, initializes APIs, and manages the validator menu.
@@ -207,6 +209,7 @@ export class ValidatorCommander {
       return false;
     }
   }
+
   /**
    * Sets the reward address for the validator.
    */

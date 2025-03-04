@@ -16,6 +16,7 @@ import { sleep } from './common';
 import { EXSAT_RPC_URLS } from './config';
 
 let tableApiInstance: TableApi | null;
+
 class TableApi {
   private client: APIClient;
   private exsatNodesManager: ExsatNode;
@@ -25,12 +26,14 @@ class TableApi {
   constructor(exsatNode: ExsatNode) {
     this.exsatNodesManager = exsatNode;
   }
+
   public static async getInstance(): Promise<TableApi> {
     if (tableApiInstance) return tableApiInstance;
     tableApiInstance = new TableApi(new ExsatNode());
     await tableApiInstance.initialize();
     return tableApiInstance;
   }
+
   private async initialize(): Promise<void> {
     const validNodeFound = await this.exsatNodesManager.findValidNode();
     if (!validNodeFound) {
@@ -40,6 +43,7 @@ class TableApi {
 
     logger.info('TableApi initialized successfully.');
   }
+
   private async retryWithExponentialBackoff<T>(operation: () => Promise<T>, retryCount: number = 0): Promise<T> {
     try {
       return await operation();
@@ -122,6 +126,7 @@ class TableApi {
       return rows;
     });
   }
+
   /**
    * Checks if the exSat network has started.
    * @returns A boolean indicating the startup status.

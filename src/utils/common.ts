@@ -298,6 +298,7 @@ export function isValidTxid(txid: string): boolean {
   const hexRegex = /^[0-9a-fA-F]+$/;
   return hexRegex.test(txid);
 }
+
 export function isValidEvmAddress(address) {
   return /^0x[a-fA-F0-9]{40}$/.test(address);
 }

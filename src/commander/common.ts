@@ -178,6 +178,7 @@ export async function exportPrivateKey(privateKey: string) {
   clearLines(2);
   return true;
 }
+
 export async function checkAccountRegistrationStatus(exsatAccountInfo) {
   const checkAccountInfo = await getUserAccount(exsatAccountInfo.accountName);
   if (!checkAccountInfo) {
@@ -193,6 +194,7 @@ export async function checkAccountRegistrationStatus(exsatAccountInfo) {
   }
   return true;
 }
+
 export function getKeystoreBaseInfo(clientType) {
   return getBaseAccountInfo(getKeystorePath(clientType));
 }
@@ -219,6 +221,7 @@ export async function decryptKeystore(clientType) {
   }
   return accountInfo;
 }
+
 export function getKeystorePath(clientType: ClientType): string {
   return clientType === ClientType.Synchronizer
     ? process.env.SYNCHRONIZER_KEYSTORE_FILE
