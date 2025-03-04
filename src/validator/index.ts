@@ -57,8 +57,7 @@ async function initializeAccount(): Promise<{
 }
 
 async function setupApis(accountInfo: any): Promise<{ exsatApi: ExsatApi; tableApi: TableApi }> {
-  const exsatNode = new ExsatNode(EXSAT_RPC_URLS);
-  const exsatApi = new ExsatApi(accountInfo, exsatNode);
+  const exsatApi = new ExsatApi(accountInfo);
   await exsatApi.initialize();
   const tableApi = await TableApi.getInstance();
   await exsatApi.checkClient(ClientType.Validator);
