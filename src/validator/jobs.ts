@@ -26,11 +26,16 @@ export class ValidatorJobs {
   }
 
   // Check if an endorsement is needed and submit if necessary
-  async checkAndSubmit(accountName: string, height: number, hash: string, client) {
-    const scope = client == Client.XSATValidaotr ? this.xsatScope(height) : height;
+  async checkAndSubmit(accountName: string, height: number, hash: string) {
+    const validatorInfo = await this.state.tableApi!.getValidatorInfo(accountName);
+    const scope = validatorInfo.role ? this.xsatScope(height) : height;
     const endorsement = await this.state.tableApi!.getEndorsementByBlockId(scope, hash);
     if (endorsement) {
-      if (!this.isEndorserQualified(endorsement.provider_validators, accountName)) {
+      const isQualifiedEndorser = this.isEndorserQualified(endorsement.requested_validators, accountName);
+      const isProviderEndorser = this.isEndorserQualified(endorsement.provider_validators, accountName);
+      if (isQualifiedEndorser && !isProviderEndorser) {
+        await this.submit(accountName, height, hash);
+      } else if (validatorInfo.last_consensus_height < height) {
         await this.submit(accountName, height, hash);
       } else {
         this.state.lastEndorseHeight = height;
@@ -78,15 +83,7 @@ export class ValidatorJobs {
       logger.info('Endorse task is running');
       const blockcountInfo = await getblockcount();
       const blockhashInfo = await getblockhash(blockcountInfo.result);
-      const validatorInfo = await this.state.tableApi!.getValidatorInfo(this.state.accountName);
-      if (blockhashInfo.result > validatorInfo.latest_consensus_block) {
-        await this.checkAndSubmit(
-          this.state.accountName,
-          blockcountInfo.result,
-          blockhashInfo.result,
-          validatorInfo.role ? Client.XSATValidaotr : Client.Validator
-        );
-      }
+      await this.checkAndSubmit(this.state.accountName, blockcountInfo.result, blockhashInfo.result);
     } catch (e) {
       const errorMessage = getErrorMessage(e);
       logger.info(`Endorse task info: ${errorMessage}`);
@@ -119,20 +116,14 @@ export class ValidatorJobs {
       logger.info('Endorse check task is running');
       const chainstate = await this.state.tableApi!.getChainstate();
       const blockcount = await getblockcount();
-      const validatorInfo = await this.state.tableApi.getValidatorInfo(this.state.accountName);
-      let startEndorseHeight = Math.max(chainstate!.irreversible_height + 1, validatorInfo.latest_consensus_block + 1);
+      let startEndorseHeight = chainstate!.irreversible_height + 1;
       for (let i = startEndorseHeight; i <= blockcount.result; i++) {
         let hash: string;
         try {
           const blockhash = await getblockhash(i);
           hash = blockhash.result;
           logger.info(`Check endorsement for block ${i}/${blockcount.result}`);
-          await this.checkAndSubmit(
-            this.state.accountName,
-            i,
-            blockhash.result,
-            validatorInfo.role ? Client.XSATValidaotr : Client.Validator
-          );
+          await this.checkAndSubmit(this.state.accountName, i, blockhash.result);
         } catch (e: any) {
           const errorMessage = getErrorMessage(e);
           logger.info(`Endorse check task result, height: ${i}, hash: ${hash}, ${errorMessage}`);
