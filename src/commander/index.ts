@@ -52,7 +52,7 @@ async function main() {
       clientCommander = new SynchronizerCommander(exsatAccount);
       break;
     case KeystoreExistStatus.Both:
-      if (process.env.SYNCHRONIZER_KEYSTORE_FILE == process.env.VALIDATOR_KEYSTORE_FILE) {
+      if (process.env.SYNCHRONIZER_KEYSTORE_FILE === process.env.VALIDATOR_KEYSTORE_FILE) {
         const baseInfo = await getKeystoreBaseInfo(ClientType.Synchronizer);
         await checkAccountRegistrationStatus(baseInfo);
       }

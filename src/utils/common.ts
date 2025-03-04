@@ -32,7 +32,7 @@ export function getAmountFromQuantity(quantity: string): number {
 export async function getRpcUrls() {
   try {
     const response = await axios.get(
-      `https://raw.githubusercontent.com/exsat-network/configurations/refs/heads/main/src/${NETWORK}-rpc.json`
+      `https://raw.githubusercontent.com/exsat-network/configurations/refs/heads/main/src/${NETWORK}-network.json`
     );
     return response.data.native.nodes;
   } catch (error) {
@@ -252,7 +252,7 @@ export function updateEnvFile(values) {
   if (!fs.existsSync(envFilePath)) {
     fs.writeFileSync(envFilePath, '');
   }
-  const envConfig = dotenv.parse(fs.readFileSync(envFilePath));
+  const envConfig = dotenv.parse(fs.readFileSync(envFilePath, 'utf-8'));
   Object.keys(values).forEach((key) => {
     envConfig[key] = values[key];
   });
@@ -299,8 +299,5 @@ export function isValidTxid(txid: string): boolean {
   return hexRegex.test(txid);
 }
 export function isValidEvmAddress(address) {
-  if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-    return false;
-  }
-  return true;
+  return /^0x[a-fA-F0-9]{40}$/.test(address);
 }

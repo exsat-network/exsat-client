@@ -58,7 +58,7 @@ class ExsatNode {
       return true;
     }
 
-    return this.switchNode(attemptCount + 1);
+    return await this.switchNode(attemptCount + 1);
   }
 
   /**

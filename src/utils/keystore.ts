@@ -137,10 +137,10 @@ export function keystoreExist(role?: string) {
 export function keystoreExistStatus() {
   let s = 0;
   if (process.env.SYNCHRONIZER_KEYSTORE_FILE) {
-    s = s + 1;
+    s += 1;
   }
   if (process.env.VALIDATOR_KEYSTORE_FILE) {
-    s = s + 2;
+    s += 2;
   }
   return s;
 }

@@ -116,7 +116,7 @@ export class ValidatorJobs {
       logger.info('Endorse check task is running');
       const chainstate = await this.state.tableApi!.getChainstate();
       const blockcount = await getblockcount();
-      let startEndorseHeight = chainstate!.irreversible_height + 1;
+      const startEndorseHeight = chainstate!.irreversible_height + 1;
       for (let i = startEndorseHeight; i <= blockcount.result; i++) {
         let hash: string;
         try {

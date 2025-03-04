@@ -1,4 +1,13 @@
-import { getErrorMessage, isValidUrl, reloadEnv, retry, showInfo, sleep, updateEnvFile } from '../utils/common';
+import {
+  getErrorMessage,
+  isValidEvmAddress,
+  isValidUrl,
+  reloadEnv,
+  retry,
+  showInfo,
+  sleep,
+  updateEnvFile,
+} from '../utils/common';
 import { EXSAT_RPC_URLS, NETWORK, NETWORK_CONFIG, SET_SYNCHRONIZER_DONATE_RATIO } from '../utils/config';
 import { input, password, select, Separator } from '@inquirer/prompts';
 import process from 'node:process';
@@ -162,8 +171,8 @@ export class SynchronizerCommander {
    */
   async setRewardAddress() {
     const financialAccount = await inputWithCancel('Enter reward address(Input "q" to return): ', (input: string) => {
-      if (!/^0x[a-fA-F0-9]{40}$/.test(input)) {
-        return 'Please enter a valid account name.';
+      if (!isValidEvmAddress(input)) {
+        return 'Please enter a valid address.';
       }
       return true;
     });
@@ -244,7 +253,7 @@ export class SynchronizerCommander {
       console.log(
         `In order to activate your account, please contact our admin via email (${Font.fgCyan}${Font.bright}${NETWORK_CONFIG.contact}${Font.reset}).\n`
       );
-      if (this.registion && process.env.SYNCHRONIZER_KEYSTORE_FILE == process.env.VALIDATOR_KEYSTORE_FILE) {
+      if (this.registion && process.env.SYNCHRONIZER_KEYSTORE_FILE === process.env.VALIDATOR_KEYSTORE_FILE) {
         updateEnvFile({ VALIDATOR_KEYSTORE_FILE: '', VALIDATOR_KEYSTORE_PASSWORD: '' });
       }
       process.exit(0);

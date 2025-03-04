@@ -16,7 +16,7 @@ import { Client } from '../utils/enumeration';
 import TableApi from '../utils/table-api';
 
 function validateUsername(username) {
-  return /^[a-z1-5]{1,8}$/.test(username);
+  return /^[a-z1-5.]{1,8}$/.test(username);
 }
 
 function validateEmail(email) {

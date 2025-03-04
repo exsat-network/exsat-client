@@ -7,7 +7,7 @@ export enum Client {
 export enum ClientType {
   Synchronizer = 1,
   Validator = 2,
-  XsatValidator,
+  XsatValidator = 3,
 }
 
 export enum ContractName {
