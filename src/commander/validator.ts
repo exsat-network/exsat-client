@@ -349,7 +349,6 @@ export class ValidatorCommander {
     if (!checkAccountInfo) {
       showInfo({
         'Account Name': this.exsatAccountInfo.accountName,
-        'Account Role': this.exsatAccountInfo.role == Client.Validator ? 'BTC Validator' : 'XSAT Validator',
         'Public Key': this.exsatAccountInfo.publicKey,
         'Registration Url': `${NETWORK_CONFIG.register}/${btoa(`account=${this.exsatAccountInfo.accountName}&pubkey=${this.exsatAccountInfo.publicKey}&role=${this.exsatAccountInfo.role}`)}${NETWORK == 'mainnet' ? '' : `?net=${NETWORK}`}`,
       });
