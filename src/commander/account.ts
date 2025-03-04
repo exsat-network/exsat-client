@@ -214,7 +214,7 @@ export async function importFromPrivateKey() {
   return await processAccount(privateKey, account.accountName);
 }
 
-export async function getAcccountRole(accountName) {
+export async function getAccountRole(accountName) {
   accountName = accountName.endsWith('.sat') ? accountName : `${accountName}.sat`;
   const tableApi = await TableApi.getInstance();
   const sync = await tableApi.getSynchronizerInfo(accountName);
@@ -227,7 +227,7 @@ export async function getAcccountRole(accountName) {
 }
 
 export async function processAccount(privateKey, accountName) {
-  const role = await getAcccountRole(accountName);
+  const role = await getAccountRole(accountName);
   await saveKeystore(privateKey, accountName, role);
   return true;
 }
