@@ -53,7 +53,7 @@ class TableApi {
       await sleep(delay);
 
       let switchRetryCount = 0;
-      while (!(await this.exsatNodesManager.switchNode())) {
+      while (!(await this.switchNode())) {
         const sleepTime = Math.min(1000 * Math.pow(2, switchRetryCount), 10000);
         logger.warn(`All nodes are unavailable. Sleeping for ${sleepTime / 1000} seconds.`);
         await sleep(sleepTime);
@@ -316,22 +316,6 @@ class TableApi {
   public async getActivateValidatorQuotas() {
     const rows = await this.getTableRows(ContractName.compete, ContractName.compete, 'globals', {
       limit: 1,
-    });
-    if (rows && rows.length > 0) {
-      return rows[0];
-    }
-    return null;
-  }
-
-  /**
-   * Retrieves the validator acticed info.
-   * @param validator
-   */
-  public async getValidatorActivatedInfo(validator: string) {
-    const rows = await this.getTableRows(ContractName.compete, ContractName.compete, 'activations', {
-      limit: 1,
-      lower_bound: Name.from(validator),
-      upper_bound: Name.from(validator),
     });
     if (rows && rows.length > 0) {
       return rows[0];
