@@ -225,13 +225,17 @@ export class ValidatorCommander {
       stake_addr: evmAddressToChecksum(stakeAddress),
     };
 
-    const res: any = await this.exsatApi.executeAction(ContractName.endrmng, 'evmsetstaker', data);
-    if (res && res.transaction_id) {
-      logger.info(`Set stake address: ${stakeAddress} successfully`);
-      await this.updateValidatorInfo();
-      return true;
-    } else {
-      logger.error(`Validator[${this.exsatAccountInfo.accountName}] Set stake address: ${stakeAddress} failed`);
+    try {
+      const res: any = await this.exsatApi.executeAction(ContractName.endrmng, 'evmsetstaker', data);
+      if (res && res.transaction_id) {
+        logger.info(`Set stake address: ${stakeAddress} successfully`);
+        await this.updateValidatorInfo();
+        return true;
+      } else {
+        logger.error(`Validator[${this.exsatAccountInfo.accountName}] Set stake address: ${stakeAddress} failed`);
+        return false;
+      }
+    } catch (error) {
       return false;
     }
   }
