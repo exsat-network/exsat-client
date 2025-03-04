@@ -12,8 +12,9 @@ class ExsatNode {
   constructor(nodes?: string[]) {
     if (nodes && nodes.length > 0 && isValidUrl(nodes[0])) {
       this.nodes = nodes;
+    } else {
+      this.nodes = EXSAT_RPC_URLS;
     }
-    this.nodes = EXSAT_RPC_URLS;
   }
 
   /**
