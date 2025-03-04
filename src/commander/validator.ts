@@ -68,7 +68,11 @@ export class ValidatorCommander {
       'Account Role': validator.role ? 'XSAT Validator' : 'BTC Validator',
       'Public Key': this.exsatAccountInfo.publicKey,
       'Gas Balance': btcBalance ? btcBalance : `0.00000000 BTC`,
-      'Commission Rate': validator.role ? undefined : (`${validator.commission_rate / 100}%` ?? '0%'),
+      'Commission Rate': validator.role
+        ? undefined
+        : validator.commission_rate
+          ? `${validator.commission_rate / 100}%`
+          : '0%',
       'Commission Address': validator.role
         ? undefined
         : validator.reward_address
@@ -272,10 +276,9 @@ export class ValidatorCommander {
     }
     const data = {
       validator: this.exsatAccountInfo.accountName,
-      financial_account: null,
       commission_rate: parseFloat(commissionRatio) * 100,
     };
-    const res: any = await this.exsatApi.executeAction(ContractName.endrmng, 'config', data);
+    const res: any = await this.exsatApi.executeAction(ContractName.endrmng, 'evmconfigvald', data);
     if (res && res.transaction_id) {
       await this.updateValidatorInfo();
       logger.info(`${Font.fgCyan}${Font.bright}Set commission rate: ${commissionRatio}% successfully.${Font.reset}\n`);
@@ -387,7 +390,11 @@ export class ValidatorCommander {
         'Account Role': validator.role ? 'XSAT Validator' : 'BTC Validator',
         'Public Key': this.exsatAccountInfo.publicKey,
         'Gas Balance': btcBalance ? btcBalance : `0.00000000 BTC`,
-        'Commission Rate': validator.role ? undefined : (`${validator.commission_rate / 100}%` ?? '0%'),
+        'Commission Rate': validator.role
+          ? undefined
+          : validator.commission_rate
+            ? `${validator.commission_rate / 100}%`
+            : '0%',
         'Commission Address': validator.role
           ? undefined
           : validator.reward_address
@@ -446,7 +453,11 @@ export class ValidatorCommander {
         'Account Role': validator.role ? 'XSAT Validator' : 'BTC Validator',
         'Public Key': this.exsatAccountInfo.publicKey,
         'Gas Balance': btcBalance ? btcBalance : `0.00000000 BTC`,
-        'Commission Rate': validator.role ? undefined : (`${validator.commission_rate / 100}%` ?? '0%'),
+        'Commission Rate': validator.role
+          ? undefined
+          : validator.commission_rate
+            ? `${validator.commission_rate / 100}%`
+            : '0%',
         'Commission Address': validator.role
           ? undefined
           : validator.reward_address
