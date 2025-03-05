@@ -1,13 +1,14 @@
-import { confirm, input, select, Separator } from '@inquirer/prompts';
+import { confirm, input, password, select, Separator } from '@inquirer/prompts';
 import process from 'node:process';
 import { Font } from '../utils/font';
 import { EXSAT_RPC_URLS, NETWORK, NETWORK_CONFIG } from '../utils/config';
-import { getRpcUrls, isValidUrl, showInfo, updateEnvFile } from '../utils/common';
+import { getRpcUrls, isValidUrl, retry, showInfo, updateEnvFile } from '../utils/common';
 import { Client, ClientType } from '../utils/enumeration';
 import { logger } from '../utils/logger';
 import { clearLines, inputWithCancel } from '../utils/input';
 import { getUserAccount, importFromMnemonic, importFromPrivateKey, initializeAccount } from './account';
 import { getAccountInfo, getBaseAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
+import fs from 'node:fs';
 
 export async function notAccountMenu() {
   const menus = [
@@ -199,6 +200,32 @@ export async function checkAccountRegistrationStatus(exsatAccountInfo) {
     process.exit(0);
   }
   return true;
+}
+
+/**
+ * Removes the keystore file after confirming the password.
+ */
+export async function removeKeystore(clientType: ClientType) {
+  try {
+    const keystoreFile = getKeystorePath(clientType);
+    await retry(async () => {
+      const passwordInput = await password({
+        message:
+          'Enter your password to remove account\n(5 incorrect passwords will exit the program, Input "q" to return): ',
+        mask: '*',
+      });
+      if (passwordInput === 'q') {
+        return false;
+      }
+      await getAccountInfo(keystoreFile, passwordInput);
+      fs.unlinkSync(keystoreFile);
+      logger.info('Remove account successfully');
+      process.exit();
+    }, 5);
+  } catch (e) {
+    logger.error('Invalid password');
+    process.exit();
+  }
 }
 
 export function getKeystoreBaseInfo(clientType) {

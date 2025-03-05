@@ -23,6 +23,7 @@ import {
   checkExsatUrls,
   exportPrivateKey,
   notAccountMenu,
+  removeKeystore,
   resetBtcRpcUrl,
   setBtcRpcUrl,
 } from './common';
@@ -125,7 +126,7 @@ export class SynchronizerCommander {
       export_private_key: async () => {
         return await exportPrivateKey(this.exsatAccountInfo.privateKey);
       },
-      remove_account: async () => await this.removeKeystore(),
+      remove_account: async () => await removeKeystore(ClientType.Synchronizer),
       quit: async () => process.exit(),
     };
 
@@ -141,31 +142,6 @@ export class SynchronizerCommander {
         await (actions[action] || (() => {}))();
       }
     } while (action !== '99');
-  }
-
-  /**
-   * Removes the keystore file after confirming the password.
-   */
-  async removeKeystore() {
-    try {
-      await retry(async () => {
-        const passwordInput = await password({
-          message:
-            'Enter your password to remove account\n(5 incorrect passwords will exit the program, Input "q" to return): ',
-          mask: '*',
-        });
-        if (passwordInput === 'q') {
-          return false;
-        }
-        await getAccountInfo(process.env.SYNCHRONIZER_KEYSTORE_FILE, passwordInput);
-        fs.unlinkSync(process.env.SYNCHRONIZER_KEYSTORE_FILE);
-        logger.info('Remove account successfully');
-        process.exit();
-      }, 5);
-    } catch (e) {
-      logger.error('Invalid password');
-      process.exit();
-    }
   }
 
   /**
