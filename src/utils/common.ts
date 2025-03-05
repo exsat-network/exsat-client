@@ -6,6 +6,7 @@ import { getblockcount } from './bitcoin';
 import path from 'node:path';
 import dotenv from 'dotenv';
 import { Font } from './font';
+import { number } from '@inquirer/prompts';
 
 /**
  * Pauses execution for a specified number of milliseconds.
@@ -301,4 +302,11 @@ export function isValidTxid(txid: string): boolean {
 
 export function isValidEvmAddress(address) {
   return /^0x[a-fA-F0-9]{40}$/.test(address);
+}
+
+export function removeTrailingZeros(value) {
+  if (!value) return 0;
+  if (typeof value == 'number') return value;
+  const [amount, unit] = value.split(' ');
+  return `${parseFloat(amount)} ${unit}`;
 }

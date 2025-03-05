@@ -1,7 +1,7 @@
 import { API, Chains, Session } from '@wharfkit/session';
 import { logger } from './logger';
 import process from 'process';
-import { getAmountFromQuantity, sleep } from './common';
+import { getAmountFromQuantity, removeTrailingZeros, sleep } from './common';
 import { Client, ClientType, ContractName, IndexPosition } from './enumeration';
 import { Version } from './version';
 import { WalletPluginPrivateKey } from '@wharfkit/wallet-plugin-privatekey';
@@ -174,7 +174,7 @@ class ExsatApi {
       const balance = getAmountFromQuantity(returnValueData.balance);
       if (balance < NETWORK_CONFIG.minGasBalance) {
         logger.error(
-          `Running the client requires minimal gas fee of ${NETWORK_CONFIG.minGasBalance} BTC, and currently the gas fee balance of the account[${this.accountName}] is ${balance} BTC. Please recharge gas fee to this account and make sure the balance is more than ${NETWORK_CONFIG.minGasBalance} BTC. The recharge page Url:${NETWORK_CONFIG.recharge}?account=${this.accountName}`
+          `Running the client requires minimal gas fee of ${removeTrailingZeros(NETWORK_CONFIG.minGasBalance)} BTC, and currently the gas fee balance of the account[${this.accountName}] is ${removeTrailingZeros(balance)} BTC. Please recharge gas fee to this account and make sure the balance is more than ${removeTrailingZeros(NETWORK_CONFIG.minGasBalance)} BTC. The recharge page Url:${NETWORK_CONFIG.recharge}?account=${this.accountName}`
         );
         process.exit(1);
       }
@@ -221,9 +221,9 @@ class ExsatApi {
         process.exit(1);
       }
       const balance = getAmountFromQuantity(returnValueData.balance);
-      if (balance < 0.0001) {
+      if (balance < NETWORK_CONFIG.minGasBalance) {
         logger.warn(
-          `The account[${this.accountName}] gas fee balance[${balance}] is insufficient. Please recharge at ${NETWORK_CONFIG.recharge}`
+          `The account[${this.accountName}] gas fee balance[${removeTrailingZeros(balance)}] is insufficient. Please recharge at ${NETWORK_CONFIG.recharge}`
         );
       }
     } catch (e) {

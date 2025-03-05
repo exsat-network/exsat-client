@@ -18,6 +18,7 @@ import {
   isValidEvmAddress,
   isValidUrl,
   reloadEnv,
+  removeTrailingZeros,
   retry,
   showInfo,
   sleep,
@@ -76,12 +77,12 @@ export class ValidatorCommander {
         'Account Name': accountName,
         'Account Role': 'XSAT Validator',
         'Public Key': this.exsatAccountInfo.publicKey,
-        'Gas Balance': btcBalance ? btcBalance : `0.00000000 BTC`,
-        'Total XSAT Staked': validator.xsat_quantity,
+        'Gas Balance': btcBalance ? removeTrailingZeros(btcBalance) : `0 BTC`,
+        'Total XSAT Staked': removeTrailingZeros(validator.xsat_quantity),
         'Is eligible for consensus':
           parseFloat(validator.xsat_quantity) >= parseFloat(this.blkendtConfig.min_xsat_qualification)
             ? 'Yes'
-            : `No, requires staking ${this.blkendtConfig.min_xsat_qualification}`,
+            : `No, requires staking ${removeTrailingZeros(this.blkendtConfig.min_xsat_qualification)}`,
         'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
         'BTC RPC Node': process.env.BTC_RPC_URL ?? '',
       };
@@ -90,14 +91,14 @@ export class ValidatorCommander {
         'Account Name': accountName,
         'Account Role': 'BTC Validator',
         'Public Key': this.exsatAccountInfo.publicKey,
-        'Gas Balance': btcBalance ? btcBalance : `0.00000000 BTC`,
+        'Gas Balance': btcBalance ? removeTrailingZeros(btcBalance) : `0 BTC`,
         'Commission Rate': validator.commission_rate ? `${validator.commission_rate / 100}%` : '0%',
         'Commission Address': validator.reward_address ? `0x${validator.reward_address}` : '',
-        'Total BTC Staked': validator.quantity,
+        'Total BTC Staked': removeTrailingZeros(validator.quantity),
         'Is eligible for consensus':
           parseFloat(validator.quantity) >= parseFloat(this.blkendtConfig.min_btc_qualification)
             ? 'Yes'
-            : `No, requires staking at least ${this.blkendtConfig.min_btc_qualification}`,
+            : `No, requires staking at least ${removeTrailingZeros(this.blkendtConfig.min_btc_qualification)}`,
         'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
         'BTC RPC Node': process.env.BTC_RPC_URL ?? '',
       };
@@ -357,14 +358,14 @@ export class ValidatorCommander {
         'Account Name': accountName,
         'Account Role': 'BTC Validator',
         'Public Key': this.exsatAccountInfo.publicKey,
-        'Gas Balance': btcBalance ? btcBalance : `0.00000000 BTC`,
+        'Gas Balance': btcBalance ? removeTrailingZeros(btcBalance) : `0 BTC`,
         'Commission Rate': validator.commission_rate ? `${validator.commission_rate / 100}%` : '0%',
         'Commission Address': 'unset',
-        'Total BTC Staked': validator.quantity,
+        'Total BTC Staked': removeTrailingZeros(validator.quantity),
         'Is eligible for consensus':
           parseFloat(validator.quantity) >= parseFloat(this.blkendtConfig.min_btc_qualification)
             ? 'Yes'
-            : `No, requires staking at least ${this.blkendtConfig.min_btc_qualification}`,
+            : `No, requires staking at least ${removeTrailingZeros(this.blkendtConfig.min_btc_qualification)}`,
         'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
         'BTC RPC Node': process.env.BTC_RPC_URL ?? '',
       };
@@ -407,12 +408,12 @@ export class ValidatorCommander {
           'Account Name': accountName,
           'Account Role': 'XSAT Validator',
           'Public Key': this.exsatAccountInfo.publicKey,
-          'Gas Balance': btcBalance ? btcBalance : `0.00000000 BTC`,
-          'Total XSAT Staked': validator.xsat_quantity,
+          'Gas Balance': btcBalance ? removeTrailingZeros(btcBalance) : `0 BTC`,
+          'Total XSAT Staked': removeTrailingZeros(validator.xsat_quantity),
           'Is eligible for consensus':
             parseFloat(validator.xsat_quantity) >= parseFloat(this.blkendtConfig.min_xsat_qualification)
               ? 'Yes'
-              : `No, requires staking ${this.blkendtConfig.min_xsat_qualification}`,
+              : `No, requires staking ${removeTrailingZeros(this.blkendtConfig.min_xsat_qualification)}`,
           'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
           'BTC RPC Node': 'unset',
         };
@@ -421,14 +422,14 @@ export class ValidatorCommander {
           'Account Name': accountName,
           'Account Role': 'BTC Validator',
           'Public Key': this.exsatAccountInfo.publicKey,
-          'Gas Balance': btcBalance ? btcBalance : `0.00000000 BTC`,
+          'Gas Balance': btcBalance ? removeTrailingZeros(btcBalance) : `0 BTC`,
           'Commission Rate': validator.commission_rate ? `${validator.commission_rate / 100}%` : '0%',
           'Commission Address': validator.reward_address ? `0x${validator.reward_address}` : '',
-          'Total BTC Staked': validator.quantity,
+          'Total BTC Staked': removeTrailingZeros(validator.quantity),
           'Is eligible for consensus':
             parseFloat(validator.quantity) >= parseFloat(this.blkendtConfig.min_btc_qualification)
               ? 'Yes'
-              : `No, requires staking at least ${this.blkendtConfig.min_btc_qualification}`,
+              : `No, requires staking at least ${removeTrailingZeros(this.blkendtConfig.min_btc_qualification)}`,
           'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
           'BTC RPC Node': 'unset',
         };
