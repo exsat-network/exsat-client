@@ -42,7 +42,9 @@ export class ValidatorJobs {
     } else {
       if (validatorInfo.active_flag !== 0) {
         await this.submit(accountName, height, hash);
+        return;
       }
+      logger.info(`Validator[${accountName}] is not qualified to endorse, height: ${height}, hash: ${hash}`);
     }
   }
 
