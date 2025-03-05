@@ -8,6 +8,7 @@ import {
   removeKeystore,
   resetBtcRpcUrl,
   setBtcRpcUrl,
+  stakeClaimManagement,
 } from './common';
 import fs from 'node:fs';
 import process from 'node:process';
@@ -105,6 +106,11 @@ export class ValidatorCommander {
 
     let menus = [
       {
+        name: 'Stake or Claim Management',
+        value: 'stake_claim_management',
+        description: 'A Link To Stake or Claim Management',
+      },
+      {
         name: 'Change Stake Address',
         value: 'set_stake_address',
         description: 'Set/Change Stake Address',
@@ -143,7 +149,9 @@ export class ValidatorCommander {
         }
       );
     }
+    const client = validator.role ? Client.XSATValidator : Client.Validator;
     const actions: { [key: string]: () => Promise<any> } = {
+      stake_claim_management: async () => await stakeClaimManagement(client),
       set_reward_address: async () => await this.setRewardAddress(),
       set_stake_address: async () => await this.setStakeAddress(),
       set_commission_ratio: async () => await this.setCommissionRatio(),

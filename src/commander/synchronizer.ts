@@ -26,6 +26,7 @@ import {
   removeKeystore,
   resetBtcRpcUrl,
   setBtcRpcUrl,
+  stakeClaimManagement,
 } from './common';
 import { Font } from '../utils/font';
 import { getUserAccount } from './account';
@@ -89,6 +90,11 @@ export class SynchronizerCommander {
 
     const menus = [
       {
+        name: 'Stake or Claim Management',
+        value: 'stake_claim_management',
+        description: 'A Link To Stake or Claim Management',
+      },
+      {
         name: synchronizer?.reward_recipient ? 'Change Reward Address' : 'Set Reward Address',
         value: 'set_reward_address',
         description: 'Set/Change Reward Address',
@@ -120,6 +126,7 @@ export class SynchronizerCommander {
     ];
 
     const actions: { [key: string]: () => Promise<any> } = {
+      stake_claim_management: async () => await stakeClaimManagement(Client.Synchronizer),
       revote: async () => await this.revoteForConsensus(),
       set_reward_address: async () => await this.setRewardAddress(),
       reset_btc_rpc: async () => await resetBtcRpcUrl(),
@@ -228,9 +235,11 @@ export class SynchronizerCommander {
       this.synchronizerInfo = synchronizerInfo;
       return true;
     } else {
-      console.log(
-        `In order to activate your account, please contact our admin via email (${Font.fgCyan}${Font.bright}${NETWORK_CONFIG.contact}${Font.reset}).\n`
-      );
+      showInfo({
+        'Please note':
+          'In order to complete your registration, please follow the actions from the “Synchronizer Registration” page below.',
+        'Page Url': NETWORK_CONFIG.synchronizerRegistration,
+      });
       if (this.registration && process.env.SYNCHRONIZER_KEYSTORE_FILE === process.env.VALIDATOR_KEYSTORE_FILE) {
         const validatorInfo = await this.tableApi.getValidatorInfo(this.exsatAccountInfo.accountName);
         if (!validatorInfo) {

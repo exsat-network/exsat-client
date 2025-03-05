@@ -133,6 +133,7 @@ export class ValidatorJobs {
           } else if (
             errorMessage.startsWith(ErrorCode.Code1001) ||
             errorMessage.startsWith(ErrorCode.Code1003) ||
+            errorMessage.startsWith(ErrorCode.Code1004) ||
             errorMessage.startsWith(ErrorCode.Code1008)
           ) {
             await sleep(10000);

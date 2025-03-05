@@ -64,10 +64,21 @@ export enum KeystoreExistStatus {
   Both = 3,
 }
 
+export interface NetworkConfig {
+  portal: string;
+  recharge: string;
+  register: string;
+  userGuide: string;
+  synchronizerRegistration: string;
+  contact: string;
+  minGasBalance: number;
+}
+
 export enum ErrorCode {
   Code1001 = '1001', //1001:blkendt.xsat::endorse: the current endorsement status is disabled
   Code1002 = '1002', //1002:blkendt.xsat::endorse: the block has been parsed and does not need to be endorsed
   Code1003 = '1003', //1003:blkendt.xsat::endorse: the endorsement height cannot exceed height
+  Code1004 = '1004', //1004:blkendt.xsat::endorse: the number of valid validators must be greater than or equal to 2
   Code1008 = '1008', //1008:blkendt.xsat::endorse: the next endorsement time has not yet been reached
   Code2005 = '2005', //2005:blksync.xsat::initbucket: the block has reached consensus
   Code2006 = '2006', //2006:blksync.xsat::initbucket: to become a synchronizer, a block must be produced within 72 hours

@@ -219,6 +219,11 @@ export async function removeKeystore(clientType: ClientType) {
       }
       await getAccountInfo(keystoreFile, passwordInput);
       fs.unlinkSync(keystoreFile);
+      const client = clientType === ClientType.Validator ? Client.Validator : Client.Synchronizer;
+      updateEnvFile({
+        [`${client.toUpperCase()}_KEYSTORE_FILE`]: '',
+        [`${client.toUpperCase()}_KEYSTORE_PASSWORD`]: '',
+      });
       logger.info('Remove account successfully');
       process.exit();
     }, 5);
@@ -260,4 +265,26 @@ export function getKeystorePath(clientType: ClientType): string {
   return clientType === ClientType.Synchronizer
     ? process.env.SYNCHRONIZER_KEYSTORE_FILE
     : process.env.VALIDATOR_KEYSTORE_FILE;
+}
+
+export async function stakeClaimManagement(client: Client) {
+  let message;
+  switch (client) {
+    case Client.Synchronizer:
+      message = 'Please go to the Consensus Portal page and connect with your stake address to claim rewards.';
+      break;
+    case Client.Validator:
+      message =
+        'Please go to the Consensus Portal page and connect with your stake address or commission address to stake BTC or claim rewards and commission.';
+      break;
+    case Client.XSATValidator:
+      message =
+        'Please go to the Consensus Portal page and connect with your stake address to stake XSAT or claim rewards.';
+      break;
+    default:
+      message = 'Please go to the Consensus Portal page and connect with your stake address to claim rewards.';
+  }
+  console.log(`${message}\nConsensus Portal Url: ${Font.bright}${Font.fgGreen}${NETWORK_CONFIG.portal}${Font.reset}\n`);
+  await input({ message: 'Press [Enter] to continue...' });
+  return true;
 }

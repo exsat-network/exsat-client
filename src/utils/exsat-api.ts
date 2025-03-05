@@ -174,7 +174,7 @@ class ExsatApi {
       const balance = getAmountFromQuantity(returnValueData.balance);
       if (balance < NETWORK_CONFIG.minGasBalance) {
         logger.error(
-          `The account[${this.accountName}] gas fee balance[${balance}] is insufficient. Please recharge at least ${NETWORK_CONFIG.minGasBalance} more to meet the minimum requirement. Recharge URL: ${NETWORK_CONFIG.recharge}?account=${this.accountName}`
+          `Running the client requires minimal gas fee of ${NETWORK_CONFIG.minGasBalance} BTC, and currently the gas fee balance of the account[${this.accountName}] is ${balance} BTC. Please recharge gas fee to this account and make sure the balance is more than ${NETWORK_CONFIG.minGasBalance} BTC. The recharge page Url:${NETWORK_CONFIG.recharge}?account=${this.accountName}`
         );
         process.exit(1);
       }
