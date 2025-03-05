@@ -29,6 +29,7 @@ import {
 import { Font } from '../utils/font';
 import { getUserAccount } from './account';
 import ExsatNode from '../utils/exsat-node';
+import { validator } from 'web3-validator';
 
 export class SynchronizerCommander {
   private exsatAccountInfo: any;
@@ -255,7 +256,10 @@ export class SynchronizerCommander {
         `In order to activate your account, please contact our admin via email (${Font.fgCyan}${Font.bright}${NETWORK_CONFIG.contact}${Font.reset}).\n`
       );
       if (this.registration && process.env.SYNCHRONIZER_KEYSTORE_FILE === process.env.VALIDATOR_KEYSTORE_FILE) {
-        updateEnvFile({ VALIDATOR_KEYSTORE_FILE: '', VALIDATOR_KEYSTORE_PASSWORD: '' });
+        const validatorInfo = await this.tableApi.getValidatorInfo(this.exsatAccountInfo.accountName);
+        if (!validatorInfo) {
+          updateEnvFile({ VALIDATOR_KEYSTORE_FILE: '', VALIDATOR_KEYSTORE_PASSWORD: '' });
+        }
       }
       process.exit(0);
     }

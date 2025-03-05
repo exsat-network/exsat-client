@@ -1,6 +1,13 @@
 import TableApi from '../utils/table-api';
 import ExsatApi from '../utils/exsat-api';
-import { checkExsatUrls, exportPrivateKey, notAccountMenu, resetBtcRpcUrl, setBtcRpcUrl } from './common';
+import {
+  checkAccountRegistrationStatus,
+  checkExsatUrls,
+  exportPrivateKey,
+  notAccountMenu,
+  resetBtcRpcUrl,
+  setBtcRpcUrl,
+} from './common';
 import fs from 'node:fs';
 import process from 'node:process';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
@@ -44,7 +51,7 @@ export class ValidatorCommander {
   async main() {
     // Initialize APIs and check account and validator status
     await this.init();
-    await this.checkAccountRegistrationStatus();
+    await checkAccountRegistrationStatus(this.exsatAccountInfo);
     await this.checkValidatorRegistrationStatus();
 
     await this.checkRewardsAddress();
@@ -340,7 +347,10 @@ export class ValidatorCommander {
         process.exit(0);
       } else {
         if (this.registration && process.env.SYNCHRONIZER_KEYSTORE_FILE === process.env.VALIDATOR_KEYSTORE_FILE) {
-          updateEnvFile({ SYNCHRONIZER_KEYSTORE_FILE: '', SYNCHRONIZER_KEYSTORE_PASSWORD: '' });
+          const synchronizerInfo = await this.tableApi.getSynchronizerInfo(this.exsatAccountInfo.accountName);
+          if (!synchronizerInfo) {
+            updateEnvFile({ SYNCHRONIZER_KEYSTORE_FILE: '', SYNCHRONIZER_KEYSTORE_PASSWORD: '' });
+          }
         }
         await this.registerValidator();
       }
@@ -348,25 +358,6 @@ export class ValidatorCommander {
     } else {
       this.validatorInfo = validatorInfo;
     }
-  }
-
-  /**
-   * Checks the registration status of the account.
-   */
-  async checkAccountRegistrationStatus() {
-    const checkAccountInfo = await getUserAccount(this.exsatAccountInfo.accountName);
-    if (!checkAccountInfo) {
-      showInfo({
-        'Account Name': this.exsatAccountInfo.accountName,
-        'Public Key': this.exsatAccountInfo.publicKey,
-        'Registration Url': `${NETWORK_CONFIG.register}/account=${this.exsatAccountInfo.accountName}&pubkey=${this.exsatAccountInfo.publicKey}&role=${this.exsatAccountInfo.role}${NETWORK == 'mainnet' ? '' : `&net=${NETWORK}`}`,
-      });
-      console.log(
-        `Please note that your registration has not finished yet!\n${Font.fgGreen}${Font.bright}Please copy the Registration Url above and paste to your browser to finish the registration.${Font.reset}`
-      );
-      process.exit(0);
-    }
-    return true;
   }
 
   /**
