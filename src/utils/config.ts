@@ -30,7 +30,7 @@ export const SYNCHRONIZER_JOBS_BLOCK_PARSE: string = process.env.SYNCHRONIZER_JO
 export const SYNCHRONIZER_KEYSTORE_FILE: string = process.env.SYNCHRONIZER_KEYSTORE_FILE || '';
 export const SYNCHRONIZER_KEYSTORE_PASSWORD: string = process.env.SYNCHRONIZER_KEYSTORE_PASSWORD || '';
 
-export const VALIDATOR_JOBS_ENDORSE: string = process.env.VALIDATOR_JOBS_ENDORSE || '*/1 * * * * *';
+export const VALIDATOR_JOBS_ENDORSE: string = process.env.VALIDATOR_JOBS_ENDORSE || '*/10 * * * * *';
 export const VALIDATOR_JOBS_ENDORSE_CHECK: string = process.env.VALIDATOR_JOBS_ENDORSE_CHECK || '0 * * * * *';
 export const VALIDATOR_KEYSTORE_FILE: string = process.env.VALIDATOR_KEYSTORE_FILE || '';
 
