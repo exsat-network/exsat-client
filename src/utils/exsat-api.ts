@@ -174,7 +174,7 @@ class ExsatApi {
       const balance = getAmountFromQuantity(returnValueData.balance);
       if (balance < 0.0001) {
         logger.error(
-          `The account[${this.accountName}] gas fee balance[${balance}] is insufficient. Please recharge at ${NETWORK_CONFIG.recharge}`
+          `The account[${this.accountName}] gas fee balance[${balance}] is insufficient. Please recharge at ${NETWORK_CONFIG.recharge}?account=${this.accountName}`
         );
         process.exit(1);
       }
