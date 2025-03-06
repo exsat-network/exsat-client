@@ -15,14 +15,26 @@ import { getInputRole } from './account';
  */
 async function main() {
   await loadNetworkConfigurations();
+  const isDocker = isExsatDocker();
+
   showInfo({
     'Please note':
       'It is highly recommended that you carefully read the user guide and follow the instructions precisely to avoid any unnecessary issues.',
     'User Guide': `${NETWORK_CONFIG.userGuide}`,
   });
 
-  let keystoreStatus = keystoreExistStatus();
+  // Check for client updates
+  let versions;
+  if (isDocker) {
+    versions = await Version.checkForDockerUpdates();
+  } else {
+    versions = await Version.checkForUpdates();
+  }
+  if (versions.newVersion) {
+    await updateMenu(versions, isDocker);
+  }
 
+  let keystoreStatus = keystoreExistStatus();
   while (keystoreStatus === KeystoreExistStatus.None) {
     await notAccountMenu();
     reloadEnv();
@@ -30,7 +42,7 @@ async function main() {
   }
   let clientCommander;
   let role;
-  let exsatAccount;
+  // Determine the client type based on the keystore status
   switch (keystoreStatus) {
     case KeystoreExistStatus.Validator:
       role = Client.Validator;
@@ -61,17 +73,6 @@ async function main() {
       break;
   }
 
-  const isDocker = isExsatDocker();
-  // Check for software updates
-  let versions;
-  if (isDocker) {
-    versions = await Version.checkForDockerUpdates();
-  } else {
-    versions = await Version.checkForUpdates();
-  }
-  if (versions.newVersion) {
-    await updateMenu(versions, isDocker, role);
-  }
   // Start the selected client
   await clientCommander.main();
 }

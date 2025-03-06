@@ -54,7 +54,7 @@ export async function notAccountMenu() {
   } while (!res);
 }
 
-export async function updateMenu(versions, isDocker, role) {
+export async function updateMenu(versions, isDocker) {
   const menus = [
     {
       name: 'Get Upgrade Method',
@@ -79,13 +79,11 @@ export async function updateMenu(versions, isDocker, role) {
     case 'get_upgrade_method':
       if (isDocker) {
         // URLs for Docker upgrade instructions based on user role
-        const synchronizerDocUrl =
-          'https://docs.exsat.network/guides-of-data-consensus/others/operation-references/synchronizer-operations/update-to-new-docker-version-for-synchronizer';
-        const validatorDocUrl =
-          'https://docs.exsat.network/guides-of-data-consensus/others/operation-references/validator-operations/update-to-new-docker-version-for-validator';
+        const docsUrl =
+          'https://docs.exsat.network/guides-of-data-consensus/others/operation-references/common-operations/upgrade-to-new-version';
 
         console.log(
-          `\n${Font.fgCyan}${Font.bright}Please exit the Docker container and follow the instructions in the documentation to upgrade your Docker: \n${Font.reset}${Font.bright}${role === Client.Synchronizer ? synchronizerDocUrl : validatorDocUrl}${Font.reset}`
+          `\n${Font.fgCyan}${Font.bright}Please exit the Docker container and follow the instructions in the documentation to upgrade your Docker: \n${Font.reset}${Font.bright}${docsUrl}${Font.reset}`
         );
       } else {
         console.log(
@@ -99,16 +97,6 @@ export async function updateMenu(versions, isDocker, role) {
       break;
     default:
       return;
-  }
-}
-
-export async function checkExsatUrls() {
-  if (!EXSAT_RPC_URLS || EXSAT_RPC_URLS.length === 0 || !isValidUrl(EXSAT_RPC_URLS[0])) {
-    const result = await getRpcUrls();
-    if (result) {
-      // @ts-ignore
-      EXSAT_RPC_URLS = result;
-    }
   }
 }
 
