@@ -58,10 +58,10 @@ export class ValidatorJobs {
     if (result && result.transaction_id) {
       blockValidateTotalCounter.inc({
         account: this.state.accountName,
-        client: Client.Validator,
+        client: this.state.client,
       });
-      validateLatestBlockGauge.set({ account: this.state.accountName, client: Client.Validator }, height);
-      validateLatestTimeGauge.set({ account: this.state.accountName, client: Client.Validator }, Date.now());
+      validateLatestBlockGauge.set({ account: this.state.accountName, client: this.state.client }, height);
+      validateLatestTimeGauge.set({ account: this.state.accountName, client: this.state.client }, Date.now());
       logger.info(
         `Submit endorsement success, accountName: ${validator}, height: ${height}, hash: ${hash}, transaction_id: ${result?.transaction_id}`
       );
@@ -100,7 +100,7 @@ export class ValidatorJobs {
         logger.error('Endorse task error', e);
         errorTotalCounter.inc({
           account: this.state.accountName,
-          client: Client.Validator,
+          client: this.state.client,
         });
       }
     } finally {
@@ -142,7 +142,7 @@ export class ValidatorJobs {
             logger.error(`Submit endorsement failed, height: ${i}, hash: ${hash}`, e);
             errorTotalCounter.inc({
               account: this.state.accountName,
-              client: Client.Validator,
+              client: this.state.client,
             });
           }
         }
@@ -151,7 +151,7 @@ export class ValidatorJobs {
       logger.error('Endorse check task error', e);
       errorTotalCounter.inc({
         account: this.state.accountName,
-        client: Client.Validator,
+        client: this.state.client,
       });
       await sleep();
     } finally {
@@ -165,6 +165,6 @@ export class ValidatorJobs {
   }
 
   heartbeat = async () => {
-    await this.state.exsatApi!.heartbeat(ClientType.Validator);
+    await this.state.exsatApi!.heartbeat(this.state.client);
   };
 }

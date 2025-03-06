@@ -178,12 +178,13 @@ export class ValidatorCommander {
       validator: this.exsatAccountInfo.accountName,
       reward_addr: evmAddressToChecksum(rewardAddress),
     };
-
-    const res: any = await this.exsatApi.executeAction(ContractName.endrmng, 'setrwdaddr', data);
-    if (res && res.transaction_id) {
+    try {
+      await this.exsatApi.executeAction(ContractName.endrmng, 'setrwdaddr', data);
       logger.info(`Set reward commission: ${rewardAddress} successfully`);
       await this.updateValidatorInfo();
       return true;
+    } catch (e) {
+      return false;
     }
   }
 
@@ -206,12 +207,10 @@ export class ValidatorCommander {
     };
 
     try {
-      const res: any = await this.exsatApi.executeAction(ContractName.endrmng, 'evmsetstaker', data);
-      if (res && res.transaction_id) {
-        logger.info(`Set stake address: ${stakeAddress} successfully`);
-        await this.updateValidatorInfo();
-        return true;
-      }
+      await this.exsatApi.executeAction(ContractName.endrmng, 'evmsetstaker', data);
+      logger.info(`Set stake address: ${stakeAddress} successfully`);
+      await this.updateValidatorInfo();
+      return true;
     } catch (error) {
       return false;
     }
@@ -240,11 +239,13 @@ export class ValidatorCommander {
       validator: this.exsatAccountInfo.accountName,
       commission_rate: parseFloat(commissionRatio) * 100,
     };
-    const res: any = await this.exsatApi.executeAction(ContractName.endrmng, 'evmconfigvald', data);
-    if (res && res.transaction_id) {
+    try {
+      await this.exsatApi.executeAction(ContractName.endrmng, 'evmconfigvald', data);
       await this.updateValidatorInfo();
       logger.info(`${Font.fgCyan}${Font.bright}Set commission rate: ${commissionRatio}% successfully.${Font.reset}\n`);
       return true;
+    } catch (e) {
+      return false;
     }
   }
 
@@ -268,13 +269,15 @@ export class ValidatorCommander {
       validator: this.exsatAccountInfo.accountName,
       donate_rate: parseFloat(ratio) * 100,
     };
-    const res: any = await this.exsatApi.executeAction(ContractName.endrmng, 'setdonate', data);
-    if (res && res.transaction_id) {
+    try {
+      await this.exsatApi.executeAction(ContractName.endrmng, 'setdonate', data);
       logger.info(
         `${Font.fgCyan}${Font.bright}Set donation ratio: ${ratio}% successfully. ${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`
       );
       await this.updateValidatorInfo();
       return true;
+    } catch (e) {
+      return false;
     }
   }
 

@@ -2,7 +2,7 @@ import { API, Chains, Session } from '@wharfkit/session';
 import { logger } from './logger';
 import process from 'process';
 import { getAmountFromQuantity, removeTrailingZeros, sleep } from './common';
-import { Client, ClientType, ContractName, IndexPosition } from './enumeration';
+import { Client, ClientType, ContractName, IndexPosition, RoleType } from './enumeration';
 import { Version } from './version';
 import { WalletPluginPrivateKey } from '@wharfkit/wallet-plugin-privatekey';
 import ExsatNode from './exsat-node';
@@ -134,28 +134,15 @@ class ExsatApi {
 
   /**
    * Checks if the client is properly configured and authorized.
-   * @param type - The type of client (e.g., Synchronizer or Validator).
+   * @param client - The type of Client (e.g., Synchronizer or Validator or XSATValidator).
    */
-  public async checkClient(type: number) {
-    let clientType;
-    switch (type) {
-      case ClientType.Synchronizer:
-        clientType = Client.Synchronizer;
-        break;
-      case ClientType.Validator:
-        clientType = Client.Validator;
-        break;
-      case ClientType.XsatValidator:
-        clientType = Client.XSATValidator;
-        break;
-      default:
-        throw new Error('Invalid client type');
-    }
+  public async checkClient(client: Client) {
+    const roleType = RoleType[client];
     try {
       const version = await Version.getLocalVersion();
       const result = await this.executeAction(ContractName.rescmng, 'checkclient', {
         client: this.accountName,
-        type,
+        type: roleType,
         version,
       });
       const returnValueData = result.processed.action_traces[0].return_value_data;
@@ -167,7 +154,7 @@ class ExsatApi {
       }
       if (!returnValueData.is_exists) {
         logger.error(
-          `The account[${this.accountName}] has not been registered as a ${clientType}. Please contact the administrator for verification`
+          `The account[${this.accountName}] has not been registered as a ${client}. Please contact the administrator for verification`
         );
         process.exit(1);
       }
@@ -179,32 +166,23 @@ class ExsatApi {
         process.exit(1);
       }
     } catch (e) {
-      logger.error(`${clientType}[${this.accountName}] client configurations are incorrect, and the startup failed`, e);
+      logger.error(`${client}[${this.accountName}] client configurations are incorrect, and the startup failed`, e);
       process.exit(1);
     }
-    logger.info(`${clientType}[${this.accountName}] client configurations are correct, and the startup was successful`);
+    logger.info(`${client}[${this.accountName}] client configurations are correct, and the startup was successful`);
   }
 
-  public async heartbeat(type: number) {
-    let clientType;
-    switch (type) {
-      case ClientType.Synchronizer:
-        clientType = Client.Synchronizer;
-        break;
-      case ClientType.Validator:
-        clientType = Client.Validator;
-        break;
-      case ClientType.XsatValidator:
-        clientType = Client.XSATValidator;
-        break;
-      default:
-        throw new Error('Invalid client type');
-    }
+  /**
+   * Checks the heartbeat of the client.
+   * @param client - The type of Client (e.g., Synchronizer or Validator or XSATValidator).
+   */
+  public async heartbeat(client) {
+    const roleType = RoleType[client];
     try {
       const version = await Version.getLocalVersion();
       const result = await this.executeAction(ContractName.rescmng, 'checkclient', {
         client: this.accountName,
-        type,
+        type: roleType,
         version,
       });
       const returnValueData = result.processed.action_traces[0].return_value_data;
@@ -216,7 +194,7 @@ class ExsatApi {
       }
       if (!returnValueData.is_exists) {
         logger.error(
-          `The account[${this.accountName}] has not been registered as a ${clientType}. Please contact the administrator for verification`
+          `The account[${this.accountName}] has not been registered as a ${client}. Please contact the administrator for verification`
         );
         process.exit(1);
       }
@@ -227,7 +205,7 @@ class ExsatApi {
         );
       }
     } catch (e) {
-      logger.error(`${clientType}[${this.accountName}] client heartbeat failed`, e);
+      logger.error(`${client}[${this.accountName}] client heartbeat failed`, e);
     }
   }
 

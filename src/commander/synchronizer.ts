@@ -181,13 +181,15 @@ export class SynchronizerCommander {
       synchronizer: this.exsatAccountInfo.accountName,
       donate_rate: parseFloat(ratio) * 100,
     };
-    const res: any = await this.exsatApi.executeAction(ContractName.poolreg, 'setdonate', data);
-    if (res && res.transaction_id) {
+    try {
+      await this.exsatApi.executeAction(ContractName.poolreg, 'setdonate', data);
       await this.updateSynchronizerInfo();
       logger.info(
         `${Font.fgCyan}${Font.bright}Set Donation Ratio: ${ratio}% successfully. ${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`
       );
       return true;
+    } catch (e) {
+      return false;
     }
   }
 
@@ -199,10 +201,12 @@ export class SynchronizerCommander {
       synchronizer: this.exsatAccountInfo.accountName,
       financial_account: account,
     };
-    const res: any = await this.exsatApi.executeAction(ContractName.poolreg, 'setfinacct', data);
-    if (res && res.transaction_id) {
+    try {
+      await this.exsatApi.executeAction(ContractName.poolreg, 'setfinacct', data);
       await this.updateSynchronizerInfo();
       return true;
+    } catch (e) {
+      return false;
     }
   }
 

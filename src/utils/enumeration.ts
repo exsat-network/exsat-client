@@ -4,10 +4,15 @@ export enum Client {
   XSATValidator = 'xsat_validator',
 }
 
+export enum RoleType {
+  'synchronizer' = 1,
+  'validator' = 2,
+  'xsat_validator' = 3,
+}
+
 export enum ClientType {
   Synchronizer = 1,
   Validator = 2,
-  XsatValidator = 3,
 }
 
 export enum ContractName {
