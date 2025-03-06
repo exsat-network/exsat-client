@@ -184,9 +184,6 @@ export class ValidatorCommander {
       logger.info(`Set reward commission: ${rewardAddress} successfully`);
       await this.updateValidatorInfo();
       return true;
-    } else {
-      logger.error(`Validator[${this.exsatAccountInfo.accountName}] Set commission address: ${rewardAddress} failed`);
-      return false;
     }
   }
 
@@ -214,9 +211,6 @@ export class ValidatorCommander {
         logger.info(`Set stake address: ${stakeAddress} successfully`);
         await this.updateValidatorInfo();
         return true;
-      } else {
-        logger.error(`Validator[${this.exsatAccountInfo.accountName}] Set stake address: ${stakeAddress} failed`);
-        return false;
       }
     } catch (error) {
       return false;
@@ -251,9 +245,6 @@ export class ValidatorCommander {
       await this.updateValidatorInfo();
       logger.info(`${Font.fgCyan}${Font.bright}Set commission rate: ${commissionRatio}% successfully.${Font.reset}\n`);
       return true;
-    } else {
-      logger.error(`Validator[${this.exsatAccountInfo.accountName}] Set commission rate: ${commissionRatio} failed`);
-      return false;
     }
   }
 
@@ -284,9 +275,6 @@ export class ValidatorCommander {
       );
       await this.updateValidatorInfo();
       return true;
-    } else {
-      logger.error(`Validator[${this.exsatAccountInfo.accountName}] Set donation ratio: ${ratio} failed`);
-      return false;
     }
   }
 

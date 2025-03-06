@@ -188,9 +188,6 @@ export class SynchronizerCommander {
         `${Font.fgCyan}${Font.bright}Set Donation Ratio: ${ratio}% successfully. ${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`
       );
       return true;
-    } else {
-      logger.error(`Synchronizer[${this.exsatAccountInfo.accountName}] Set Donation Ratio: ${ratio}% failed`);
-      return false;
     }
   }
 
@@ -206,9 +203,6 @@ export class SynchronizerCommander {
     if (res && res.transaction_id) {
       await this.updateSynchronizerInfo();
       return true;
-    } else {
-      logger.error(`Synchronizer[${this.exsatAccountInfo.accountName}] Set reward address: ${account} failed`);
-      return false;
     }
   }
 
