@@ -1,8 +1,8 @@
-import { API, Chains, Session } from '@wharfkit/session';
+import { API, Session } from '@wharfkit/session';
 import { logger } from './logger';
 import process from 'process';
 import { getAmountFromQuantity, removeTrailingZeros, sleep } from './common';
-import { Client, ClientType, ContractName, IndexPosition, RoleType } from './enumeration';
+import { Client, ContractName, IndexPosition, RoleType } from './enumeration';
 import { Version } from './version';
 import { WalletPluginPrivateKey } from '@wharfkit/wallet-plugin-privatekey';
 import ExsatNode from './exsat-node';
@@ -15,7 +15,6 @@ class ExsatApi {
   private accountName: string;
   private maxRetries: number = 3;
   private retryDelay: number = 1000;
-  private executeActions: number = 0;
 
   constructor(
     private accountInfo: {
@@ -137,12 +136,11 @@ class ExsatApi {
    * @param client - The type of Client (e.g., Synchronizer or Validator or XSATValidator).
    */
   public async checkClient(client: Client) {
-    const roleType = RoleType[client];
     try {
       const version = await Version.getLocalVersion();
       const result = await this.executeAction(ContractName.rescmng, 'checkclient', {
         client: this.accountName,
-        type: roleType,
+        type: RoleType[client],
         version,
       });
       const returnValueData = result.processed.action_traces[0].return_value_data;
@@ -177,12 +175,11 @@ class ExsatApi {
    * @param client - The type of Client (e.g., Synchronizer or Validator or XSATValidator).
    */
   public async heartbeat(client) {
-    const roleType = RoleType[client];
     try {
       const version = await Version.getLocalVersion();
       const result = await this.executeAction(ContractName.rescmng, 'checkclient', {
         client: this.accountName,
-        type: roleType,
+        type: RoleType[client],
         version,
       });
       const returnValueData = result.processed.action_traces[0].return_value_data;

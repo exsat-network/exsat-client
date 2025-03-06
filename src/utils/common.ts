@@ -6,7 +6,6 @@ import { getblockcount } from './bitcoin';
 import path from 'node:path';
 import dotenv from 'dotenv';
 import { Font } from './font';
-import { number } from '@inquirer/prompts';
 
 /**
  * Pauses execution for a specified number of milliseconds.
@@ -99,8 +98,10 @@ export async function envCheck(keystoreFile: string) {
 
 /**
  * Try calling the function repeatedly
- * @param fn
- * @param retries
+ * @param fn - The function to be called.
+ * @param retries - The number of retries.
+ * @param delay - The delay between retries.
+ * @param ft - The function name.
  */
 export const retry = async (fn: () => Promise<any>, retries = 3, delay = 1000, ft = ''): Promise<any> => {
   for (let i = 0; i < retries; i++) {

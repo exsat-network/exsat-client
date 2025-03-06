@@ -5,9 +5,9 @@ export enum Client {
 }
 
 export enum RoleType {
-  'synchronizer' = 1,
-  'validator' = 2,
-  'xsat_validator' = 3,
+  synchronizer = 1,
+  validator = 2,
+  xsat_validator = 3,
 }
 
 export enum ClientType {

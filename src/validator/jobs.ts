@@ -1,6 +1,6 @@
 import { logger } from '../utils/logger';
 import { getErrorMessage, sleep } from '../utils/common';
-import { Client, ClientType, ContractName, ErrorCode } from '../utils/enumeration';
+import { ContractName, ErrorCode } from '../utils/enumeration';
 import {
   blockValidateTotalCounter,
   errorTotalCounter,

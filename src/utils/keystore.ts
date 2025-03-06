@@ -6,7 +6,6 @@ import { logger } from './logger';
 import path from 'node:path';
 import { ClientType } from './enumeration';
 import { password } from '@inquirer/prompts';
-import { reloadEnv } from './common';
 import { PrivateKey } from '@wharfkit/antelope';
 import { decrypt as createDecipheriv, encrypt as createCipheriv } from 'ethereum-cryptography/aes.js';
 import WIF from 'wif';
@@ -136,6 +135,10 @@ export function keystoreExist(role?: string) {
   return false;
 }
 
+/**
+ * Check if the keystore file exists.
+ * return 0: not exist, 1: synchronizer keystore exist, 2: validator keystore exist, 3: both exist
+ */
 export function keystoreExistStatus() {
   let s = 0;
   if (process.env.SYNCHRONIZER_KEYSTORE_FILE) {
@@ -282,6 +285,12 @@ export const createKeystore = async (
   };
 };
 
+/**
+ * Decrypt a keystore
+ * @param keystore
+ * @param password
+ * @param nonStrict
+ */
 export const decryptKeystore = async (
   keystore: KeyStore | string,
   password: string | Uint8Array,

@@ -44,9 +44,6 @@ export const listDirectories = async (currentPath: string) => {
   return directories;
 };
 
-const validatePath = (inputPath: string): boolean => {
-  return fs.existsSync(inputPath) && fs.statSync(inputPath).isDirectory();
-};
 const access = promisify(fs.access);
 const mkdir = promisify(fs.mkdir);
 
@@ -162,7 +159,6 @@ export const selectDirPrompt = async () => {
 /**
  * Process and update string
  * @param input
- * @param filePath
  */
 export function processAndUpdatePassword(input: string): string {
   const wrappers = ["'", '"', '`'];

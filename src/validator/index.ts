@@ -8,13 +8,11 @@ import { Client, ClientType, RoleType } from '../utils/enumeration';
 import { errorTotalCounter, setupPrometheus, startTimeGauge, warnTotalCounter } from '../utils/prom';
 import { ValidatorJobs } from './jobs';
 import {
-  EXSAT_RPC_URLS,
   HEARTBEAT_JOBS,
   VALIDATOR_JOBS_ENDORSE,
   VALIDATOR_JOBS_ENDORSE_CHECK,
   VALIDATOR_KEYSTORE_FILE,
 } from '../utils/config';
-import ExsatNode from '../utils/exsat-node';
 
 export class ValidatorState {
   accountName: string = '';

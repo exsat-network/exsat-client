@@ -2,7 +2,7 @@ import axios from 'axios';
 import moment from 'moment';
 import { logger } from './logger';
 import { EXSAT_RPC_URLS } from './config';
-import { getRpcUrls, isValidUrl } from './common';
+import { isValidUrl } from './common';
 
 class ExsatNode {
   private nodes: string[];

@@ -1,8 +1,8 @@
 import { confirm, input, password, select, Separator } from '@inquirer/prompts';
 import process from 'node:process';
 import { Font } from '../utils/font';
-import { EXSAT_RPC_URLS, NETWORK, NETWORK_CONFIG } from '../utils/config';
-import { getRpcUrls, isValidUrl, retry, showInfo, updateEnvFile } from '../utils/common';
+import { NETWORK, NETWORK_CONFIG } from '../utils/config';
+import { isValidUrl, retry, showInfo, updateEnvFile } from '../utils/common';
 import { Client, ClientType } from '../utils/enumeration';
 import { logger } from '../utils/logger';
 import { clearLines, inputWithCancel } from '../utils/input';

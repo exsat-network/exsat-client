@@ -1,19 +1,9 @@
 import { ContractName, IndexPosition, KeyType } from './enumeration';
 import { computeBlockId } from './key';
 import { logger } from './logger';
-import {
-  API,
-  Checksum256,
-  Name,
-  UInt64,
-  Session,
-  WalletPluginMetadata,
-  APIClient,
-  FetchProvider,
-} from '@wharfkit/session';
+import { API, Checksum256, Name, UInt64, APIClient, FetchProvider } from '@wharfkit/session';
 import ExsatNode from './exsat-node';
 import { sleep } from './common';
-import { EXSAT_RPC_URLS } from './config';
 
 let tableApiInstance: TableApi | null;
 

@@ -250,8 +250,7 @@ export class SynchronizerCommander {
   async checkRewardsAddress() {
     const accountName = this.exsatAccountInfo.accountName;
     const btcBalance = await this.tableApi.getAccountBalance(accountName);
-    const synchronizer = this.synchronizerInfo;
-    if (!synchronizer.memo) {
+    if (!this.synchronizerInfo.memo) {
       logger.info('Reward address is not set.');
       showInfo({
         'Account Name': accountName,
@@ -291,14 +290,13 @@ export class SynchronizerCommander {
     const rpcUrl = process.env.BTC_RPC_URL;
     const accountName = this.exsatAccountInfo.accountName;
     const btcBalance = await this.tableApi.getAccountBalance(accountName);
-    const synchronizer = this.synchronizerInfo;
     if (!rpcUrl || !isValidUrl(rpcUrl)) {
       logger.info('BTC_RPC_URL is not set or is in an incorrect format.');
       const showMessageInfo = {
         'Account Name': accountName,
         'Public Key': this.exsatAccountInfo.publicKey,
         'Gas Balance': btcBalance ? removeTrailingZeros(btcBalance) : `0 BTC`,
-        'Reward Address': synchronizer.memo ?? synchronizer.reward_recipient,
+        'Reward Address': this.synchronizerInfo.memo ?? this.synchronizerInfo.reward_recipient,
         'BTC RPC Node': 'unset',
         'Eligible for Consensus': 'Yes',
       };

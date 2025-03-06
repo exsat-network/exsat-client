@@ -47,14 +47,13 @@ export async function getUserAccount(accountName) {
 
 export async function getInputRole(title?) {
   title = title ?? 'Select a role';
-  const role = await select({
+  return await select({
     message: title,
     choices: [
       { name: 'Synchronizer', value: Client.Synchronizer },
       { name: 'Validator', value: Client.Validator },
     ],
   });
-  return role;
 }
 
 async function saveKeystore(privateKey, username, role?) {
@@ -237,7 +236,6 @@ export async function initializeAccount() {
     console.log(`\n${Font.fgYellow}${Font.bright}Keystore file is exist.${Font.reset}`);
     return;
   }
-  let registryStatus;
   const username = await input({
     message: 'Enter an account name (1-8 characters, a-z, 1-5. Input "q" to return): ',
     validate: async (input) => {
@@ -257,6 +255,6 @@ export async function initializeAccount() {
   if (username === 'q') return false;
   console.log(Font.colorize(`  Your account : ${username}.sat`, Font.fgGreen));
 
-  const { publicKey } = await generateKeystore(username);
+  await generateKeystore(username);
   return username;
 }
