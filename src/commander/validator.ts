@@ -2,35 +2,20 @@ import TableApi from '../utils/table-api';
 import ExsatApi from '../utils/exsat-api';
 import {
   checkAccountRegistrationStatus,
-  checkExsatUrls,
+  decryptKeystore,
   exportPrivateKey,
-  notAccountMenu,
   removeKeystore,
   resetBtcRpcUrl,
   setBtcRpcUrl,
   stakeClaimManagement,
 } from './common';
-import fs from 'node:fs';
 import process from 'node:process';
-import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
-import {
-  getErrorMessage,
-  isValidEvmAddress,
-  isValidUrl,
-  reloadEnv,
-  removeTrailingZeros,
-  retry,
-  showInfo,
-  sleep,
-  updateEnvFile,
-} from '../utils/common';
-import { confirm, input, password, select, Separator } from '@inquirer/prompts';
-import { EXSAT_RPC_URLS, NETWORK, NETWORK_CONFIG, SET_VALIDATOR_DONATE_RATIO } from '../utils/config';
+import { isValidEvmAddress, isValidUrl, removeTrailingZeros, showInfo, sleep, updateEnvFile } from '../utils/common';
+import { confirm, input, select, Separator } from '@inquirer/prompts';
 import { logger } from '../utils/logger';
 import { inputWithCancel } from '../utils/input';
 import { Client, ClientType, ContractName } from '../utils/enumeration';
 import { Font } from '../utils/font';
-import { getUserAccount } from './account';
 import { evmAddressToChecksum } from '../utils/key';
 
 export class ValidatorCommander {
@@ -38,12 +23,10 @@ export class ValidatorCommander {
   private validatorInfo: any;
   private tableApi: TableApi;
   private exsatApi: ExsatApi;
-  private keystoreFile: string;
   private blkendtConfig: any;
   private registration: boolean;
 
-  constructor(exsatAccountInfo, registration = false) {
-    this.exsatAccountInfo = exsatAccountInfo;
+  constructor(registration = false) {
     this.registration = registration;
   }
 
@@ -52,9 +35,9 @@ export class ValidatorCommander {
    * Checks the keystore, initializes APIs, and manages the validator menu.
    */
   async main() {
+    await checkAccountRegistrationStatus(ClientType.Validator);
     // Initialize APIs and check account and validator status
     await this.init();
-    await checkAccountRegistrationStatus(this.exsatAccountInfo);
     await this.checkValidatorRegistrationStatus();
 
     await this.checkRewardsAddress();
@@ -311,6 +294,7 @@ export class ValidatorCommander {
    * Decrypts the keystore and initializes exsatApi and tableApi.
    */
   async init() {
+    this.exsatAccountInfo = await decryptKeystore(ClientType.Validator);
     this.exsatApi = new ExsatApi(this.exsatAccountInfo);
     await this.exsatApi.initialize();
     this.tableApi = await TableApi.getInstance();
@@ -331,7 +315,7 @@ export class ValidatorCommander {
       if (!confirmInput) {
         process.exit(0);
       } else {
-        if (this.registration && process.env.SYNCHRONIZER_KEYSTORE_FILE === process.env.VALIDATOR_KEYSTORE_FILE) {
+        if (this.registration) {
           const synchronizerInfo = await this.tableApi.getSynchronizerInfo(this.exsatAccountInfo.accountName);
           if (!synchronizerInfo) {
             updateEnvFile({ SYNCHRONIZER_KEYSTORE_FILE: '', SYNCHRONIZER_KEYSTORE_PASSWORD: '' });

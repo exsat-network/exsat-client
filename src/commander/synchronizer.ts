@@ -4,15 +4,13 @@ import {
   isValidUrl,
   reloadEnv,
   removeTrailingZeros,
-  retry,
   showInfo,
   sleep,
   updateEnvFile,
 } from '../utils/common';
-import { EXSAT_RPC_URLS, NETWORK, NETWORK_CONFIG, SET_SYNCHRONIZER_DONATE_RATIO } from '../utils/config';
-import { input, password, select, Separator } from '@inquirer/prompts';
+import { NETWORK_CONFIG } from '../utils/config';
+import { input, select, Separator } from '@inquirer/prompts';
 import process from 'node:process';
-import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
 import { Client, ClientType, ContractName, ErrorCode } from '../utils/enumeration';
 import { logger } from '../utils/logger';
 import ExsatApi from '../utils/exsat-api';
@@ -21,7 +19,7 @@ import fs from 'node:fs';
 import { inputWithCancel } from '../utils/input';
 import {
   checkAccountRegistrationStatus,
-  checkExsatUrls,
+  decryptKeystore,
   exportPrivateKey,
   notAccountMenu,
   removeKeystore,
@@ -30,9 +28,6 @@ import {
   stakeClaimManagement,
 } from './common';
 import { Font } from '../utils/font';
-import { getUserAccount } from './account';
-import ExsatNode from '../utils/exsat-node';
-import { validator } from 'web3-validator';
 
 export class SynchronizerCommander {
   private exsatAccountInfo: any;
@@ -41,8 +36,7 @@ export class SynchronizerCommander {
   private exsatApi: ExsatApi;
   private registration: boolean;
 
-  constructor(exsatAccountInfo, registration = false) {
-    this.exsatAccountInfo = exsatAccountInfo;
+  constructor(registration = false) {
     this.registration = registration;
   }
 
@@ -56,11 +50,11 @@ export class SynchronizerCommander {
       await notAccountMenu();
       reloadEnv();
     }
+    await checkAccountRegistrationStatus(ClientType.Synchronizer);
 
     // Initialize APIs and check account and synchronizer status
     await this.init();
 
-    await checkAccountRegistrationStatus(this.exsatAccountInfo);
     await this.checkSynchronizerRegistrationStatus();
     await this.checkRewardsAddress();
     // await this.checkDonateSetting();
@@ -222,6 +216,7 @@ export class SynchronizerCommander {
    * Decrypts the keystore and initializes exsatApi and tableApi.
    */
   async init() {
+    this.exsatAccountInfo = await decryptKeystore(ClientType.Synchronizer);
     this.exsatApi = new ExsatApi(this.exsatAccountInfo);
     await this.exsatApi.initialize();
     this.tableApi = await TableApi.getInstance();
@@ -236,17 +231,17 @@ export class SynchronizerCommander {
       this.synchronizerInfo = synchronizerInfo;
       return true;
     } else {
-      showInfo({
-        'Please note':
-          'In order to complete your registration, please follow the actions from the “Synchronizer Registration” page below.',
-        'Page Url': NETWORK_CONFIG.synchronizerRegistration,
-      });
-      if (this.registration && process.env.SYNCHRONIZER_KEYSTORE_FILE === process.env.VALIDATOR_KEYSTORE_FILE) {
+      if (this.registration) {
         const validatorInfo = await this.tableApi.getValidatorInfo(this.exsatAccountInfo.accountName);
         if (!validatorInfo) {
           updateEnvFile({ VALIDATOR_KEYSTORE_FILE: '', VALIDATOR_KEYSTORE_PASSWORD: '' });
         }
       }
+      showInfo({
+        'Please note':
+          'In order to complete your registration, please follow the actions from the “Synchronizer Registration” page below.',
+        'Page Url': NETWORK_CONFIG.synchronizerRegistration,
+      });
       process.exit(0);
     }
   }

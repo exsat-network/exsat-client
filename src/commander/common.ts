@@ -186,7 +186,8 @@ export async function exportPrivateKey(privateKey: string) {
   return true;
 }
 
-export async function checkAccountRegistrationStatus(exsatAccountInfo) {
+export async function checkAccountRegistrationStatus(clientType) {
+  const exsatAccountInfo = await getBaseAccountInfo(getKeystorePath(clientType));
   const checkAccountInfo = await getUserAccount(exsatAccountInfo.accountName);
   if (!checkAccountInfo) {
     showInfo({

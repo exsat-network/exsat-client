@@ -1,15 +1,8 @@
 import { configureLogger, logger } from '../utils/logger';
-import { select } from '@inquirer/prompts';
 import { SynchronizerCommander } from './synchronizer';
 import { ValidatorCommander } from './validator';
 import { Version } from '../utils/version';
-import {
-  checkAccountRegistrationStatus,
-  decryptKeystore,
-  getKeystoreBaseInfo,
-  notAccountMenu,
-  updateMenu,
-} from './common';
+import { checkAccountRegistrationStatus, getKeystoreBaseInfo, notAccountMenu, updateMenu } from './common';
 import { Client, ClientType, KeystoreExistStatus } from '../utils/enumeration';
 import { isExsatDocker, loadNetworkConfigurations, reloadEnv, showInfo } from '../utils/common';
 import { NETWORK_CONFIG } from '../utils/config';
@@ -41,28 +34,26 @@ async function main() {
   switch (keystoreStatus) {
     case KeystoreExistStatus.Validator:
       role = Client.Validator;
-      exsatAccount = await decryptKeystore(ClientType.Validator);
-      clientCommander = new ValidatorCommander(exsatAccount);
+      clientCommander = new ValidatorCommander();
       break;
     case KeystoreExistStatus.Synchronizer:
       role = Client.Synchronizer;
-      exsatAccount = await decryptKeystore(ClientType.Synchronizer);
-      clientCommander = new SynchronizerCommander(exsatAccount);
+      clientCommander = new SynchronizerCommander();
       break;
     case KeystoreExistStatus.Both:
+      let registration = false;
       if (process.env.SYNCHRONIZER_KEYSTORE_FILE === process.env.VALIDATOR_KEYSTORE_FILE) {
+        registration = true;
         const baseInfo = await getKeystoreBaseInfo(ClientType.Synchronizer);
         await checkAccountRegistrationStatus(baseInfo);
       }
       role = await getInputRole('Do you want to set up a Synchronizer or a Validator?');
       switch (role) {
         case Client.Validator:
-          exsatAccount = await decryptKeystore(ClientType.Validator);
-          clientCommander = new ValidatorCommander(exsatAccount, true);
+          clientCommander = new ValidatorCommander(registration);
           break;
         case Client.Synchronizer:
-          exsatAccount = await decryptKeystore(ClientType.Synchronizer);
-          clientCommander = new SynchronizerCommander(exsatAccount, true);
+          clientCommander = new SynchronizerCommander(registration);
           break;
       }
       break;
