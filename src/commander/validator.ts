@@ -52,41 +52,9 @@ export class ValidatorCommander {
    * Displays the main manager menu with various options for the validator.
    */
   async managerMenu() {
-    const accountName = this.exsatAccountInfo.accountName;
-    const btcBalance = await this.tableApi.getAccountBalance(accountName);
     const validator = this.validatorInfo;
-    let showMessageInfo;
-    if (validator.role) {
-      showMessageInfo = {
-        'Account Name': accountName,
-        'Account Role': 'XSAT Validator',
-        'Public Key': this.exsatAccountInfo.publicKey,
-        'Gas Balance': btcBalance ? removeTrailingZeros(btcBalance) : `0 BTC`,
-        'Total XSAT Staked': removeTrailingZeros(validator.xsat_quantity),
-        'Is eligible for consensus':
-          parseFloat(validator.xsat_quantity) >= parseFloat(this.blkendtConfig.min_xsat_qualification)
-            ? 'Yes'
-            : `No, requires staking ${removeTrailingZeros(this.blkendtConfig.min_xsat_qualification)}`,
-        'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
-        'BTC RPC Node': process.env.BTC_RPC_URL ?? '',
-      };
-    } else {
-      showMessageInfo = {
-        'Account Name': accountName,
-        'Account Role': 'BTC Validator',
-        'Public Key': this.exsatAccountInfo.publicKey,
-        'Gas Balance': btcBalance ? removeTrailingZeros(btcBalance) : `0 BTC`,
-        'Commission Rate': validator.commission_rate ? `${validator.commission_rate / 100}%` : '0%',
-        'Commission Address': validator.reward_address ? `0x${validator.reward_address}` : '',
-        'Total BTC Staked': removeTrailingZeros(validator.quantity),
-        'Is eligible for consensus':
-          parseFloat(validator.quantity) >= parseFloat(this.blkendtConfig.min_btc_qualification)
-            ? 'Yes'
-            : `No, requires staking at least ${removeTrailingZeros(this.blkendtConfig.min_btc_qualification)}`,
-        'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
-        'BTC RPC Node': process.env.BTC_RPC_URL ?? '',
-      };
-    }
+    let showMessageInfo = await this.getShowMessageInfo(validator);
+
     showInfo(showMessageInfo);
 
     let menus = [
@@ -178,7 +146,7 @@ export class ValidatorCommander {
   }
 
   /**
-   * Sets the reward address for the validator.
+   * Sets the stake address for the validator.
    */
   async setStakeAddress() {
     const stakeAddress = await inputWithCancel('Enter stake address(Input "q" to return): ', (input: string) => {
@@ -239,38 +207,6 @@ export class ValidatorCommander {
   }
 
   /**
-   * Sets the donation ratio for the validator.
-   */
-  async setDonationRatio() {
-    const ratio = await inputWithCancel('Enter donation ratio(0.00-100.00, Input "q" to return): ', (value) => {
-      //Determine whether it is a number between 0.00-100.00
-      const num = parseFloat(value);
-      // Check if it is a valid number and within the range
-      if (!isNaN(num) && num >= 0 && num <= 100 && /^\d+(\.\d{1,2})?$/.test(value)) {
-        return true;
-      }
-      return 'Please enter a valid number between 0.00 and 100.00';
-    });
-    if (!ratio) {
-      return false;
-    }
-    const data = {
-      validator: this.exsatAccountInfo.accountName,
-      donate_rate: parseFloat(ratio) * 100,
-    };
-    try {
-      await this.exsatApi.executeAction(ContractName.endrmng, 'setdonate', data);
-      logger.info(
-        `${Font.fgCyan}${Font.bright}Set donation ratio: ${ratio}% successfully. ${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`
-      );
-      await this.updateValidatorInfo();
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  /**
    * Decrypts the keystore and initializes exsatApi and tableApi.
    */
   async init() {
@@ -313,39 +249,9 @@ export class ValidatorCommander {
    * Checks if the reward address is set for the validator.
    */
   async checkRewardsAddress() {
-    const accountName = this.exsatAccountInfo.accountName;
-    const btcBalance = await this.tableApi.getAccountBalance(accountName);
-    const validator = this.validatorInfo;
-    if (!validator.reward_address && !validator.role) {
+    if (!this.validatorInfo.reward_address && !this.validatorInfo.role) {
       logger.info('Commission address is not set.');
-      let showMessageInfo = {
-        'Account Name': accountName,
-        'Account Role': 'BTC Validator',
-        'Public Key': this.exsatAccountInfo.publicKey,
-        'Gas Balance': btcBalance ? removeTrailingZeros(btcBalance) : `0 BTC`,
-        'Commission Rate': validator.commission_rate ? `${validator.commission_rate / 100}%` : '0%',
-        'Commission Address': 'unset',
-        'Total BTC Staked': removeTrailingZeros(validator.quantity),
-        'Is eligible for consensus':
-          parseFloat(validator.quantity) >= parseFloat(this.blkendtConfig.min_btc_qualification)
-            ? 'Yes'
-            : `No, requires staking at least ${removeTrailingZeros(this.blkendtConfig.min_btc_qualification)}`,
-        'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
-        'BTC RPC Node': process.env.BTC_RPC_URL ?? '',
-      };
-      showInfo(showMessageInfo);
-
-      const menus = [
-        { name: 'Set Commission Address(EVM)', value: 'set_reward_address' },
-        new Separator(),
-        { name: 'Quit', value: 'quit', description: 'Quit' },
-      ];
-
-      const actions: { [key: string]: () => Promise<any> } = {
-        set_reward_address: async () => await this.setRewardAddress(),
-        quit: async () => process.exit(0),
-      };
-      await promptMenuLoop(menus, actions, 'Select an Action');
+      await this.handleMissingSetting('Commission Address', 'set_reward_address');
     } else {
       logger.info('Commission address is already set correctly.');
     }
@@ -356,56 +262,9 @@ export class ValidatorCommander {
    */
   async checkBtcRpcNode() {
     const rpcUrl = process.env.BTC_RPC_URL;
-    const accountName = this.exsatAccountInfo.accountName;
-    const btcBalance = await this.tableApi.getAccountBalance(accountName);
-    const validator = this.validatorInfo;
     if (!rpcUrl || !isValidUrl(rpcUrl)) {
       logger.info('BTC_RPC_URL is not set or is in an incorrect format');
-      let showMessageInfo;
-      if (validator.role) {
-        showMessageInfo = {
-          'Account Name': accountName,
-          'Account Role': 'XSAT Validator',
-          'Public Key': this.exsatAccountInfo.publicKey,
-          'Gas Balance': btcBalance ? removeTrailingZeros(btcBalance) : `0 BTC`,
-          'Total XSAT Staked': removeTrailingZeros(validator.xsat_quantity),
-          'Is eligible for consensus':
-            parseFloat(validator.xsat_quantity) >= parseFloat(this.blkendtConfig.min_xsat_qualification)
-              ? 'Yes'
-              : `No, requires staking ${removeTrailingZeros(this.blkendtConfig.min_xsat_qualification)}`,
-          'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
-          'BTC RPC Node': 'unset',
-        };
-      } else {
-        showMessageInfo = {
-          'Account Name': accountName,
-          'Account Role': 'BTC Validator',
-          'Public Key': this.exsatAccountInfo.publicKey,
-          'Gas Balance': btcBalance ? removeTrailingZeros(btcBalance) : `0 BTC`,
-          'Commission Rate': validator.commission_rate ? `${validator.commission_rate / 100}%` : '0%',
-          'Commission Address': validator.reward_address ? `0x${validator.reward_address}` : '',
-          'Total BTC Staked': removeTrailingZeros(validator.quantity),
-          'Is eligible for consensus':
-            parseFloat(validator.quantity) >= parseFloat(this.blkendtConfig.min_btc_qualification)
-              ? 'Yes'
-              : `No, requires staking at least ${removeTrailingZeros(this.blkendtConfig.min_btc_qualification)}`,
-          'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
-          'BTC RPC Node': 'unset',
-        };
-      }
-      showInfo(showMessageInfo);
-
-      const menus = [
-        { name: 'Set BTC RPC Node', value: 'set_btc_node' },
-        new Separator(),
-        { name: 'Quit', value: 'quit', description: 'Quit' },
-      ];
-
-      const actions: { [key: string]: () => Promise<any> } = {
-        set_btc_node: async () => await setBtcRpcUrl(),
-        quit: async () => process.exit(0),
-      };
-      await promptMenuLoop(menus, actions, 'Select an Action');
+      await this.handleMissingSetting('BTC RPC Node', 'set_btc_rpc');
     } else {
       logger.info('BTC_RPC_URL is already set correctly.');
     }
@@ -414,8 +273,8 @@ export class ValidatorCommander {
   /**
    * Update the validator info.
    */
-  async updateValidatorInfo() {
-    await sleep(1000);
+  async updateValidatorInfo(delay = 1000) {
+    await sleep(delay);
     this.validatorInfo = await this.tableApi.getValidatorInfo(this.exsatAccountInfo.accountName);
   }
 
@@ -466,9 +325,79 @@ export class ValidatorCommander {
       commission_rate: commissionRate ? parseFloat(commissionRate) * 100 : null,
     };
 
-    const res: any = await this.exsatApi.executeAction(ContractName.endrmng, 'newregvldtor', data);
-    await sleep(1000);
+    try {
+      const res: any = await this.exsatApi.executeAction(ContractName.endrmng, 'newregvldtor', data);
+      await this.updateValidatorInfo();
+      return res;
+    } catch (e: any) {
+      logger.error(`Failed to register validator: ${e.message}`);
+      return null;
+    }
+  }
 
-    return res;
+  /**
+   * Get the show message info.
+   * @param validator
+   * @private
+   */
+  private async getShowMessageInfo(validator: any) {
+    const accountName = this.exsatAccountInfo.accountName;
+    const btcBalance = await this.tableApi.getAccountBalance(accountName);
+
+    if (validator.role) {
+      return {
+        'Account Name': accountName,
+        'Account Role': 'XSAT Validator',
+        'Public Key': this.exsatAccountInfo.publicKey,
+        'Gas Balance': btcBalance ? removeTrailingZeros(btcBalance) : `0 BTC`,
+        'Total XSAT Staked': removeTrailingZeros(validator.xsat_quantity),
+        'Is eligible for consensus':
+          parseFloat(validator.xsat_quantity) >= parseFloat(this.blkendtConfig.min_xsat_qualification)
+            ? 'Yes'
+            : `No, requires staking ${removeTrailingZeros(this.blkendtConfig.min_xsat_qualification)}`,
+        'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
+        'BTC RPC Node': isValidUrl(process.env.BTC_RPC_URL) ? process.env.BTC_RPC_URL : 'Invalid',
+      };
+    } else {
+      return {
+        'Account Name': accountName,
+        'Account Role': 'BTC Validator',
+        'Public Key': this.exsatAccountInfo.publicKey,
+        'Gas Balance': btcBalance ? removeTrailingZeros(btcBalance) : `0 BTC`,
+        'Commission Rate': validator.commission_rate ? `${validator.commission_rate / 100}%` : '0%',
+        'Commission Address': validator.reward_address ? `0x${validator.reward_address}` : 'Unset',
+        'Total BTC Staked': removeTrailingZeros(validator.quantity),
+        'Is eligible for consensus':
+          parseFloat(validator.quantity) >= parseFloat(this.blkendtConfig.min_btc_qualification)
+            ? 'Yes'
+            : `No, requires staking at least ${removeTrailingZeros(this.blkendtConfig.min_btc_qualification)}`,
+        'Stake Address': validator.stake_address ? `0x${validator.stake_address}` : '',
+        'BTC RPC Node': isValidUrl(process.env.BTC_RPC_URL) ? process.env.BTC_RPC_URL : 'Invalid',
+      };
+    }
+  }
+
+  /**
+   * Handles missing settings for a validator.
+   * @param settingName
+   * @param actionKey
+   * @private
+   */
+  private async handleMissingSetting(settingName: string, actionKey: string) {
+    let showMessageInfo = await this.getShowMessageInfo(this.validatorInfo);
+    showInfo(showMessageInfo);
+
+    const menus = [
+      { name: `Set ${settingName}`, value: actionKey },
+      new Separator(),
+      { name: 'Quit', value: 'quit', description: 'Quit' },
+    ];
+
+    const actions: { [key: string]: () => Promise<any> } = {
+      set_btc_rpc: async () => await setBtcRpcUrl(),
+      set_reward_address: async () => await this.setRewardAddress(),
+      quit: async () => process.exit(0),
+    };
+    await promptMenuLoop(menus, actions, 'Select an Action');
   }
 }

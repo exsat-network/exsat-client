@@ -35,6 +35,7 @@ import {
 } from 'web3-utils';
 
 import { isHexStrict, isString, validator } from 'web3-validator';
+import { normalizeAccountName } from './common';
 
 const keyStoreSchema = {
   type: 'object',
@@ -108,7 +109,7 @@ export async function getInputPassword(): Promise<string> {
 export async function getAccountInfo(keystoreFile: string, password: string) {
   const keystore = readFileSync(keystoreFile, 'utf-8');
   const keystoreInfo = JSON.parse(keystore);
-  const accountName = keystoreInfo.username.endsWith('.sat') ? keystoreInfo.username : `${keystoreInfo.username}.sat`;
+  const accountName = normalizeAccountName(keystoreInfo.username);
   const privateKey = await decryptKeystore(keystore, password);
   return { accountName, privateKey, publicKey: keystoreInfo.address };
 }
@@ -116,7 +117,7 @@ export async function getAccountInfo(keystoreFile: string, password: string) {
 export async function getBaseAccountInfo(keystoreFile) {
   const keystore = readFileSync(keystoreFile, 'utf-8');
   const keystoreInfo = JSON.parse(keystore);
-  const accountName = keystoreInfo.username.endsWith('.sat') ? keystoreInfo.username : `${keystoreInfo.username}.sat`;
+  const accountName = normalizeAccountName(keystoreInfo.username);
   return { accountName, publicKey: keystoreInfo.address };
 }
 

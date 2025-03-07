@@ -310,9 +310,21 @@ export function isValidEvmAddress(address) {
   return /^0x[a-fA-F0-9]{40}$/.test(address);
 }
 
+/**
+ * Remove trailing zeros from a value
+ * @param value
+ */
 export function removeTrailingZeros(value) {
   if (!value) return 0;
   if (typeof value == 'number') return value;
   const [amount, unit] = value.split(' ');
   return `${parseFloat(amount)} ${unit}`;
+}
+
+/**
+ * Normalize account name
+ * @param name - account name
+ */
+export function normalizeAccountName(name: string) {
+  return name.endsWith('.sat') ? name : `${name}.sat`;
 }

@@ -7,7 +7,7 @@ import WIF from 'wif';
 import { bytesToHex } from 'web3-utils';
 import { confirm, input, password, select } from '@inquirer/prompts';
 import { clearLines, inputWithCancel, processAndUpdatePassword, selectDirPrompt } from '../utils/input';
-import { isExsatDocker, retry, updateEnvFile } from '../utils/common';
+import { isExsatDocker, normalizeAccountName, retry, updateEnvFile } from '../utils/common';
 import { Font } from '../utils/font';
 import { createKeystore, keystoreExist } from '../utils/keystore';
 import axios from 'axios';
@@ -20,12 +20,11 @@ function validateUsername(username) {
 }
 
 export async function getUserAccount(accountName) {
-  accountName = accountName.endsWith('.sat') ? accountName : `${accountName}.sat`;
   try {
     const response = await axios.post(
       `${EXSAT_RPC_URLS[0]}/v1/chain/get_account`,
       JSON.stringify({
-        account_name: accountName,
+        account_name: normalizeAccountName(accountName),
       }),
       {
         headers: { 'Content-Type': 'application/json' },
@@ -149,8 +148,7 @@ async function importAccountAndSaveKeystore(privateKey) {
     const accountName = await input({
       message: 'Enter your account name (1-8 characters): ',
     });
-    const fullAccountName = accountName.endsWith('.sat') ? accountName : `${accountName}.sat`;
-    const accountInfo: any = await getUserAccount(fullAccountName);
+    const accountInfo: any = await getUserAccount(normalizeAccountName(accountName));
     if (
       privateKey.toPublic().toString() === accountInfo.pubkey ||
       privateKey.toPublic().toLegacyString() === accountInfo.pubkey
@@ -210,7 +208,7 @@ export async function importFromPrivateKey() {
 }
 
 export async function getAccountRole(accountName) {
-  accountName = accountName.endsWith('.sat') ? accountName : `${accountName}.sat`;
+  accountName = normalizeAccountName(accountName);
   const tableApi = await TableApi.getInstance();
   const sync = await tableApi.getSynchronizerInfo(accountName);
   const vali = await tableApi.getValidatorInfo(accountName);

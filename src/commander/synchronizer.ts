@@ -69,19 +69,9 @@ export class SynchronizerCommander {
    * Displays the main manager menu with various options for the synchronizer.
    */
   async managerMenu() {
-    const accountName = this.exsatAccountInfo.accountName;
-    const btcBalance = await this.tableApi.getAccountBalance(accountName);
     const synchronizer = this.synchronizerInfo;
-
-    const showMessageInfo = {
-      'Account Name': accountName,
-      Role: 'Synchronizer',
-      'Public Key': this.exsatAccountInfo.publicKey,
-      'Gas Balance': btcBalance ? removeTrailingZeros(btcBalance) : `0 BTC`,
-      'Reward Address': synchronizer.memo ?? synchronizer.reward_recipient,
-      'BTC RPC Node': process.env.BTC_RPC_URL ?? '',
-      'Eligible for Consensus': 'Yes',
-    };
+    // Get the showMessageInfo
+    const showMessageInfo = await this.getShowMessageInfo(synchronizer);
     showInfo(showMessageInfo);
 
     const menus = [
@@ -237,31 +227,9 @@ export class SynchronizerCommander {
    * Checks if the reward address is set for the synchronizer.
    */
   async checkRewardsAddress() {
-    const accountName = this.exsatAccountInfo.accountName;
-    const btcBalance = await this.tableApi.getAccountBalance(accountName);
     if (!this.synchronizerInfo.memo) {
       logger.info('Reward address is not set.');
-      showInfo({
-        'Account Name': accountName,
-        Role: 'Synchronizer',
-        'Public Key': this.exsatAccountInfo.publicKey,
-        'Gas Balance': btcBalance ? removeTrailingZeros(btcBalance) : `0 BTC`,
-        'Reward Address': 'unset',
-        'BTC RPC Node': process.env.BTC_RPC_URL ?? '',
-        'Eligible for Consensus': 'Yes',
-      });
-
-      const menus = [
-        { name: 'Set Reward Address(EVM)', value: 'set_reward_address' },
-        new Separator(),
-        { name: 'Quit', value: 'quit', description: 'Quit' },
-      ];
-
-      const actions: { [key: string]: () => Promise<any> } = {
-        set_reward_address: async () => await this.setRewardAddress(),
-        quit: async () => process.exit(0),
-      };
-      await promptMenuLoop(menus, actions, 'Select an Action');
+      await this.handleMissingSetting('Reward Address', 'set_reward_address');
     } else {
       logger.info('Reward Address is already set correctly.');
     }
@@ -272,31 +240,9 @@ export class SynchronizerCommander {
    */
   async checkBtcRpcNode() {
     const rpcUrl = process.env.BTC_RPC_URL;
-    const accountName = this.exsatAccountInfo.accountName;
-    const btcBalance = await this.tableApi.getAccountBalance(accountName);
     if (!rpcUrl || !isValidUrl(rpcUrl)) {
       logger.info('BTC_RPC_URL is not set or is in an incorrect format.');
-      const showMessageInfo = {
-        'Account Name': accountName,
-        'Public Key': this.exsatAccountInfo.publicKey,
-        'Gas Balance': btcBalance ? removeTrailingZeros(btcBalance) : `0 BTC`,
-        'Reward Address': this.synchronizerInfo.memo ?? this.synchronizerInfo.reward_recipient,
-        'BTC RPC Node': 'unset',
-        'Eligible for Consensus': 'Yes',
-      };
-      showInfo(showMessageInfo);
-
-      const menus = [
-        { name: 'Set BTC RPC Node', value: 'set_btc_node' },
-        new Separator(),
-        { name: 'Quit', value: 'quit', description: 'Quit' },
-      ];
-
-      const actions: { [key: string]: () => Promise<any> } = {
-        set_btc_node: async () => await setBtcRpcUrl(),
-        quit: async () => process.exit(0),
-      };
-      await promptMenuLoop(menus, actions, 'Select an Action:');
+      await this.handleMissingSetting('BTC RPC Node', 'set_btc_rpc');
     } else {
       logger.info('BTC_RPC_URL is already set correctly.');
     }
@@ -344,5 +290,48 @@ export class SynchronizerCommander {
         throw e;
       }
     }
+  }
+
+  /**
+   * Get the show message info.
+   * @private
+   * @param synchronizer
+   */
+  private async getShowMessageInfo(synchronizer) {
+    const accountName = this.exsatAccountInfo.accountName;
+    const btcBalance = await this.tableApi.getAccountBalance(accountName);
+    return {
+      'Account Name': accountName,
+      Role: 'Synchronizer',
+      'Public Key': this.exsatAccountInfo.publicKey,
+      'Gas Balance': btcBalance ? removeTrailingZeros(btcBalance) : `0 BTC`,
+      'Reward Address': synchronizer.memo || 'Unset',
+      'BTC RPC Node': isValidUrl(process.env.BTC_RPC_URL) ? process.env.BTC_RPC_URL : 'Invalid',
+      'Eligible for Consensus': 'Yes',
+    };
+  }
+
+  /**
+   * Handles missing settings for a validator.
+   * @param settingName
+   * @param actionKey
+   * @private
+   */
+  private async handleMissingSetting(settingName: string, actionKey: string) {
+    let showMessageInfo = await this.getShowMessageInfo(this.synchronizerInfo);
+    showInfo(showMessageInfo);
+
+    const menus = [
+      { name: `Set ${settingName}`, value: actionKey },
+      new Separator(),
+      { name: 'Quit', value: 'quit', description: 'Quit' },
+    ];
+
+    const actions: { [key: string]: () => Promise<any> } = {
+      set_btc_rpc: async () => await setBtcRpcUrl(),
+      set_reward_address: async () => await this.setRewardAddress(),
+      quit: async () => process.exit(0),
+    };
+    await promptMenuLoop(menus, actions, 'Select an Action');
   }
 }
