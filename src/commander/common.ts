@@ -188,7 +188,7 @@ export async function checkAccountRegistrationStatus(clientType) {
     );
     const menus = [
       {
-        name: 'I have successfully paid the fee and completed the registration.',
+        name: 'I have successfully paid the registration fee and can continue to proceed further actions.',
         value: 'check_account',
       },
       {
@@ -199,8 +199,9 @@ export async function checkAccountRegistrationStatus(clientType) {
     const actions: { [key: string]: () => Promise<any> } = {
       check_account: async () => {
         const userAccount = await getUserAccount(exsatAccountInfo.accountName);
-        if (userAccount) return false;
+        if (userAccount) return userAccount;
         logger.warn(`Account ${exsatAccountInfo.accountName} is not registered yet.`);
+        return false;
       },
       quit: async () => process.exit(),
     };
