@@ -176,7 +176,7 @@ export async function exportPrivateKey(privateKey: string) {
 
 export async function checkAccountRegistrationStatus(clientType) {
   const exsatAccountInfo = await getBaseAccountInfo(getKeystorePath(clientType));
-  const checkAccountInfo = await getUserAccount(exsatAccountInfo.accountName);
+  let checkAccountInfo = await getUserAccount(exsatAccountInfo.accountName);
   if (!checkAccountInfo) {
     showInfo({
       'Account Name': exsatAccountInfo.accountName,
@@ -186,7 +186,25 @@ export async function checkAccountRegistrationStatus(clientType) {
     console.log(
       `Please note that your registration has not finished yet!\n${Font.fgGreen}${Font.bright}Please copy the Registration Url above and paste to your browser to finish the registration.${Font.reset}`
     );
-    process.exit(0);
+    const menus = [
+      {
+        name: 'I have successfully paid the fee and completed the registration.',
+        value: 'check_account',
+      },
+      {
+        name: 'Quit',
+        value: 'quit',
+      },
+    ];
+    const actions: { [key: string]: () => Promise<any> } = {
+      check_account: async () => {
+        const userAccount = await getUserAccount(exsatAccountInfo.accountName);
+        if (userAccount) return false;
+        logger.warn(`Account ${exsatAccountInfo.accountName} is not registered yet.`);
+      },
+      quit: async () => process.exit(),
+    };
+    await promptMenuLoop(menus, actions);
   }
   return true;
 }
@@ -200,7 +218,7 @@ export async function removeKeystore(clientType: ClientType) {
     await retry(async () => {
       const passwordInput = await password({
         message:
-          'Enter your password to remove account\n(5 incorrect passwords will exit the program, Input "q" to return): ',
+          'Enter your password to remove account\n(The program will exit after 5 failed attempts, Input "q" to return): ',
         mask: '*',
       });
       if (passwordInput === 'q') {
@@ -276,4 +294,37 @@ export async function stakeClaimManagement(client: Client) {
   console.log(`${message}\nConsensus Portal Url: ${Font.bright}${Font.fgGreen}${NETWORK_CONFIG.portal}${Font.reset}\n`);
   await input({ message: 'Press [Enter] to continue...' });
   return true;
+}
+
+/**
+ * Common menu selection loop
+ * @param choices Menu Options Array
+ * @param actions Operation Map Table { [actionKey: string]: () => Promise<any> }
+ * @param title Menu title (default 'Select an Action')
+ * @param mainMenu Whether it is the main menu (default false)
+ */
+export async function promptMenuLoop(
+  choices: any[],
+  actions: Record<string, () => Promise<any>>,
+  title: string = 'Select an Action',
+  mainMenu: boolean = false
+) {
+  let shouldContinue = true;
+  do {
+    const action: string = await select({
+      message: title,
+      choices,
+      loop: false,
+      pageSize: 20,
+    });
+
+    // Perform an operation and decide whether to continue the loop
+    if (actions[action]) {
+      const result = await actions[action]();
+      shouldContinue = result === false; // Allow operation to return false Force exit
+    } else {
+      logger.error('Invalid operation');
+      shouldContinue = false;
+    }
+  } while (shouldContinue || mainMenu);
 }

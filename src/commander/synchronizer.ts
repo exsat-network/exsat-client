@@ -22,6 +22,7 @@ import {
   decryptKeystore,
   exportPrivateKey,
   notAccountMenu,
+  promptMenuLoop,
   removeKeystore,
   resetBtcRpcUrl,
   setBtcRpcUrl,
@@ -131,19 +132,7 @@ export class SynchronizerCommander {
       remove_account: async () => await removeKeystore(ClientType.Synchronizer),
       quit: async () => process.exit(),
     };
-
-    let action;
-    do {
-      action = await select({
-        message: 'Select an Action',
-        choices: menus,
-        loop: false,
-        pageSize: 20,
-      });
-      if (action !== '99') {
-        await (actions[action] || (() => {}))();
-      }
-    } while (action !== '99');
+    await promptMenuLoop(menus, actions, 'Select an Action', true);
   }
 
   /**
@@ -237,7 +226,7 @@ export class SynchronizerCommander {
       }
       showInfo({
         'Please note':
-          'In order to complete your registration, please follow the actions from the “Synchronizer Registration” page below.',
+          'In order to complete your registration, please follow the actions from the "Synchronizer Registration" page below.',
         'Page Url': NETWORK_CONFIG.synchronizerRegistration,
       });
       process.exit(0);
@@ -272,12 +261,7 @@ export class SynchronizerCommander {
         set_reward_address: async () => await this.setRewardAddress(),
         quit: async () => process.exit(0),
       };
-      let action;
-      let res;
-      do {
-        action = await select({ message: 'Select an Action: ', choices: menus });
-        res = await (actions[action] || (() => {}))();
-      } while (!res);
+      await promptMenuLoop(menus, actions, 'Select an Action');
     } else {
       logger.info('Reward Address is already set correctly.');
     }
@@ -312,12 +296,7 @@ export class SynchronizerCommander {
         set_btc_node: async () => await setBtcRpcUrl(),
         quit: async () => process.exit(0),
       };
-      let action;
-      let res;
-      do {
-        action = await select({ message: 'Select an Action: ', choices: menus });
-        res = await (actions[action] || (() => {}))();
-      } while (!res);
+      await promptMenuLoop(menus, actions, 'Select an Action:');
     } else {
       logger.info('BTC_RPC_URL is already set correctly.');
     }

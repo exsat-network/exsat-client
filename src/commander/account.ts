@@ -19,10 +19,6 @@ function validateUsername(username) {
   return /^[a-z1-5.]{1,8}$/.test(username);
 }
 
-function validateEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
 export async function getUserAccount(accountName) {
   accountName = accountName.endsWith('.sat') ? accountName : `${accountName}.sat`;
   try {
@@ -99,7 +95,7 @@ async function saveKeystore(privateKey, username, role?) {
 
   const keystoreFilePath = `${selectedPath}/${username}_keystore.json`;
   writeFileSync(keystoreFilePath, JSON.stringify(keystore), { mode: 0o600 });
-  let updateDatas = {};
+  let updateDatas;
   if (role) {
     const keystoreFileKey = `${role.toUpperCase()}_KEYSTORE`;
     updateDatas = {

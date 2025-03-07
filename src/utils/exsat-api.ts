@@ -159,7 +159,7 @@ class ExsatApi {
       const balance = getAmountFromQuantity(returnValueData.balance);
       if (balance < NETWORK_CONFIG.minGasBalance) {
         logger.error(
-          `Running the client requires minimal gas fee of ${removeTrailingZeros(NETWORK_CONFIG.minGasBalance)} BTC, and currently the gas fee balance of the account[${this.accountName}] is ${removeTrailingZeros(balance)} BTC. Please recharge gas fee to this account and make sure the balance is more than ${removeTrailingZeros(NETWORK_CONFIG.minGasBalance)} BTC. The recharge page Url:${NETWORK_CONFIG.recharge}?account=${this.accountName}`
+          `Running the client requires minimal gas fee of ${removeTrailingZeros(NETWORK_CONFIG.minGasBalance)} BTC, and currently the gas fee balance of the account[${this.accountName}] is ${removeTrailingZeros(balance)} BTC. Please recharge gas fee to this account and make sure the balance is more than ${removeTrailingZeros(NETWORK_CONFIG.minGasBalance)} BTC. The recharge page Url: ${NETWORK_CONFIG.recharge}?account=${this.accountName}`
         );
         process.exit(1);
       }

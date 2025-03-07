@@ -93,7 +93,7 @@ function setupCronJobs(jobs: ValidatorJobs, roleType: RoleType) {
 async function main() {
   await loadNetworkConfigurations();
   configureLogger(Client.Validator);
-  await envCheck(VALIDATOR_KEYSTORE_FILE);
+  await envCheck(ClientType.Validator);
 
   const { accountInfo } = await initializeAccount();
   const { exsatApi, tableApi, client } = await setupApis(accountInfo);

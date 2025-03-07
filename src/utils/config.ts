@@ -8,8 +8,6 @@ export const MAX_RETRIES = parseInt(process.env.MAX_RETRIES) || 3;
 export const RETRY_INTERVAL_MS = process.env.RETRY_INTERVAL_MS ? parseInt(process.env.RETRY_INTERVAL_MS) : 2000;
 export let EXSAT_RPC_URLS: string[] = process.env.EXSAT_RPC_URLS ? JSON.parse(process.env.EXSAT_RPC_URLS) : [];
 export const RES_PERMISSION: string = process.env.RES_PERMISSION;
-export const SET_SYNCHRONIZER_DONATE_RATIO = process.env.SET_SYNCHRONIZER_DONATE_RATIO || false;
-export const SET_VALIDATOR_DONATE_RATIO = process.env.SET_VALIDATOR_DONATE_RATIO || false;
 
 export const LOGGER_MAX_SIZE: string = process.env.LOGGER_MAX_SIZE || '30m';
 export const LOGGER_MAX_FILES: string = process.env.LOGGER_MAX_FILES || '30d';

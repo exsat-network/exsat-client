@@ -93,7 +93,7 @@ function setupCronJobs(jobs: SynchronizerJobs) {
 async function main() {
   await loadNetworkConfigurations();
   configureLogger(Client.Synchronizer);
-  await envCheck(SYNCHRONIZER_KEYSTORE_FILE);
+  await envCheck(ClientType.Synchronizer);
 
   const { accountInfo } = await initializeAccount();
   const { exsatApi, tableApi } = await setupApis(accountInfo);

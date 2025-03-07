@@ -4,6 +4,7 @@ import {
   checkAccountRegistrationStatus,
   decryptKeystore,
   exportPrivateKey,
+  promptMenuLoop,
   removeKeystore,
   resetBtcRpcUrl,
   setBtcRpcUrl,
@@ -146,19 +147,7 @@ export class ValidatorCommander {
       remove_account: async () => await removeKeystore(ClientType.Validator),
       quit: async () => process.exit(),
     };
-
-    let action;
-    do {
-      action = await select({
-        message: 'Select an Action',
-        choices: menus,
-        loop: false,
-        pageSize: 20,
-      });
-      if (action !== '99') {
-        await (actions[action] || (() => {}))();
-      }
-    } while (action !== '99');
+    await promptMenuLoop(menus, actions, 'Select an Action', true);
   }
 
   /**
@@ -356,12 +345,7 @@ export class ValidatorCommander {
         set_reward_address: async () => await this.setRewardAddress(),
         quit: async () => process.exit(0),
       };
-      let action;
-      let res;
-      do {
-        action = await select({ message: 'Select an Action: ', choices: menus });
-        res = await (actions[action] || (() => {}))();
-      } while (!res);
+      await promptMenuLoop(menus, actions, 'Select an Action');
     } else {
       logger.info('Commission address is already set correctly.');
     }
@@ -421,12 +405,7 @@ export class ValidatorCommander {
         set_btc_node: async () => await setBtcRpcUrl(),
         quit: async () => process.exit(0),
       };
-      let action;
-      let res;
-      do {
-        action = await select({ message: 'Select an Action: ', choices: menus });
-        res = await (actions[action] || (() => {}))();
-      } while (!res);
+      await promptMenuLoop(menus, actions, 'Select an Action');
     } else {
       logger.info('BTC_RPC_URL is already set correctly.');
     }

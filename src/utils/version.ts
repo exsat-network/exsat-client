@@ -47,11 +47,10 @@ export class Version {
 
   // Get the current version number of the local package.json
   static async getLocalVersion(): Promise<string | null> {
+    if (!fs.existsSync(this.packageJsonPath)) {
+      throw new Error('package.json not found');
+    }
     try {
-      if (!fs.existsSync(this.packageJsonPath)) {
-        throw new Error('package.json not found');
-      }
-
       const packageJsonContent = fs.readFileSync(this.packageJsonPath, 'utf-8');
       const packageJson = JSON.parse(packageJsonContent);
       return packageJson.version || null;

@@ -6,6 +6,8 @@ import { getblockcount } from './bitcoin';
 import path from 'node:path';
 import dotenv from 'dotenv';
 import { Font } from './font';
+import { ClientType } from './enumeration';
+import { getKeystorePath } from '../commander/common';
 
 /**
  * Pauses execution for a specified number of milliseconds.
@@ -63,11 +65,14 @@ export async function loadNetworkConfigurations() {
 
 /**
  * Checks the environment for required configurations and exits the process if any are missing.
- * @param keystoreFile - The path to the keystore file.
+ * @param clientType - The client type.
  */
-export async function envCheck(keystoreFile: string) {
+export async function envCheck(clientType: ClientType) {
+  const keystoreFile = getKeystorePath(clientType);
   if (!fs.existsSync(keystoreFile)) {
-    logger.error('No keystore file found, please config .env file first');
+    logger.error(
+      `No ${clientType === ClientType.Synchronizer ? 'synchronizer' : 'validator'} keystore file found, please config .env file first`
+    );
     process.exit(1);
   }
   if (!BTC_RPC_URL) {
@@ -143,7 +148,7 @@ export function showInfo(info) {
   console.log(`${Font.fgCyan}${Font.bright}-----------------------------------------------${Font.reset}`);
   for (const key in info) {
     if (info.hasOwnProperty(key)) {
-      console.log(`${Font.fgCyan}${Font.bright}${key}:${Font.reset}${Font.bright} ${info[key]}${Font.reset}`);
+      console.log(`${Font.fgCyan}${Font.bright}${key}: ${Font.reset}${Font.bright}${info[key]}${Font.reset}`);
     }
   }
   console.log(`${Font.fgCyan}${Font.bright}-----------------------------------------------${Font.reset}`);
