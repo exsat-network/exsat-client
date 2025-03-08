@@ -1,6 +1,14 @@
 import axios from 'axios';
 import fs from 'node:fs';
-import { BTC_RPC_URL, CHUNK_SIZE, EXSAT_RPC_URLS, NETWORK, NETWORK_CONFIG } from './config';
+import {
+  BTC_RPC_URL,
+  CHUNK_SIZE,
+  EXSAT_RPC_URLS,
+  NETWORK,
+  NETWORK_CONFIG,
+  setExsatRpcUrls,
+  setNetworkConfig,
+} from './config';
 import { logger } from './logger';
 import { getblockcount } from './bitcoin';
 import path from 'node:path';
@@ -50,12 +58,10 @@ export async function loadNetworkConfigurations() {
     );
 
     if (!EXSAT_RPC_URLS || EXSAT_RPC_URLS.length === 0 || !isValidUrl(EXSAT_RPC_URLS[0])) {
-      // @ts-ignore
-      EXSAT_RPC_URLS = response.data.native.nodes;
+      setExsatRpcUrls(response.data.native.nodes);
     }
     if (!NETWORK_CONFIG) {
-      // @ts-ignore
-      NETWORK_CONFIG = response.data.app;
+      setNetworkConfig(response.data.app);
     }
   } catch (error) {
     logger.error('Failed to get ExSat RPC URLs', error);
@@ -82,8 +88,7 @@ export async function envCheck(clientType: ClientType) {
   if (!EXSAT_RPC_URLS || EXSAT_RPC_URLS.length === 0 || !isValidUrl(EXSAT_RPC_URLS[0])) {
     const result = await getRpcUrls();
     if (result) {
-      // @ts-ignore
-      EXSAT_RPC_URLS = result;
+      setExsatRpcUrls(result);
     }
   }
   if (!EXSAT_RPC_URLS || EXSAT_RPC_URLS.length === 0 || !isValidUrl(EXSAT_RPC_URLS[0])) {
