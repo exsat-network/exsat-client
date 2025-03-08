@@ -1,4 +1,3 @@
-// @ts-ignore
 import crypto from 'crypto';
 import { Name, Checksum160 } from '@wharfkit/antelope';
 

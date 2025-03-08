@@ -40,3 +40,11 @@ export const PROMETHEUS_ADDRESS = process.env.PROMETHEUS_ADDRESS || '0.0.0.0:990
 
 export let NETWORK_CONFIG: NetworkConfig;
 export const NETWORK = process.env.NETWORK || 'mainnet';
+
+export function setExsatRpcUrls(urls: string[]) {
+  EXSAT_RPC_URLS = urls;
+}
+
+export function setNetworkConfig(networkConfig: any) {
+  NETWORK_CONFIG = networkConfig;
+}
