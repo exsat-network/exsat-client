@@ -206,6 +206,8 @@ export async function checkAccountRegistrationStatus(clientType) {
       quit: async () => process.exit(),
     };
     await promptMenuLoop(menus, actions);
+    // success registration
+    console.log(`\n${Font.fgGreen}${Font.bright}Account registration has been completed successfully.${Font.reset}\n`);
   }
   return true;
 }
