@@ -137,7 +137,7 @@ export class ValidatorCommander {
     };
     try {
       await this.exsatApi.executeAction(ContractName.endrmng, 'setrwdaddr', data);
-      logger.info(`Set reward commission: ${rewardAddress} successfully`);
+      logger.info(`Set commission address: ${rewardAddress} successfully`);
       await this.updateValidatorInfo();
       return true;
     } catch (e) {
