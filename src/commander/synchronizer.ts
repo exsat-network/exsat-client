@@ -16,7 +16,7 @@ import { logger } from '../utils/logger';
 import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
 import fs from 'node:fs';
-import { inputWithCancel } from '../utils/input';
+import { clearLines, inputWithCancel } from '../utils/input';
 import {
   checkAccountRegistrationStatus,
   decryptKeystore,
@@ -276,6 +276,7 @@ export class SynchronizerCommander {
     try {
       const res: any = await this.exsatApi.executeAction(ContractName.blkendt, 'revote', data, false);
       await input({ message: `Revote successfully at height: ${data.height}, press [Enter] to continue...` });
+      clearLines(1);
       return res;
     } catch (e: any) {
       const errorMessage = getErrorMessage(e);

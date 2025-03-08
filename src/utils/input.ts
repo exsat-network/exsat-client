@@ -28,6 +28,10 @@ export async function inputWithCancel(
   return value;
 }
 
+/**
+ * Clear lines in the terminal
+ * @param numLines
+ */
 export function clearLines(numLines: number) {
   for (let i = 0; i < numLines; i++) {
     process.stdout.write('\x1B[2K'); // Clear current line

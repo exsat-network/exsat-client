@@ -294,6 +294,7 @@ export async function stakeClaimManagement(client: Client) {
   }
   console.log(`${message}\nConsensus Portal Url: ${Font.bright}${Font.fgGreen}${NETWORK_CONFIG.portal}${Font.reset}\n`);
   await input({ message: 'Press [Enter] to continue...' });
+  clearLines(1);
   return true;
 }
 
