@@ -35,17 +35,20 @@ export class ValidatorJobs {
       if (isProviderEndorser) {
         return;
       }
+
       const isQualifiedEndorser = this.isEndorserQualified(endorsement.requested_validators, accountName);
       if (isQualifiedEndorser || validatorInfo.last_consensus_height < height) {
         await this.submit(accountName, height, hash);
-      }
-    } else {
-      if (validatorInfo.active_flag !== 0) {
-        await this.submit(accountName, height, hash);
         return;
       }
-      logger.info(`Validator[${accountName}] is not qualified to endorse, height: ${height}, hash: ${hash}`);
+    } else if (validatorInfo.active_flag !== 0) {
+      await this.submit(accountName, height, hash);
+      return;
     }
+
+    logger.warn(
+      `The current validator[${accountName}] does not meet the endorsement eligibility requirements. Please stake sufficient token first.`
+    );
   }
 
   // Submit an endorsement to the blockchain
