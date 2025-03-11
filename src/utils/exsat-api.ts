@@ -1,57 +1,47 @@
-import fetch from 'node-fetch';
-import { API, Chains, Session } from '@wharfkit/session';
+import { API, Session } from '@wharfkit/session';
 import { logger } from './logger';
 import process from 'process';
-import axios from 'axios';
-import moment from 'moment';
-import { getAmountFromQuantity, sleep } from './common';
-import { Client, ClientType, ContractName, IndexPosition } from './enumeration';
+import { getAmountFromQuantity, removeTrailingZeros, sleep } from './common';
+import { Client, ContractName, IndexPosition, RoleType } from './enumeration';
 import { Version } from './version';
 import { WalletPluginPrivateKey } from '@wharfkit/wallet-plugin-privatekey';
-import { RES_PERMISSION } from './config';
+import ExsatNode from './exsat-node';
+import { NETWORK_CONFIG, RES_PERMISSION } from './config';
 
 class ExsatApi {
   private session: Session;
   private walletPlugin: WalletPluginPrivateKey;
-  private nodes: string[];
-  private currentNodeIndex: number;
+  private exsatNodesManager: ExsatNode;
   private accountName: string;
   private maxRetries: number = 3;
   private retryDelay: number = 1000;
-  private executeActions: number = 0;
-  private chainId: string;
 
-  /**
-   * Constructor initializes the API with account information and node list.
-   * @param accountInfo - The account name and private key.
-   * @param nodes - List of nodes to connect to.
-   */
   constructor(
     private accountInfo: {
       accountName: string;
       privateKey: string;
     },
-    nodes: string[]
+    exsatNode?: ExsatNode
   ) {
-    this.nodes = nodes;
-    this.currentNodeIndex = 0;
+    if (exsatNode) {
+      this.exsatNodesManager = exsatNode;
+    } else {
+      this.exsatNodesManager = new ExsatNode();
+    }
     this.accountName = accountInfo.accountName;
     this.walletPlugin = new WalletPluginPrivateKey(accountInfo.privateKey);
   }
 
-  /**
-   * Initializes the API by finding a valid node and setting up RPC and API objects.
-   */
   public async initialize(): Promise<void> {
-    const validNodeFound = await this.findValidNode();
+    const validNodeFound = await this.exsatNodesManager.findValidNode();
     if (!validNodeFound) {
       throw new Error('No valid exsat node available.');
     }
     this.session = new Session(
       {
         chain: {
-          id: this.chainId,
-          url: this.getCurrentNode(),
+          id: this.exsatNodesManager.getChainId(),
+          url: this.exsatNodesManager.getCurrentNode(),
         },
         actor: this.accountName,
         permission: 'active',
@@ -65,93 +55,6 @@ class ExsatApi {
     logger.info('ExsatApi initialized successfully.');
   }
 
-  /**
-   * Returns the currently active node URL.
-   * @returns The current node URL.
-   */
-  private getCurrentNode(): string {
-    return this.nodes[this.currentNodeIndex];
-  }
-
-  /**
-   * Iterates through nodes to find a valid one.
-   * @returns Boolean indicating if a valid node was found.
-   */
-  private async findValidNode(): Promise<boolean> {
-    for (let i = 0; i < this.nodes.length; i++) {
-      this.currentNodeIndex = i;
-      const valid = await this.isValidNode(this.getCurrentNode());
-      if (valid) {
-        logger.info(`Using node: ${this.getCurrentNode()}`);
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /**
-   * Switches to the next available node if the current one is invalid.
-   * @param attemptCount - The number of attempts made to switch nodes.
-   * @returns Boolean indicating if the switch was successful.
-   */
-  private async switchNode(attemptCount: number = 0): Promise<boolean> {
-    if (this.nodes.length <= 1 || attemptCount >= this.nodes.length) {
-      return false;
-    }
-
-    this.currentNodeIndex = (this.currentNodeIndex + 1) % this.nodes.length;
-    const valid = await this.isValidNode(this.getCurrentNode());
-
-    if (valid) {
-      this.session = new Session(
-        {
-          chain: {
-            id: this.chainId,
-            url: this.getCurrentNode(),
-          },
-          actor: this.accountName,
-          permission: 'active',
-          walletPlugin: this.walletPlugin,
-        },
-        {
-          fetch,
-        }
-      );
-      logger.info(`Switched to node: ${this.getCurrentNode()}`);
-      return true;
-    }
-
-    return this.switchNode(attemptCount + 1);
-  }
-
-  /**
-   * Validates if a node is responsive and synchronized with the network.
-   * @param url - The node URL to validate.
-   * @returns Boolean indicating if the node is valid.
-   */
-  private async isValidNode(url: string) {
-    try {
-      const response = await axios.get(`${url}/v1/chain/get_info`, {
-        timeout: 3000,
-      });
-      if (response.status === 200 && response.data) {
-        this.chainId = response.data.chain_id;
-        const diffMS: number =
-          moment(response.data.head_block_time).diff(moment().valueOf()) + moment().utcOffset() * 60_000;
-        return Math.abs(diffMS) <= 300_000;
-      }
-    } catch (e) {
-      logger.error(`getInfo from exsat rpc error: [${url}]`);
-    }
-    return false;
-  }
-
-  /**
-   * Retries an operation with exponential backoff and switches nodes on failure.
-   * @param operation - The operation to retry.
-   * @param retryCount - The current retry attempt count.
-   * @returns The result of the operation.
-   */
   private async retryWithExponentialBackoff<T>(operation: () => Promise<T>, retryCount: number = 0): Promise<T> {
     try {
       return await operation();
@@ -164,12 +67,15 @@ class ExsatApi {
       logger.warn(`Operation failed, retrying in ${delay}ms...`);
       await sleep(delay);
 
-      const switchResult = await this.switchNode();
-      if (!switchResult) {
-        throw new Error('All nodes are invalid');
+      let switchRetryCount = 0;
+      while (!(await this.switchNode())) {
+        const sleepTime = Math.min(1000 * Math.pow(2, switchRetryCount), 10000);
+        logger.warn(`All nodes are unavailable. Sleeping for ${sleepTime / 1000} seconds.`);
+        await sleep(sleepTime);
+        switchRetryCount++;
       }
 
-      return this.retryWithExponentialBackoff(operation, retryCount + 1);
+      return await this.retryWithExponentialBackoff(operation, retryCount + 1);
     }
   }
 
@@ -227,15 +133,14 @@ class ExsatApi {
 
   /**
    * Checks if the client is properly configured and authorized.
-   * @param type - The type of client (e.g., Synchronizer or Validator).
+   * @param client - The type of Client (e.g., Synchronizer or Validator or XSATValidator).
    */
-  public async checkClient(type: number) {
-    const clientType = type === ClientType.Synchronizer ? 'Synchronizer' : 'Validator';
+  public async checkClient(client: Client) {
     try {
       const version = await Version.getLocalVersion();
       const result = await this.executeAction(ContractName.rescmng, 'checkclient', {
         client: this.accountName,
-        type,
+        type: RoleType[client],
         version,
       });
       const returnValueData = result.processed.action_traces[0].return_value_data;
@@ -247,31 +152,34 @@ class ExsatApi {
       }
       if (!returnValueData.is_exists) {
         logger.error(
-          `The account[${this.accountName}] has not been registered as a ${clientType}. Please contact the administrator for verification`
+          `The account[${this.accountName}] has not been registered as a ${client}. Please contact the administrator for verification`
         );
         process.exit(1);
       }
       const balance = getAmountFromQuantity(returnValueData.balance);
-      if (balance < 0.0001) {
+      if (balance < NETWORK_CONFIG.minGasBalance) {
         logger.error(
-          `The account[${this.accountName}] gas fee balance[${balance}] is insufficient. Please recharge through the menu`
+          `Running the client requires minimal gas fee of ${removeTrailingZeros(NETWORK_CONFIG.minGasBalance)} BTC, and currently the gas fee balance of the account[${this.accountName}] is ${removeTrailingZeros(balance)} BTC. Please recharge gas fee to this account and make sure the balance is more than ${removeTrailingZeros(NETWORK_CONFIG.minGasBalance)} BTC. The recharge page Url: ${NETWORK_CONFIG.recharge}?account=${this.accountName}`
         );
         process.exit(1);
       }
     } catch (e) {
-      logger.error(`${clientType}[${this.accountName}] client configurations are incorrect, and the startup failed`, e);
+      logger.error(`${client}[${this.accountName}] client configurations are incorrect, and the startup failed`, e);
       process.exit(1);
     }
-    logger.info(`${clientType}[${this.accountName}] client configurations are correct, and the startup was successful`);
+    logger.info(`${client}[${this.accountName}] client configurations are correct, and the startup was successful`);
   }
 
-  public async heartbeat(type: number) {
-    const clientType = type === ClientType.Synchronizer ? Client.Synchronizer : Client.Validator;
+  /**
+   * Checks the heartbeat of the client.
+   * @param client - The type of Client (e.g., Synchronizer or Validator or XSATValidator).
+   */
+  public async heartbeat(client) {
     try {
       const version = await Version.getLocalVersion();
       const result = await this.executeAction(ContractName.rescmng, 'checkclient', {
         client: this.accountName,
-        type,
+        type: RoleType[client],
         version,
       });
       const returnValueData = result.processed.action_traces[0].return_value_data;
@@ -283,18 +191,18 @@ class ExsatApi {
       }
       if (!returnValueData.is_exists) {
         logger.error(
-          `The account[${this.accountName}] has not been registered as a ${clientType}. Please contact the administrator for verification`
+          `The account[${this.accountName}] has not been registered as a ${client}. Please contact the administrator for verification`
         );
         process.exit(1);
       }
       const balance = getAmountFromQuantity(returnValueData.balance);
-      if (balance < 0.0001) {
+      if (balance < NETWORK_CONFIG.minGasBalance) {
         logger.warn(
-          `The account[${this.accountName}] gas fee balance[${balance}] is insufficient. Please recharge through the menu`
+          `The account[${this.accountName}] gas fee balance[${removeTrailingZeros(balance)}] is insufficient. Please recharge at ${NETWORK_CONFIG.recharge}`
         );
       }
     } catch (e) {
-      logger.error(`${clientType}[${this.accountName}] client heartbeat failed`, e);
+      logger.error(`${client}[${this.accountName}] client heartbeat failed`, e);
     }
   }
 
@@ -332,7 +240,7 @@ class ExsatApi {
       fetch_all: false,
     }
   ): Promise<T[]> {
-    return this.retryWithExponentialBackoff(async () => {
+    return await this.retryWithExponentialBackoff(async () => {
       let rows: T[] = [];
       let lower_bound = options.lower_bound;
       let more = true;
@@ -362,6 +270,27 @@ class ExsatApi {
       } while (more && options.fetch_all);
       return rows;
     });
+  }
+
+  async switchNode() {
+    if (await this.exsatNodesManager.switchNode()) {
+      this.session = new Session(
+        {
+          chain: {
+            id: this.exsatNodesManager.getChainId(),
+            url: this.exsatNodesManager.getCurrentNode(),
+          },
+          actor: this.accountName,
+          permission: 'active',
+          walletPlugin: this.walletPlugin,
+        },
+        {
+          fetch,
+        }
+      );
+      return true;
+    }
+    return false;
   }
 }
 

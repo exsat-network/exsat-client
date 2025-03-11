@@ -1,23 +1,32 @@
-import { isValidUrl, reloadEnv, retry, showInfo, sleep } from '../utils/common';
-import { EXSAT_RPC_URLS, SET_SYNCHRONIZER_DONATE_RATIO } from '../utils/config';
-import { password, select, Separator } from '@inquirer/prompts';
-import { chargeForRegistry, checkUsernameWithBackend, updateEnvFile } from '@exsat/account-initializer';
+import {
+  getErrorMessage,
+  isValidEvmAddress,
+  isValidUrl,
+  reloadEnv,
+  removeTrailingZeros,
+  showInfo,
+  sleep,
+  updateEnvFile,
+} from '../utils/common';
+import { NETWORK_CONFIG } from '../utils/config';
+import { input, select, Separator } from '@inquirer/prompts';
 import process from 'node:process';
-import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
-import { Client, ClientType, ContractName } from '../utils/enumeration';
+import { Client, ClientType, ContractName, ErrorCode } from '../utils/enumeration';
 import { logger } from '../utils/logger';
 import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
 import fs from 'node:fs';
-import { inputWithCancel } from '../utils/input';
+import { clearLines, inputWithCancel } from '../utils/input';
 import {
-  changeEmail,
-  chargeBtcGas,
-  checkExsatUrls,
+  checkAccountRegistrationStatus,
+  decryptKeystore,
   exportPrivateKey,
   notAccountMenu,
+  promptMenuLoop,
+  removeKeystore,
   resetBtcRpcUrl,
   setBtcRpcUrl,
+  stakeClaimManagement,
 } from './common';
 import { Font } from '../utils/font';
 
@@ -26,6 +35,11 @@ export class SynchronizerCommander {
   private synchronizerInfo: any;
   private tableApi: TableApi;
   private exsatApi: ExsatApi;
+  private registration: boolean;
+
+  constructor(registration = false) {
+    this.registration = registration;
+  }
 
   /**
    * Main entry point for the SynchronizerCommander.
@@ -34,16 +48,17 @@ export class SynchronizerCommander {
   async main() {
     // Check if keystore exists
     while (!fs.existsSync(process.env.SYNCHRONIZER_KEYSTORE_FILE)) {
-      await notAccountMenu(Client.Synchronizer);
+      await notAccountMenu();
       reloadEnv();
     }
+    await checkAccountRegistrationStatus(ClientType.Synchronizer);
 
     // Initialize APIs and check account and synchronizer status
     await this.init();
-    await this.checkAccountRegistrationStatus();
+
     await this.checkSynchronizerRegistrationStatus();
     await this.checkRewardsAddress();
-    await this.checkDonateSetting();
+    // await this.checkDonateSetting();
     await this.checkBtcRpcNode();
 
     // Display the main manager menu
@@ -54,29 +69,16 @@ export class SynchronizerCommander {
    * Displays the main manager menu with various options for the synchronizer.
    */
   async managerMenu() {
-    const accountName = this.exsatAccountInfo.accountName;
-    const btcBalance = await this.tableApi.getAccountBalance(accountName);
     const synchronizer = this.synchronizerInfo;
-
-    const showMessageInfo = {
-      'Account Name': accountName,
-      'Public Key': this.exsatAccountInfo.publicKey,
-      'BTC Balance Used for Gas Fee': btcBalance,
-      'Reward Address': synchronizer.memo ?? synchronizer.reward_recipient,
-      'Donation Ratio': `${synchronizer.donate_rate / 100}%` ?? '0%',
-      'BTC PRC Node': process.env.BTC_RPC_URL ?? '',
-      'Account Registration Status': 'Registered',
-      'Synchronizer Registration Status': 'Registered',
-      Email: this.exsatAccountInfo.email,
-      'Memory Slot': synchronizer.num_slots,
-    };
+    // Get the showMessageInfo
+    const showMessageInfo = await this.getShowMessageInfo(synchronizer);
     showInfo(showMessageInfo);
 
     const menus = [
       {
-        name: 'Recharge Gas',
-        value: 'recharge_btc',
-        description: 'Recharge Gas',
+        name: 'Stake or Claim Management',
+        value: 'stake_claim_management',
+        description: 'A Link To Stake or Claim Management',
       },
       {
         name: synchronizer?.reward_recipient ? 'Change Reward Address' : 'Set Reward Address',
@@ -85,26 +87,15 @@ export class SynchronizerCommander {
         disabled: !synchronizer,
       },
       {
-        name: `${synchronizer?.donate_rate ? 'Change' : 'Set'} Donation Ratio`,
-        value: 'set_donation_ratio',
-        description: 'Set/Change Donation Ratio',
-        disabled: !synchronizer,
-      },
-      {
-        name: 'Purchase Memory Slot',
-        value: 'purchase_memory_slot',
-        description: 'Purchase Memory Slot',
+        name: 'Revote For Consensus',
+        value: 'revote',
+        description: 'Revote For Consensus',
         disabled: !synchronizer,
       },
       {
         name: 'Change BTC RPC Node',
         value: 'reset_btc_rpc',
         description: 'Change BTC RPC Node',
-      },
-      {
-        name: 'Change Email',
-        value: 'change_email',
-        description: 'Change Email',
       },
       {
         name: 'Export Private Key',
@@ -121,79 +112,17 @@ export class SynchronizerCommander {
     ];
 
     const actions: { [key: string]: () => Promise<any> } = {
-      recharge_btc: async () => {
-        return await chargeBtcGas();
-      },
+      stake_claim_management: async () => await stakeClaimManagement(Client.Synchronizer),
+      revote: async () => await this.revoteForConsensus(),
       set_reward_address: async () => await this.setRewardAddress(),
-      set_donation_ratio: async () => await this.setDonationRatio(),
-      purchase_memory_slot: async () => await this.purchaseSlots(),
       reset_btc_rpc: async () => await resetBtcRpcUrl(),
       export_private_key: async () => {
         return await exportPrivateKey(this.exsatAccountInfo.privateKey);
       },
-      remove_account: async () => await this.removeKeystore(),
-      change_email: async () => {
-        return await changeEmail(accountName, this.exsatAccountInfo.email);
-      },
+      remove_account: async () => await removeKeystore(ClientType.Synchronizer),
       quit: async () => process.exit(),
     };
-
-    let action;
-    do {
-      action = await select({
-        message: 'Select an Action',
-        choices: menus,
-        loop: false,
-        pageSize: 20,
-      });
-      if (action !== '99') {
-        await (actions[action] || (() => {}))();
-      }
-    } while (action !== '99');
-  }
-
-  /**
-   * Removes the keystore file after confirming the password.
-   */
-  async removeKeystore() {
-    try {
-      await retry(async () => {
-        const passwordInput = await password({
-          message:
-            'Enter your password to remove account\n(5 incorrect passwords will exit the program, Input "q" to return): ',
-          mask: '*',
-        });
-        if (passwordInput === 'q') {
-          return false;
-        }
-        await getAccountInfo(process.env.SYNCHRONIZER_KEYSTORE_FILE, passwordInput);
-        fs.unlinkSync(process.env.SYNCHRONIZER_KEYSTORE_FILE);
-        logger.info('Remove account successfully');
-        process.exit();
-      }, 5);
-    } catch (e) {
-      logger.error('Invalid password');
-      process.exit();
-    }
-  }
-
-  /**
-   * Purchases memory slots for the synchronizer.
-   */
-  async purchaseSlots() {
-    const numberSlots = await inputWithCancel('Input number of slots(Input "q" to return): ', (value) => {
-      const num = Number(value);
-      if (!Number.isInteger(num) || num < 1) {
-        return 'Please enter a valid number more than 0';
-      }
-      return true;
-    });
-    if (!numberSlots) {
-      return;
-    }
-
-    await this.buySlots(parseInt(numberSlots));
-    logger.info(`Buy slots: ${numberSlots} successfully`);
+    await promptMenuLoop(menus, actions, 'Select an Action', true);
   }
 
   /**
@@ -201,8 +130,8 @@ export class SynchronizerCommander {
    */
   async setRewardAddress() {
     const financialAccount = await inputWithCancel('Enter reward address(Input "q" to return): ', (input: string) => {
-      if (!/^0x[a-fA-F0-9]{40}$/.test(input)) {
-        return 'Please enter a valid account name.';
+      if (!isValidEvmAddress(input)) {
+        return 'Please enter a valid address.';
       }
       return true;
     });
@@ -231,15 +160,14 @@ export class SynchronizerCommander {
       synchronizer: this.exsatAccountInfo.accountName,
       donate_rate: parseFloat(ratio) * 100,
     };
-    const res: any = await this.exsatApi.executeAction(ContractName.poolreg, 'setdonate', data);
-    if (res && res.transaction_id) {
+    try {
+      await this.exsatApi.executeAction(ContractName.poolreg, 'setdonate', data);
       await this.updateSynchronizerInfo();
       logger.info(
         `${Font.fgCyan}${Font.bright}Set Donation Ratio: ${ratio}% successfully. ${Number(ratio) ? 'Thanks for your support.' : ''}${Font.reset}\n`
       );
       return true;
-    } else {
-      logger.error(`Synchronizer[${this.exsatAccountInfo.accountName}] Set Donation Ratio: ${ratio}% failed`);
+    } catch (e) {
       return false;
     }
   }
@@ -252,32 +180,11 @@ export class SynchronizerCommander {
       synchronizer: this.exsatAccountInfo.accountName,
       financial_account: account,
     };
-    const res: any = await this.exsatApi.executeAction(ContractName.poolreg, 'setfinacct', data);
-    if (res && res.transaction_id) {
+    try {
+      await this.exsatApi.executeAction(ContractName.poolreg, 'setfinacct', data);
       await this.updateSynchronizerInfo();
       return true;
-    } else {
-      logger.error(`Synchronizer[${this.exsatAccountInfo.accountName}] Set reward address: ${account} failed`);
-      return false;
-    }
-  }
-
-  /**
-   * Buys memory slots for the synchronizer.
-   */
-  async buySlots(slots: number) {
-    const data = {
-      synchronizer: this.exsatAccountInfo.accountName,
-      receiver: this.exsatAccountInfo.accountName,
-      num_slots: slots,
-    };
-
-    const res: any = await this.exsatApi.executeAction(ContractName.poolreg, 'buyslot', data);
-    if (res && res.transaction_id) {
-      await this.updateSynchronizerInfo();
-      return true;
-    } else {
-      logger.error(`Synchronizer[${this.exsatAccountInfo.accountName}] Buy slots: ${slots} failed`);
+    } catch (e) {
       return false;
     }
   }
@@ -286,36 +193,10 @@ export class SynchronizerCommander {
    * Decrypts the keystore and initializes exsatApi and tableApi.
    */
   async init() {
-    this.exsatAccountInfo = await this.decryptKeystore();
-    await checkExsatUrls();
-    this.exsatApi = new ExsatApi(this.exsatAccountInfo, EXSAT_RPC_URLS);
+    this.exsatAccountInfo = await decryptKeystore(ClientType.Synchronizer);
+    this.exsatApi = new ExsatApi(this.exsatAccountInfo);
     await this.exsatApi.initialize();
-    this.tableApi = new TableApi(this.exsatApi);
-  }
-
-  /**
-   * Decrypts the keystore file to retrieve account information.
-   */
-  async decryptKeystore() {
-    let password = getConfigPassword(ClientType.Synchronizer);
-    let accountInfo;
-    if (password) {
-      password = password.trim();
-      accountInfo = await getAccountInfo(process.env.SYNCHRONIZER_KEYSTORE_FILE, password);
-    } else {
-      while (!accountInfo) {
-        try {
-          password = await getInputPassword();
-          if (password === 'q') {
-            process.exit(0);
-          }
-          accountInfo = await getAccountInfo(process.env.SYNCHRONIZER_KEYSTORE_FILE, password);
-        } catch (e) {
-          logger.warn(e);
-        }
-      }
-    }
-    return accountInfo;
+    this.tableApi = await TableApi.getInstance();
   }
 
   /**
@@ -323,159 +204,35 @@ export class SynchronizerCommander {
    */
   async checkSynchronizerRegistrationStatus() {
     const synchronizerInfo = await this.tableApi.getSynchronizerInfo(this.exsatAccountInfo.accountName);
-    const btcBalance = await this.tableApi.getAccountBalance(this.exsatAccountInfo.accountName);
     if (synchronizerInfo) {
       this.synchronizerInfo = synchronizerInfo;
       return true;
     } else {
+      if (this.registration) {
+        const validatorInfo = await this.tableApi.getValidatorInfo(this.exsatAccountInfo.accountName);
+        if (!validatorInfo) {
+          updateEnvFile({ VALIDATOR_KEYSTORE_FILE: '', VALIDATOR_KEYSTORE_PASSWORD: '' });
+        }
+      }
       showInfo({
-        'Account Name': this.exsatAccountInfo.accountName,
-        'Public Key': this.exsatAccountInfo.publicKey,
-        'BTC Balance Used for Gas Fee': btcBalance,
-        'Account Registration Status': 'Registered',
-        'Synchronizer Registration Status': 'Registering',
-        Email: this.exsatAccountInfo.email,
+        'Please note':
+          'In order to complete your registration, please follow the actions from the "Synchronizer Registration" page below.',
+        'Page Url': NETWORK_CONFIG.synchronizerRegistration,
       });
-      console.log(
-        `${Font.fgCyan}${Font.bright}The account has been registered, and a confirmation email has been sent to your inbox.\n` +
-          'Please follow the instructions in the email to complete the Synchronizer registration. \n' +
-          'If you have already followed the instructions, please wait patiently for the next confirmation email.\n' +
-          `-----------------------------------------------${Font.reset}`
-      );
       process.exit(0);
     }
-  }
-
-  /**
-   * Checks the registration status of the account.
-   */
-  async checkAccountRegistrationStatus() {
-    let checkAccountInfo;
-    do {
-      checkAccountInfo = await checkUsernameWithBackend(this.exsatAccountInfo.accountName);
-      let menus;
-      switch (checkAccountInfo.status) {
-        case 'completed':
-          this.exsatAccountInfo = {
-            ...this.exsatAccountInfo,
-            ...checkAccountInfo,
-          };
-          break;
-        case 'failed':
-        case 'initial':
-          const statusLabel =
-            checkAccountInfo.status === 'failed'
-              ? Font.colorize('Registration Failed', Font.fgRed)
-              : 'Unregistered, Bridge Gas Fee (BTC) to Register';
-          showInfo({
-            'Account Name': this.exsatAccountInfo.accountName,
-            'Public Key': this.exsatAccountInfo.publicKey,
-            'Account Registration Status': statusLabel,
-            Email: checkAccountInfo.email,
-          });
-          if (checkAccountInfo.status === 'failed') {
-            console.log(
-              'Your account registration was Failed. \n' +
-                'Possible reasons: the BTC Transaction ID you provided is incorrect, or the BTC transaction has been rolled back. \n' +
-                'Please resubmit the BTC Transaction ID. Thank you.\n' +
-                `${Font.fgCyan}${Font.bright}-----------------------------------------------${Font.reset}`
-            );
-          }
-          menus = [
-            {
-              name: 'Bridge BTC Used For GAS Fee',
-              value: 'recharge_btc_registry',
-              description: 'Bridge BTC as GAS Fee',
-            },
-            new Separator(),
-            { name: 'Quit', value: 'quit', description: 'Quit' },
-          ];
-          const action = await select({
-            message: 'Select an Action',
-            choices: menus,
-          });
-          if (action === 'quit') {
-            process.exit(0);
-          }
-          if (action === 'recharge_btc_registry') {
-            await chargeForRegistry(
-              this.exsatAccountInfo.accountName,
-              checkAccountInfo.btcAddress,
-              checkAccountInfo.amount
-            );
-          }
-          break;
-        case 'charging':
-          showInfo({
-            'Account Name': this.exsatAccountInfo.accountName,
-            'Public Key': this.exsatAccountInfo.publicKey,
-            'Account Registration Status': 'Registering',
-            Email: checkAccountInfo.email,
-          });
-          console.log(
-            `${Font.fgCyan}${Font.bright}Account registration may take a moment, please wait.\nConfirmation email will be sent to your inbox after the account registration is complete.\nPlease follow the instructions in the email to complete the subsequent Synchronizer registration.\n-----------------------------------------------${Font.reset}`
-          );
-          process.exit(0);
-          return;
-        default:
-          throw new Error(`Invalid account: status_${checkAccountInfo.status}`);
-      }
-    } while (checkAccountInfo.status !== 'completed');
   }
 
   /**
    * Checks if the reward address is set for the synchronizer.
    */
   async checkRewardsAddress() {
-    const accountName = this.exsatAccountInfo.accountName;
-    const btcBalance = await this.tableApi.getAccountBalance(accountName);
-    const synchronizer = this.synchronizerInfo;
-    if (!synchronizer.memo) {
+    if (!this.synchronizerInfo.memo) {
       logger.info('Reward address is not set.');
-      showInfo({
-        'Account Name': accountName,
-        'Public Key': this.exsatAccountInfo.publicKey,
-        'BTC Balance Used for Gas Fee': btcBalance,
-        'Reward Address': 'Unset',
-        'Account Registration Status': 'Registered',
-        'Synchronizer Registration Status': 'Registered',
-        Email: this.exsatAccountInfo.email,
-        'Memory Slot': synchronizer.num_slots,
-      });
-
-      const menus = [
-        { name: 'Set Reward Address(EVM)', value: 'set_reward_address' },
-        new Separator(),
-        { name: 'Quit', value: 'quit', description: 'Quit' },
-      ];
-
-      const actions: { [key: string]: () => Promise<any> } = {
-        set_reward_address: async () => await this.setRewardAddress(),
-        quit: async () => process.exit(0),
-      };
-      let action;
-      let res;
-      do {
-        action = await select({ message: 'Select an Action: ', choices: menus });
-        res = await (actions[action] || (() => {}))();
-      } while (!res);
+      await this.handleMissingSetting('Reward Address', 'set_reward_address');
     } else {
       logger.info('Reward Address is already set correctly.');
     }
-  }
-
-  /**
-   * Checks if the donate setting is set for the synchronizer.
-   */
-  async checkDonateSetting() {
-    if (!this.synchronizerInfo.donate_rate && !SET_SYNCHRONIZER_DONATE_RATIO) {
-      console.log(
-        `\n${Font.fgCyan}${Font.bright}You haven't set the donation ratio yet. Please set it first.${Font.reset}`
-      );
-      await this.setDonationRatio();
-      updateEnvFile({ SET_SYNCHRONIZER_DONATE_RATIO: true });
-    }
-    return true;
   }
 
   /**
@@ -483,40 +240,9 @@ export class SynchronizerCommander {
    */
   async checkBtcRpcNode() {
     const rpcUrl = process.env.BTC_RPC_URL;
-    const accountName = this.exsatAccountInfo.accountName;
-    const btcBalance = await this.tableApi.getAccountBalance(accountName);
-    const synchronizer = this.synchronizerInfo;
     if (!rpcUrl || !isValidUrl(rpcUrl)) {
       logger.info('BTC_RPC_URL is not set or is in an incorrect format.');
-      const showMessageInfo = {
-        'Account Name': accountName,
-        'Public Key': this.exsatAccountInfo.publicKey,
-        'BTC Balance Used for Gas Fee': btcBalance,
-        'Reward Address': synchronizer.memo ?? synchronizer.reward_recipient,
-        'BTC PRC Node': 'Unset',
-        'Account Registration Status': 'Registered',
-        'Synchronizer Registration Status': 'Registered',
-        Email: this.exsatAccountInfo.email,
-        'Memory Slot': synchronizer.num_slots,
-      };
-      showInfo(showMessageInfo);
-
-      const menus = [
-        { name: 'Set BTC RPC Node', value: 'set_btc_node' },
-        new Separator(),
-        { name: 'Quit', value: 'quit', description: 'Quit' },
-      ];
-
-      const actions: { [key: string]: () => Promise<any> } = {
-        set_btc_node: async () => await setBtcRpcUrl(),
-        quit: async () => process.exit(0),
-      };
-      let action;
-      let res;
-      do {
-        action = await select({ message: 'Select an Action: ', choices: menus });
-        res = await (actions[action] || (() => {}))();
-      } while (!res);
+      await this.handleMissingSetting('BTC RPC Node', 'set_btc_rpc');
     } else {
       logger.info('BTC_RPC_URL is already set correctly.');
     }
@@ -525,5 +251,88 @@ export class SynchronizerCommander {
   async updateSynchronizerInfo() {
     await sleep(1000);
     this.synchronizerInfo = await this.tableApi.getSynchronizerInfo(this.exsatAccountInfo.accountName);
+  }
+
+  async revoteForConsensus() {
+    const height = await inputWithCancel(
+      'Enter the height you want to revote for(Input "q" to return): ',
+      async (value) => {
+        const num = parseInt(value.trim());
+        if (isNaN(num)) {
+          return 'Please enter a valid number.';
+        }
+        let irreversibleHeight = (await this.tableApi.getChainstate()).irreversible_height;
+        if (num <= irreversibleHeight || num > irreversibleHeight + 7) {
+          return `Please enter a height between ${irreversibleHeight + 1} and ${irreversibleHeight + 7}.`;
+        }
+        return true;
+      }
+    );
+    if (!height) return false;
+    const data = {
+      synchronizer: this.exsatAccountInfo.accountName,
+      height: parseInt(height),
+    };
+    try {
+      const res: any = await this.exsatApi.executeAction(ContractName.blkendt, 'revote', data, false);
+      await input({ message: `Revote successfully at height: ${data.height}, press [Enter] to continue...` });
+      clearLines(1);
+      return res;
+    } catch (e: any) {
+      const errorMessage = getErrorMessage(e);
+      if (errorMessage.startsWith(ErrorCode.Code2006) || errorMessage.startsWith(ErrorCode.Code2007)) {
+        console.error(errorMessage);
+        return true;
+      } else {
+        logger.info(
+          `Transaction result, account: ${ContractName.blkendt}, name: 'revote', data: ${JSON.stringify(data)}`,
+          e
+        );
+        throw e;
+      }
+    }
+  }
+
+  /**
+   * Get the show message info.
+   * @private
+   * @param synchronizer
+   */
+  private async getShowMessageInfo(synchronizer) {
+    const accountName = this.exsatAccountInfo.accountName;
+    const btcBalance = await this.tableApi.getAccountBalance(accountName);
+    return {
+      'Account Name': accountName,
+      Role: 'Synchronizer',
+      'Public Key': this.exsatAccountInfo.publicKey,
+      'Gas Balance': btcBalance ? removeTrailingZeros(btcBalance) : `0 BTC`,
+      'Reward Address': synchronizer.memo || 'Unset',
+      'BTC RPC Node': isValidUrl(process.env.BTC_RPC_URL) ? process.env.BTC_RPC_URL : 'Invalid',
+      'Eligible for Consensus': 'Yes',
+    };
+  }
+
+  /**
+   * Handles missing settings for a validator.
+   * @param settingName
+   * @param actionKey
+   * @private
+   */
+  private async handleMissingSetting(settingName: string, actionKey: string) {
+    let showMessageInfo = await this.getShowMessageInfo(this.synchronizerInfo);
+    showInfo(showMessageInfo);
+
+    const menus = [
+      { name: `Set ${settingName}`, value: actionKey },
+      new Separator(),
+      { name: 'Quit', value: 'quit', description: 'Quit' },
+    ];
+
+    const actions: { [key: string]: () => Promise<any> } = {
+      set_btc_rpc: async () => await setBtcRpcUrl(),
+      set_reward_address: async () => await this.setRewardAddress(),
+      quit: async () => process.exit(0),
+    };
+    await promptMenuLoop(menus, actions, 'Select an Action');
   }
 }

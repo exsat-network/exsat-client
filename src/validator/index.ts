@@ -1,14 +1,13 @@
 import cron from 'node-cron';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
 import { configureLogger, logger } from '../utils/logger';
-import { envCheck } from '../utils/common';
+import { envCheck, loadNetworkConfigurations } from '../utils/common';
 import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
-import { Client, ClientType } from '../utils/enumeration';
+import { Client, ClientType, RoleType } from '../utils/enumeration';
 import { errorTotalCounter, setupPrometheus, startTimeGauge, warnTotalCounter } from '../utils/prom';
 import { ValidatorJobs } from './jobs';
 import {
-  EXSAT_RPC_URLS,
   HEARTBEAT_JOBS,
   VALIDATOR_JOBS_ENDORSE,
   VALIDATOR_JOBS_ENDORSE_CHECK,
@@ -19,7 +18,7 @@ export class ValidatorState {
   accountName: string = '';
   exsatApi: ExsatApi | null = null;
   tableApi: TableApi | null = null;
-  lastEndorseHeight: number = 0;
+  client: Client;
   startupStatus: boolean = false;
   endorseRunning: boolean = false;
   endorseCheckRunning: boolean = false;
@@ -31,7 +30,6 @@ async function initializeAccount(): Promise<{
 }> {
   let password = getConfigPassword(ClientType.Validator);
   let accountInfo;
-
   if (password) {
     password = password.trim();
     accountInfo = await getAccountInfo(VALIDATOR_KEYSTORE_FILE, password);
@@ -56,15 +54,21 @@ async function initializeAccount(): Promise<{
   return { accountInfo, password };
 }
 
-async function setupApis(accountInfo: any): Promise<{ exsatApi: ExsatApi; tableApi: TableApi }> {
-  const exsatApi = new ExsatApi(accountInfo, EXSAT_RPC_URLS);
+async function setupApis(accountInfo: any): Promise<{
+  exsatApi: ExsatApi;
+  tableApi: TableApi;
+  client: Client;
+}> {
+  const exsatApi = new ExsatApi(accountInfo);
   await exsatApi.initialize();
-  const tableApi = new TableApi(exsatApi);
-  await exsatApi.checkClient(ClientType.Validator);
-  return { exsatApi, tableApi };
+  const tableApi = await TableApi.getInstance();
+  const validatorInfo = await tableApi!.getValidatorInfo(accountInfo.accountName);
+  const client = validatorInfo.role ? Client.XSATValidator : Client.Validator;
+  await exsatApi.checkClient(client);
+  return { exsatApi, tableApi, client };
 }
 
-function setupCronJobs(jobs: ValidatorJobs) {
+function setupCronJobs(jobs: ValidatorJobs, roleType: RoleType) {
   const cronJobs = [
     { schedule: VALIDATOR_JOBS_ENDORSE, job: jobs.endorse },
     { schedule: VALIDATOR_JOBS_ENDORSE_CHECK, job: jobs.endorseCheck },
@@ -79,7 +83,7 @@ function setupCronJobs(jobs: ValidatorJobs) {
         logger.error(`Unhandled error in ${job.name} job:`, error);
         errorTotalCounter.inc({
           account: jobs.state.accountName,
-          client: Client.Validator,
+          client: roleType,
         });
       }
     });
@@ -87,22 +91,24 @@ function setupCronJobs(jobs: ValidatorJobs) {
 }
 
 async function main() {
+  await loadNetworkConfigurations();
   configureLogger(Client.Validator);
-  await envCheck(VALIDATOR_KEYSTORE_FILE);
+  await envCheck(ClientType.Validator);
 
   const { accountInfo } = await initializeAccount();
-  const { exsatApi, tableApi } = await setupApis(accountInfo);
+  const { exsatApi, tableApi, client } = await setupApis(accountInfo);
 
   const state = new ValidatorState();
   state.accountName = accountInfo.accountName;
   state.exsatApi = exsatApi;
   state.tableApi = tableApi;
+  state.client = client;
 
   const jobs = new ValidatorJobs(state);
 
-  setupCronJobs(jobs);
+  setupCronJobs(jobs, RoleType[client]);
   setupPrometheus();
-  startTimeGauge.set({ account: accountInfo.accountName, client: Client.Validator }, Date.now());
+  startTimeGauge.set({ account: accountInfo.accountName, client: client }, Date.now());
 }
 
 (async () => {

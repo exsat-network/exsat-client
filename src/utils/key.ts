@@ -1,4 +1,3 @@
-// @ts-ignore
 import crypto from 'crypto';
 import { Name, Checksum160 } from '@wharfkit/antelope';
 
@@ -58,4 +57,12 @@ export function computeStakerId(proxy: string, staker: string, validator: Name):
   result.write(staker, 20, 'hex');
   result.writeBigUInt64LE(validator.value.value, 40);
   return sha256(result).toString('hex');
+}
+
+/**
+ * Convert EVM address to checksum
+ * @param address
+ */
+export function evmAddressToChecksum(address: string) {
+  return Checksum160.from(Buffer.from(address.slice(2), 'hex'));
 }

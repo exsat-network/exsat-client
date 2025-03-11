@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
 import { configureLogger, logger } from '../utils/logger';
-import { envCheck } from '../utils/common';
+import { envCheck, loadNetworkConfigurations } from '../utils/common';
 import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
 import { Client, ClientType } from '../utils/enumeration';
@@ -16,6 +16,7 @@ import {
   SYNCHRONIZER_JOBS_BLOCK_VERIFY,
   SYNCHRONIZER_KEYSTORE_FILE,
 } from '../utils/config';
+import ExsatNode from '../utils/exsat-node';
 
 export class SynchronizerState {
   accountName: string = '';
@@ -58,10 +59,11 @@ async function initializeAccount(): Promise<{
 }
 
 async function setupApis(accountInfo: any): Promise<{ exsatApi: ExsatApi; tableApi: TableApi }> {
-  const exsatApi = new ExsatApi(accountInfo, EXSAT_RPC_URLS);
+  const exsatNode = new ExsatNode(EXSAT_RPC_URLS);
+  const exsatApi = new ExsatApi(accountInfo, exsatNode);
   await exsatApi.initialize();
-  const tableApi = new TableApi(exsatApi);
-  await exsatApi.checkClient(ClientType.Synchronizer);
+  const tableApi = await TableApi.getInstance();
+  await exsatApi.checkClient(Client.Synchronizer);
   return { exsatApi, tableApi };
 }
 
@@ -89,8 +91,9 @@ function setupCronJobs(jobs: SynchronizerJobs) {
 }
 
 async function main() {
+  await loadNetworkConfigurations();
   configureLogger(Client.Synchronizer);
-  await envCheck(SYNCHRONIZER_KEYSTORE_FILE);
+  await envCheck(ClientType.Synchronizer);
 
   const { accountInfo } = await initializeAccount();
   const { exsatApi, tableApi } = await setupApis(accountInfo);

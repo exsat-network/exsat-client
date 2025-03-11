@@ -1,6 +1,6 @@
 import { logger } from '../utils/logger';
 import { getErrorMessage, sleep } from '../utils/common';
-import { Client, ClientType, ContractName, ErrorCode } from '../utils/enumeration';
+import { ContractName, ErrorCode } from '../utils/enumeration';
 import {
   blockValidateTotalCounter,
   errorTotalCounter,
@@ -9,6 +9,7 @@ import {
 } from '../utils/prom';
 import { ValidatorState } from './index';
 import { getblockcount, getblockhash } from '../utils/bitcoin';
+import BN from 'bn.js';
 
 export class ValidatorJobs {
   constructor(public state: ValidatorState) {}
@@ -26,13 +27,24 @@ export class ValidatorJobs {
 
   // Check if an endorsement is needed and submit if necessary
   async checkAndSubmit(accountName: string, height: number, hash: string) {
-    const endorsement = await this.state.tableApi!.getEndorsementByBlockId(height, hash);
+    const validatorInfo = await this.state.tableApi!.getValidatorInfo(accountName);
+    if (validatorInfo.active_flag === 0) {
+      logger.info(
+        `Validator[${accountName}] does not meet the endorsement eligibility requirements, please stake sufficient token first, height: ${height}, hash: ${hash}`
+      );
+      return;
+    }
+    const scope = validatorInfo.role ? this.xsatScope(height) : height;
+    const endorsement = await this.state.tableApi!.getEndorsementByBlockId(scope, hash);
     if (endorsement) {
-      let isQualified = this.isEndorserQualified(endorsement.requested_validators, accountName);
-      if (isQualified && !this.isEndorserQualified(endorsement.provider_validators, accountName)) {
+      const isProviderEndorser = this.isEndorserQualified(endorsement.provider_validators, accountName);
+      if (isProviderEndorser) {
+        return;
+      }
+      const isQualifiedEndorser = this.isEndorserQualified(endorsement.requested_validators, accountName);
+      if (isQualifiedEndorser || validatorInfo.last_consensus_height < height) {
         await this.submit(accountName, height, hash);
-      } else {
-        this.state.lastEndorseHeight = height;
+        return;
       }
     } else {
       await this.submit(accountName, height, hash);
@@ -47,13 +59,12 @@ export class ValidatorJobs {
       hash,
     });
     if (result && result.transaction_id) {
-      this.state.lastEndorseHeight = height;
       blockValidateTotalCounter.inc({
         account: this.state.accountName,
-        client: Client.Validator,
+        client: this.state.client,
       });
-      validateLatestBlockGauge.set({ account: this.state.accountName, client: Client.Validator }, height);
-      validateLatestTimeGauge.set({ account: this.state.accountName, client: Client.Validator }, Date.now());
+      validateLatestBlockGauge.set({ account: this.state.accountName, client: this.state.client }, height);
+      validateLatestTimeGauge.set({ account: this.state.accountName, client: this.state.client }, Date.now());
       logger.info(
         `Submit endorsement success, accountName: ${validator}, height: ${height}, hash: ${hash}, transaction_id: ${result?.transaction_id}`
       );
@@ -92,7 +103,7 @@ export class ValidatorJobs {
         logger.error('Endorse task error', e);
         errorTotalCounter.inc({
           account: this.state.accountName,
-          client: Client.Validator,
+          client: this.state.client,
         });
       }
     } finally {
@@ -110,7 +121,7 @@ export class ValidatorJobs {
       logger.info('Endorse check task is running');
       const chainstate = await this.state.tableApi!.getChainstate();
       const blockcount = await getblockcount();
-      let startEndorseHeight = chainstate!.irreversible_height + 1;
+      const startEndorseHeight = chainstate!.irreversible_height + 1;
       for (let i = startEndorseHeight; i <= blockcount.result; i++) {
         let hash: string;
         try {
@@ -125,6 +136,7 @@ export class ValidatorJobs {
           } else if (
             errorMessage.startsWith(ErrorCode.Code1001) ||
             errorMessage.startsWith(ErrorCode.Code1003) ||
+            errorMessage.startsWith(ErrorCode.Code1004) ||
             errorMessage.startsWith(ErrorCode.Code1008)
           ) {
             await sleep(10000);
@@ -133,7 +145,7 @@ export class ValidatorJobs {
             logger.error(`Submit endorsement failed, height: ${i}, hash: ${hash}`, e);
             errorTotalCounter.inc({
               account: this.state.accountName,
-              client: Client.Validator,
+              client: this.state.client,
             });
           }
         }
@@ -142,7 +154,7 @@ export class ValidatorJobs {
       logger.error('Endorse check task error', e);
       errorTotalCounter.inc({
         account: this.state.accountName,
-        client: Client.Validator,
+        client: this.state.client,
       });
       await sleep();
     } finally {
@@ -151,7 +163,11 @@ export class ValidatorJobs {
     }
   };
 
+  xsatScope(height: number) {
+    return new BN(height).or(new BN('100000000', 16)).toNumber();
+  }
+
   heartbeat = async () => {
-    await this.state.exsatApi!.heartbeat(ClientType.Validator);
+    await this.state.exsatApi!.heartbeat(this.state.client);
   };
 }
