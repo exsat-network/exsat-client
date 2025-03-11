@@ -2,26 +2,23 @@ import {
   getErrorMessage,
   isValidEvmAddress,
   isValidUrl,
-  reloadEnv,
   removeTrailingZeros,
   showInfo,
   sleep,
   updateEnvFile,
 } from '../utils/common';
 import { NETWORK_CONFIG } from '../utils/config';
-import { input, select, Separator } from '@inquirer/prompts';
+import { input, Separator } from '@inquirer/prompts';
 import process from 'node:process';
 import { Client, ClientType, ContractName, ErrorCode } from '../utils/enumeration';
 import { logger } from '../utils/logger';
 import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
-import fs from 'node:fs';
 import { clearLines, inputWithCancel } from '../utils/input';
 import {
   checkAccountRegistrationStatus,
   decryptKeystore,
   exportPrivateKey,
-  notAccountMenu,
   promptMenuLoop,
   removeKeystore,
   resetBtcRpcUrl,
@@ -46,16 +43,9 @@ export class SynchronizerCommander {
    * Checks the keystore, initializes APIs, and manages the synchronizer menu.
    */
   async main() {
-    // Check if keystore exists
-    while (!fs.existsSync(process.env.SYNCHRONIZER_KEYSTORE_FILE)) {
-      await notAccountMenu();
-      reloadEnv();
-    }
     await checkAccountRegistrationStatus(ClientType.Synchronizer);
-
     // Initialize APIs and check account and synchronizer status
     await this.init();
-
     await this.checkSynchronizerRegistrationStatus();
     await this.checkRewardsAddress();
     // await this.checkDonateSetting();

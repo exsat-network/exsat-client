@@ -271,10 +271,24 @@ export async function decryptKeystore(clientType) {
   return accountInfo;
 }
 
+/**
+ * Gets the keystore path based on the client type.
+ * @param clientType
+ */
 export function getKeystorePath(clientType: ClientType): string {
-  return clientType === ClientType.Synchronizer
-    ? process.env.SYNCHRONIZER_KEYSTORE_FILE
-    : process.env.VALIDATOR_KEYSTORE_FILE;
+  const keystoreFile =
+    clientType === ClientType.Synchronizer
+      ? process.env.SYNCHRONIZER_KEYSTORE_FILE
+      : process.env.VALIDATOR_KEYSTORE_FILE;
+
+  if (!fs.existsSync(keystoreFile)) {
+    logger.error(
+      `No ${clientType === ClientType.Synchronizer ? 'synchronizer' : 'validator'} keystore file found, please config .env file first`
+    );
+    process.exit(1);
+  }
+
+  return keystoreFile;
 }
 
 export async function stakeClaimManagement(client: Client) {

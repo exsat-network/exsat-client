@@ -16,6 +16,8 @@ import dotenv from 'dotenv';
 import { Font } from './font';
 import { ClientType } from './enumeration';
 import { getKeystorePath } from '../commander/common';
+import { getAccountInfo, getConfigPassword, getInputPassword } from './keystore';
+import { warnTotalCounter } from './prom';
 
 /**
  * Pauses execution for a specified number of milliseconds.
@@ -332,4 +334,39 @@ export function removeTrailingZeros(value) {
  */
 export function normalizeAccountName(name: string) {
   return name.endsWith('.sat') ? name : `${name}.sat`;
+}
+
+/**
+ * Initialize account info
+ * @param clientType
+ */
+export async function initializeAccount(clientType: ClientType): Promise<{
+  accountInfo: any;
+  password: string;
+}> {
+  const keystoreFile = getKeystorePath(clientType);
+  let password = getConfigPassword(clientType);
+  let accountInfo;
+  if (password) {
+    password = password.trim();
+    accountInfo = await getAccountInfo(keystoreFile, password);
+  } else {
+    while (!accountInfo) {
+      try {
+        password = await getInputPassword();
+        if (password.trim() === 'q') {
+          process.exit(0);
+        }
+        accountInfo = await getAccountInfo(keystoreFile, password);
+      } catch (e) {
+        logger.warn(e);
+        warnTotalCounter.inc({
+          account: accountInfo?.accountName,
+          client: clientType == ClientType.Synchronizer ? 'synchronizer' : 'validator',
+        });
+      }
+    }
+  }
+
+  return { accountInfo, password };
 }
