@@ -1,18 +1,12 @@
 import cron from 'node-cron';
-import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
 import { configureLogger, logger } from '../utils/logger';
-import { envCheck, loadNetworkConfigurations } from '../utils/common';
+import { envCheck, initializeAccount, loadNetworkConfigurations } from '../utils/common';
 import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
 import { Client, ClientType, RoleType } from '../utils/enumeration';
-import { errorTotalCounter, setupPrometheus, startTimeGauge, warnTotalCounter } from '../utils/prom';
+import { errorTotalCounter, setupPrometheus, startTimeGauge } from '../utils/prom';
 import { ValidatorJobs } from './jobs';
-import {
-  HEARTBEAT_JOBS,
-  VALIDATOR_JOBS_ENDORSE,
-  VALIDATOR_JOBS_ENDORSE_CHECK,
-  VALIDATOR_KEYSTORE_FILE,
-} from '../utils/config';
+import { HEARTBEAT_JOBS, VALIDATOR_JOBS_ENDORSE, VALIDATOR_JOBS_ENDORSE_CHECK } from '../utils/config';
 
 export class ValidatorState {
   accountName: string = '';
@@ -22,36 +16,6 @@ export class ValidatorState {
   startupStatus: boolean = false;
   endorseRunning: boolean = false;
   endorseCheckRunning: boolean = false;
-}
-
-async function initializeAccount(): Promise<{
-  accountInfo: any;
-  password: string;
-}> {
-  let password = getConfigPassword(ClientType.Validator);
-  let accountInfo;
-  if (password) {
-    password = password.trim();
-    accountInfo = await getAccountInfo(VALIDATOR_KEYSTORE_FILE, password);
-  } else {
-    while (!accountInfo) {
-      try {
-        password = await getInputPassword();
-        if (password.trim() === 'q') {
-          process.exit(0);
-        }
-        accountInfo = await getAccountInfo(VALIDATOR_KEYSTORE_FILE, password);
-      } catch (e) {
-        logger.warn(e);
-        warnTotalCounter.inc({
-          account: accountInfo?.accountName,
-          client: Client.Validator,
-        });
-      }
-    }
-  }
-
-  return { accountInfo, password };
 }
 
 async function setupApis(accountInfo: any): Promise<{
@@ -95,7 +59,7 @@ async function main() {
   configureLogger(Client.Validator);
   await envCheck(ClientType.Validator);
 
-  const { accountInfo } = await initializeAccount();
+  const { accountInfo } = await initializeAccount(ClientType.Validator);
   const { exsatApi, tableApi, client } = await setupApis(accountInfo);
 
   const state = new ValidatorState();

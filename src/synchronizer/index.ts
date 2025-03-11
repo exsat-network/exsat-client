@@ -1,7 +1,6 @@
 import cron from 'node-cron';
-import { getAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
 import { configureLogger, logger } from '../utils/logger';
-import { envCheck, loadNetworkConfigurations } from '../utils/common';
+import { envCheck, initializeAccount, loadNetworkConfigurations } from '../utils/common';
 import ExsatApi from '../utils/exsat-api';
 import TableApi from '../utils/table-api';
 import { Client, ClientType } from '../utils/enumeration';
@@ -14,7 +13,6 @@ import {
   SYNCHRONIZER_JOBS_BLOCK_PARSE,
   SYNCHRONIZER_JOBS_BLOCK_UPLOAD,
   SYNCHRONIZER_JOBS_BLOCK_VERIFY,
-  SYNCHRONIZER_KEYSTORE_FILE,
 } from '../utils/config';
 import ExsatNode from '../utils/exsat-node';
 
@@ -25,37 +23,6 @@ export class SynchronizerState {
   uploadRunning = false;
   verifyRunning = false;
   parseRunning = false;
-}
-
-async function initializeAccount(): Promise<{
-  accountInfo: any;
-  password: string;
-}> {
-  let password = getConfigPassword(ClientType.Synchronizer);
-  let accountInfo;
-
-  if (password) {
-    password = password.trim();
-    accountInfo = await getAccountInfo(SYNCHRONIZER_KEYSTORE_FILE, password);
-  } else {
-    while (!accountInfo) {
-      try {
-        password = await getInputPassword();
-        if (password.trim() === 'q') {
-          process.exit(0);
-        }
-        accountInfo = await getAccountInfo(SYNCHRONIZER_KEYSTORE_FILE, password);
-      } catch (e) {
-        logger.warn(e);
-        warnTotalCounter.inc({
-          account: accountInfo?.accountName,
-          client: Client.Synchronizer,
-        });
-      }
-    }
-  }
-
-  return { accountInfo, password };
 }
 
 async function setupApis(accountInfo: any): Promise<{ exsatApi: ExsatApi; tableApi: TableApi }> {
@@ -95,7 +62,7 @@ async function main() {
   configureLogger(Client.Synchronizer);
   await envCheck(ClientType.Synchronizer);
 
-  const { accountInfo } = await initializeAccount();
+  const { accountInfo } = await initializeAccount(ClientType.Synchronizer);
   const { exsatApi, tableApi } = await setupApis(accountInfo);
 
   const state = new SynchronizerState();
