@@ -28,6 +28,12 @@ export class ValidatorJobs {
   // Check if an endorsement is needed and submit if necessary
   async checkAndSubmit(accountName: string, height: number, hash: string) {
     const validatorInfo = await this.state.tableApi!.getValidatorInfo(accountName);
+    if (validatorInfo.active_flag === 0) {
+      logger.info(
+        `Validator[${accountName}] does not meet the endorsement eligibility requirements, please stake sufficient token first, height: ${height}, hash: ${hash}`
+      );
+      return;
+    }
     const scope = validatorInfo.role ? this.xsatScope(height) : height;
     const endorsement = await this.state.tableApi!.getEndorsementByBlockId(scope, hash);
     if (endorsement) {
@@ -35,20 +41,14 @@ export class ValidatorJobs {
       if (isProviderEndorser) {
         return;
       }
-
       const isQualifiedEndorser = this.isEndorserQualified(endorsement.requested_validators, accountName);
       if (isQualifiedEndorser || validatorInfo.last_consensus_height < height) {
         await this.submit(accountName, height, hash);
         return;
       }
-    } else if (validatorInfo.active_flag !== 0) {
+    } else {
       await this.submit(accountName, height, hash);
-      return;
     }
-
-    logger.warn(
-      `The current validator[${accountName}] does not meet the endorsement eligibility requirements. Please stake sufficient token first.`
-    );
   }
 
   // Submit an endorsement to the blockchain
