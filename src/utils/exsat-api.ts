@@ -174,7 +174,7 @@ class ExsatApi {
    * Checks the heartbeat of the client.
    * @param client - The type of Client (e.g., Synchronizer or Validator or XSATValidator).
    */
-  public async heartbeat(client) {
+  public async heartbeat(client: Client) {
     try {
       const version = await Version.getLocalVersion();
       const result = await this.executeAction(ContractName.rescmng, 'checkclient', {
