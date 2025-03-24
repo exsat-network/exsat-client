@@ -3,7 +3,9 @@ import fs from 'node:fs';
 import {
   BTC_RPC_URL,
   CHUNK_SIZE,
+  EXSAT_RPC_TIMEOUT,
   EXSAT_RPC_URLS,
+  HTTP_TIMEOUT,
   NETWORK,
   NETWORK_CONFIG,
   setExsatRpcUrls,
@@ -44,7 +46,8 @@ export function getAmountFromQuantity(quantity: string): number {
 export async function getRpcUrls() {
   try {
     const response = await axios.get(
-      `https://raw.githubusercontent.com/exsat-network/configurations/refs/heads/main/src/${NETWORK}-network.json`
+      `https://raw.githubusercontent.com/exsat-network/configurations/refs/heads/main/src/${NETWORK}-network.json`,
+      { timeout: EXSAT_RPC_TIMEOUT }
     );
     return response.data.native.nodes;
   } catch (error) {
@@ -56,7 +59,8 @@ export async function getRpcUrls() {
 export async function loadNetworkConfigurations() {
   try {
     const response = await axios.get(
-      `https://raw.githubusercontent.com/exsat-network/configurations/refs/heads/main/src/${NETWORK}-network.json`
+      `https://raw.githubusercontent.com/exsat-network/configurations/refs/heads/main/src/${NETWORK}-network.json`,
+      { timeout: HTTP_TIMEOUT }
     );
 
     if (!EXSAT_RPC_URLS || EXSAT_RPC_URLS.length === 0 || !isValidUrl(EXSAT_RPC_URLS[0])) {
