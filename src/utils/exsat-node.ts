@@ -1,8 +1,8 @@
-import axios from 'axios';
 import moment from 'moment';
 import { logger } from './logger';
-import { EXSAT_RPC_TIMEOUT, EXSAT_RPC_URLS } from './config';
+import { EXSAT_RPC_URLS } from './config';
 import { isValidUrl } from './common';
+import { http } from './http';
 
 class ExsatNode {
   private nodes: string[];
@@ -69,9 +69,7 @@ class ExsatNode {
    */
   private async isValidNode(url: string): Promise<boolean> {
     try {
-      const response = await axios.get(`${url}/v1/chain/get_info`, {
-        timeout: EXSAT_RPC_TIMEOUT,
-      });
+      const response = await http.get(`${url}/v1/chain/get_info`);
       if (response.status === 200 && response.data) {
         this.chainId = response.data.chain_id;
         const diffMS: number =

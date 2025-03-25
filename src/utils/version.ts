@@ -1,8 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import axios from 'axios';
 import process from 'node:process';
-import { HTTP_TIMEOUT } from './config';
+import { http } from './http';
 
 export class Version {
   private static repoPath = 'exsat-network/exsat-client';
@@ -12,7 +11,7 @@ export class Version {
   // Get the latest version number of the remote warehouse
   static async getLatestVersion(): Promise<string | null> {
     try {
-      const response = await axios.get(`https://api.github.com/repos/${this.repoPath}/tags`, { timeout: HTTP_TIMEOUT });
+      const response = await http.get(`https://api.github.com/repos/${this.repoPath}/tags`);
       return response.data[0].name;
     } catch (error) {
       throw new Error('Failed to fetch latest version:');
@@ -22,9 +21,8 @@ export class Version {
   // Get the latest version number of the remote Docker hub
   static async getDockerLatestVersion(): Promise<string | null> {
     try {
-      const response = await axios.get(
-        `https://registry.hub.docker.com/v2/repositories/${this.dockerRepoPath}/tags?page_size=5&page=1&ordering=last_updated`,
-        { timeout: HTTP_TIMEOUT }
+      const response = await http.get(
+        `https://registry.hub.docker.com/v2/repositories/${this.dockerRepoPath}/tags?page_size=5&page=1&ordering=last_updated`
       );
       const datas = response.data.results;
       for (const data of datas) {
@@ -40,9 +38,7 @@ export class Version {
   // Get the description of a specific tag
   static async getTagDescription(tag: string): Promise<string | null> {
     try {
-      const response = await axios.get(`https://api.github.com/repos/${this.repoPath}/releases/tags/${tag}`, {
-        timeout: HTTP_TIMEOUT,
-      });
+      const response = await http.get(`https://api.github.com/repos/${this.repoPath}/releases/tags/${tag}`);
       return response.data.body || null;
     } catch (error: any) {
       throw new Error(`Failed to fetch description for tag ${tag}: ${error.message}`);
