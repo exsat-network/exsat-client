@@ -3,7 +3,6 @@ import {
   BTC_RPC_URL,
   CHUNK_SIZE,
   EXSAT_RPC_URLS,
-  HTTP_TIMEOUT,
   NETWORK,
   NETWORK_CONFIG,
   setExsatRpcUrls,
@@ -57,8 +56,7 @@ export async function getRpcUrls() {
 export async function loadNetworkConfigurations() {
   try {
     const response = await http.get(
-      `https://raw.githubusercontent.com/exsat-network/configurations/refs/heads/main/src/${NETWORK}-network.json`,
-      { timeout: HTTP_TIMEOUT }
+      `https://raw.githubusercontent.com/exsat-network/configurations/refs/heads/main/src/${NETWORK}-network.json`
     );
 
     if (!EXSAT_RPC_URLS || EXSAT_RPC_URLS.length === 0 || !isValidUrl(EXSAT_RPC_URLS[0])) {

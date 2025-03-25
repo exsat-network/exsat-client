@@ -10,7 +10,7 @@ import { clearLines, inputWithCancel, processAndUpdatePassword, selectDirPrompt 
 import { isExsatDocker, normalizeAccountName, retry, updateEnvFile } from '../utils/common';
 import { Font } from '../utils/font';
 import { createKeystore, keystoreExist } from '../utils/keystore';
-import { EXSAT_RPC_URLS, HTTP_TIMEOUT } from '../utils/config';
+import { EXSAT_RPC_URLS } from '../utils/config';
 import { Client } from '../utils/enumeration';
 import TableApi from '../utils/table-api';
 import { http } from '../utils/http';
@@ -28,7 +28,6 @@ export async function getUserAccount(accountName) {
       }),
       {
         headers: { 'Content-Type': 'application/json' },
-        timeout: HTTP_TIMEOUT,
       }
     );
     const owner = response.data.permissions.find((p) => p.perm_name === 'owner');
