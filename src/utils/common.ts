@@ -1,4 +1,3 @@
-import axios from 'axios';
 import fs from 'node:fs';
 import {
   BTC_RPC_URL,
@@ -18,6 +17,7 @@ import { ClientType } from './enumeration';
 import { getKeystorePath } from '../commander/common';
 import { getAccountInfo, getConfigPassword, getInputPassword } from './keystore';
 import { warnTotalCounter } from './prom';
+import { http } from './http';
 
 /**
  * Pauses execution for a specified number of milliseconds.
@@ -43,7 +43,7 @@ export function getAmountFromQuantity(quantity: string): number {
  */
 export async function getRpcUrls() {
   try {
-    const response = await axios.get(
+    const response = await http.get(
       `https://raw.githubusercontent.com/exsat-network/configurations/refs/heads/main/src/${NETWORK}-network.json`
     );
     return response.data.native.nodes;
@@ -55,7 +55,7 @@ export async function getRpcUrls() {
 
 export async function loadNetworkConfigurations() {
   try {
-    const response = await axios.get(
+    const response = await http.get(
       `https://raw.githubusercontent.com/exsat-network/configurations/refs/heads/main/src/${NETWORK}-network.json`
     );
 

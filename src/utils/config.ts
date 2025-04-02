@@ -6,6 +6,7 @@ reloadEnv();
 // Read the configuration from the .env file and use the default value if there is no configuration
 export const MAX_RETRIES = parseInt(process.env.MAX_RETRIES) || 3;
 export const RETRY_INTERVAL_MS = process.env.RETRY_INTERVAL_MS ? parseInt(process.env.RETRY_INTERVAL_MS) : 2000;
+export const HTTP_TIMEOUT = parseInt(process.env.HTTP_TIMEOUT) || 10000;
 export let EXSAT_RPC_URLS: string[] = process.env.EXSAT_RPC_URLS ? JSON.parse(process.env.EXSAT_RPC_URLS) : [];
 export const RES_PERMISSION: string = process.env.RES_PERMISSION;
 

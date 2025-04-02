@@ -10,10 +10,10 @@ import { clearLines, inputWithCancel, processAndUpdatePassword, selectDirPrompt 
 import { isExsatDocker, normalizeAccountName, retry, updateEnvFile } from '../utils/common';
 import { Font } from '../utils/font';
 import { createKeystore, keystoreExist } from '../utils/keystore';
-import axios from 'axios';
 import { EXSAT_RPC_URLS } from '../utils/config';
 import { Client } from '../utils/enumeration';
 import TableApi from '../utils/table-api';
+import { http } from '../utils/http';
 
 function validateUsername(username) {
   return /^[a-z1-5.]{1,8}$/.test(username);
@@ -21,7 +21,7 @@ function validateUsername(username) {
 
 export async function getUserAccount(accountName) {
   try {
-    const response = await axios.post(
+    const response = await http.post(
       `${EXSAT_RPC_URLS[0]}/v1/chain/get_account`,
       JSON.stringify({
         account_name: normalizeAccountName(accountName),
