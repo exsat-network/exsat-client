@@ -10,6 +10,7 @@ import { NETWORK_CONFIG, RES_PERMISSION } from './config';
 
 class ExsatApi {
   private session: Session;
+  private ownerSession: Session;
   private walletPlugin: WalletPluginPrivateKey;
   private exsatNodesManager: ExsatNode;
   private accountName: string;
@@ -45,6 +46,20 @@ class ExsatApi {
         },
         actor: this.accountName,
         permission: 'active',
+        walletPlugin: this.walletPlugin,
+      },
+      {
+        fetch,
+      }
+    );
+    this.ownerSession = new Session(
+      {
+        chain: {
+          id: this.exsatNodesManager.getChainId(),
+          url: this.exsatNodesManager.getCurrentNode(),
+        },
+        actor: this.accountName,
+        permission: 'owner',
         walletPlugin: this.walletPlugin,
       },
       {
@@ -149,7 +164,7 @@ class ExsatApi {
       },
     ];
     try {
-      const result = await this.session.transact(
+      const result = await this.ownerSession.transact(
         {
           actions: [
             {
