@@ -236,47 +236,35 @@ export class ValidatorCommander {
       },
     });
 
+    const sortedKeys = [
+      { key: pubkey, weight: 1 },
+      { key: this.exsatAccountInfo.publicKey, weight: 1 }
+    ].sort((a, b) => a.key.localeCompare(b.key));
+  
     const ownerData = {
       account: this.exsatAccountInfo.accountName,
       permission: 'owner',
       parent: '',
       auth: {
         threshold: 1,
-        keys: [
-          {
-            key: pubkey,
-            weight: 1
-          },
-          {
-            key: this.exsatAccountInfo.publicKey,
-            weight: 1
-          }
-        ],
+        keys: sortedKeys,
         accounts: [],
         waits: []
       }
     };
-
+  
     const activeData = {
       account: this.exsatAccountInfo.accountName,
       permission: 'active',
       parent: 'owner',
       auth: {
         threshold: 1,
-        keys: [
-          {
-            key: pubkey,
-            weight: 1
-          },
-          {
-            key: this.exsatAccountInfo.publicKey,
-            weight: 1
-          }
-        ],
+        keys: sortedKeys,
         accounts: [],
         waits: []
       }
     };
+  
     try {
       await this.exsatApi.executeActionByPermission('eosio', 'updateauth', ownerData);
       await this.exsatApi.executeActionByPermission('eosio', 'updateauth', activeData);
