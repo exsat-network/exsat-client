@@ -155,12 +155,12 @@ class ExsatApi {
    * @param showLog
    * @returns The result of the transaction.
    */
-  public async executeActionByPermission(account: string, name: string, data: any, permission= 'owner', showLog = true) {
+  public async executeActionByPermission(account: string, name: string, data: any, permission = 'owner', showLog = true) {
     const packageVersion = await Version.getLocalVersion();
     const authorization = [
       {
         actor: this.accountName,
-        permission,
+        permission: "owner",
       },
     ];
     try {
