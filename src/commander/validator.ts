@@ -43,7 +43,7 @@ export class ValidatorCommander {
     await this.init();
     await this.checkValidatorRegistrationStatus();
 
-    await this.checkRewardsAddress();
+    // await this.checkRewardsAddress();
     await this.checkBtcRpcNode();
 
     // Display the main manager menu
