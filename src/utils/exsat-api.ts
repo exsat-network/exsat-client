@@ -132,6 +132,51 @@ class ExsatApi {
   }
 
   /**
+   * Executes a exsat action and handles potential errors and retries.
+   * @param account - The account to execute the action on.
+   * @param name - The name of the action to execute.
+   * @param data - The data to send with the action.
+   * @param permission - owner/active.
+   * @param showLog
+   * @returns The result of the transaction.
+   */
+  public async executeActionByPermission(account: string, name: string, data: any, permission= 'owner', showLog = true) {
+    const packageVersion = await Version.getLocalVersion();
+    const authorization = [
+      {
+        actor: this.accountName,
+        permission,
+      },
+    ];
+    try {
+      const result = await this.session.transact(
+        {
+          actions: [
+            {
+              account,
+              name,
+              authorization,
+              data,
+            },
+          ],
+        },
+        {
+          expireSeconds: 30,
+        }
+      );
+      // logger.info(`Execute actions: ${this.executeActions++}`);
+      return result.response;
+    } catch (e: any) {
+      let dataStr = JSON.stringify(data);
+      dataStr = dataStr.length > 500 ? dataStr.substring(0, 500) + '...' : dataStr;
+      if (showLog) {
+        logger.info(`Transaction result, account: ${account}, name: ${name}, data: ${dataStr}`, e);
+      }
+      throw e;
+    }
+  }
+
+  /**
    * Checks if the client is properly configured and authorized.
    * @param client - The type of Client (e.g., Synchronizer or Validator or XSATValidator).
    */

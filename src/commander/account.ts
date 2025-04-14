@@ -2,7 +2,7 @@ import { generateMnemonic, mnemonicToSeedSync } from '@scure/bip39';
 import { wordlist } from '@scure/bip39/wordlists/english';
 import HDKey from 'hdkey';
 import { PrivateKey } from '@wharfkit/antelope';
-import { writeFileSync } from 'fs';
+import { writeFileSync, existsSync } from 'fs';
 import WIF from 'wif';
 import { bytesToHex } from 'web3-utils';
 import { confirm, input, password, select } from '@inquirer/prompts';
@@ -93,6 +93,11 @@ async function saveKeystore(privateKey, username, role?) {
   } while (pathConfirm.toLowerCase() === 'no');
 
   const keystoreFilePath = `${selectedPath}/${username}_keystore.json`;
+  if (existsSync(keystoreFilePath)) {
+    throw new Error(`File ${keystoreFilePath} already exists. Saving is not allowed.`);
+  } else {
+    writeFileSync(keystoreFilePath, JSON.stringify(keystore), { mode: 0o600 });
+  }
   writeFileSync(keystoreFilePath, JSON.stringify(keystore), { mode: 0o600 });
   let updateDatas;
   if (role) {
@@ -244,6 +249,29 @@ export async function initializeAccount() {
       } catch (error: any) {
         return `Request error: ${error.message}`;
       }
+    },
+  });
+  if (username === 'q') return false;
+  console.log(Font.colorize(`  Your account : ${username}.sat`, Font.fgGreen));
+
+  await generateKeystore(username);
+  return username;
+}
+
+
+export async function createAccount() {
+  if (keystoreExist(Client.Synchronizer) || keystoreExist(Client.Validator)) {
+    console.log(`\n${Font.fgYellow}${Font.bright}Keystore file is exist.${Font.reset}`);
+    return;
+  }
+  const username = await input({
+    message: 'Enter an account name (1-8 characters, a-z, 1-5. Input "q" to return): ',
+    validate: async (input) => {
+      if (input === 'q') return true;
+      if (!validateUsername(input)) {
+        return 'Please enter an account name that is 1-8 characters long, contains only a-z and 1-5.';
+      }
+      return true;
     },
   });
   if (username === 'q') return false;

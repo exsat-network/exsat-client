@@ -1,5 +1,7 @@
 import TableApi from '../utils/table-api';
 import ExsatApi from '../utils/exsat-api';
+import { PublicKey } from '@wharfkit/antelope';
+
 import {
   checkAccountRegistrationStatus,
   decryptKeystore,
@@ -83,6 +85,11 @@ export class ValidatorCommander {
         value: 'remove_account',
         description: 'Remove Account',
       },
+      {
+        name: 'Update Auth',
+        value: 'update_auth',
+        description: 'Add Public Key',
+      },
       new Separator(),
       { name: 'Quit', value: 'quit', description: 'Quit' },
     ];
@@ -108,6 +115,7 @@ export class ValidatorCommander {
       set_reward_address: async () => await this.setRewardAddress(),
       set_stake_address: async () => await this.setStakeAddress(),
       set_commission_ratio: async () => await this.setCommissionRatio(),
+      update_auth: async () => await this.updateAuth(),
       reset_btc_rpc: async () => await resetBtcRpcUrl(),
       export_private_key: async () => {
         return await exportPrivateKey(this.exsatAccountInfo.privateKey);
@@ -200,6 +208,80 @@ export class ValidatorCommander {
       await this.exsatApi.executeAction(ContractName.endrmng, 'evmconfigvald', data);
       await this.updateValidatorInfo();
       logger.info(`${Font.fgCyan}${Font.bright}Set commission rate: ${commissionRatio}% successfully.${Font.reset}\n`);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+
+  validatePublicKey(key) {
+    try {
+      PublicKey.from(key);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async updateAuth() {
+    const pubkey = await input({
+      message: 'Enter an new publicKey(PUB_K1_5Rxxxxxx): ',
+      validate: async (input) => {
+        if (input === 'q') return true;
+        if (!this.validatePublicKey(input)) {
+          return 'Please enter a new publicKey etc: PUB_K1_5Rxxxxxx.';
+        }
+        return true;
+      },
+    });
+
+    const ownerData = {
+      account: this.exsatAccountInfo.accountName,
+      permission: 'owner',
+      parent: '',
+      auth: {
+        threshold: 1,
+        keys: [
+          {
+            key: pubkey,
+            weight: 1
+          },
+          {
+            key: this.exsatAccountInfo.publicKey,
+            weight: 1
+          }
+        ],
+        accounts: [],
+        waits: []
+      }
+    };
+
+    const activeData = {
+      account: this.exsatAccountInfo.accountName,
+      permission: 'active',
+      parent: 'owner',
+      auth: {
+        threshold: 1,
+        keys: [
+          {
+            key: pubkey,
+            weight: 1
+          },
+          {
+            key: this.exsatAccountInfo.publicKey,
+            weight: 1
+          }
+        ],
+        accounts: [],
+        waits: []
+      }
+    };
+    try {
+      await this.exsatApi.executeActionByPermission('eosio', 'updateauth', ownerData);
+      await this.exsatApi.executeActionByPermission('eosio', 'updateauth', activeData);
+      await this.updateValidatorInfo();
+      logger.info(`${Font.fgCyan}${Font.bright}Update Auth to: ${pubkey}% successfully.${Font.reset}\n`);
       return true;
     } catch (e) {
       return false;

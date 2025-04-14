@@ -6,7 +6,7 @@ import { isValidUrl, retry, showInfo, updateEnvFile } from '../utils/common';
 import { Client, ClientType } from '../utils/enumeration';
 import { logger } from '../utils/logger';
 import { clearLines, inputWithCancel } from '../utils/input';
-import { getUserAccount, importFromMnemonic, importFromPrivateKey, initializeAccount } from './account';
+import { createAccount, getUserAccount, importFromMnemonic, importFromPrivateKey, initializeAccount } from './account';
 import { getAccountInfo, getBaseAccountInfo, getConfigPassword, getInputPassword } from '../utils/keystore';
 import fs from 'node:fs';
 
@@ -27,6 +27,11 @@ export async function notAccountMenu() {
       value: 'import_private_key',
       description: 'Import Private Key',
     },
+    {
+      name: 'Create New Keystore',
+      value: 'create_keystore',
+      description: 'Create New Keystore',
+    },
     new Separator(),
     { name: 'Quit', value: 'quit', description: 'Quit' },
   ];
@@ -40,6 +45,9 @@ export async function notAccountMenu() {
     },
     import_private_key: async () => {
       return await importFromPrivateKey();
+    },
+    create_keystore: async () => {
+      return await createAccount();
     },
     quit: async () => process.exit(0),
   };
