@@ -433,6 +433,6 @@ export class SynchronizerJobs {
   };
 
   heartbeat = async () => {
-    await this.state.exsatApi!.heartbeat(ClientType.Synchronizer);
+    await this.state.exsatApi!.heartbeat(Client.Synchronizer);
   };
 }

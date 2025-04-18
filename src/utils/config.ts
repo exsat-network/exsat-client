@@ -1,14 +1,14 @@
 import { reloadEnv } from './common';
+import { NetworkConfig } from './enumeration';
 
 reloadEnv();
 
 // Read the configuration from the .env file and use the default value if there is no configuration
 export const MAX_RETRIES = parseInt(process.env.MAX_RETRIES) || 3;
 export const RETRY_INTERVAL_MS = process.env.RETRY_INTERVAL_MS ? parseInt(process.env.RETRY_INTERVAL_MS) : 2000;
+export const HTTP_TIMEOUT = parseInt(process.env.HTTP_TIMEOUT) || 10000;
 export let EXSAT_RPC_URLS: string[] = process.env.EXSAT_RPC_URLS ? JSON.parse(process.env.EXSAT_RPC_URLS) : [];
 export const RES_PERMISSION: string = process.env.RES_PERMISSION;
-export const SET_SYNCHRONIZER_DONATE_RATIO = process.env.SET_SYNCHRONIZER_DONATE_RATIO || false;
-export const SET_VALIDATOR_DONATE_RATIO = process.env.SET_VALIDATOR_DONATE_RATIO || false;
 
 export const LOGGER_MAX_SIZE: string = process.env.LOGGER_MAX_SIZE || '30m';
 export const LOGGER_MAX_FILES: string = process.env.LOGGER_MAX_FILES || '30d';
@@ -30,12 +30,22 @@ export const SYNCHRONIZER_JOBS_BLOCK_PARSE: string = process.env.SYNCHRONIZER_JO
 export const SYNCHRONIZER_KEYSTORE_FILE: string = process.env.SYNCHRONIZER_KEYSTORE_FILE || '';
 export const SYNCHRONIZER_KEYSTORE_PASSWORD: string = process.env.SYNCHRONIZER_KEYSTORE_PASSWORD || '';
 
-export const VALIDATOR_JOBS_ENDORSE: string = process.env.VALIDATOR_JOBS_ENDORSE || '*/1 * * * * *';
+export const VALIDATOR_JOBS_ENDORSE: string = process.env.VALIDATOR_JOBS_ENDORSE || '*/10 * * * * *';
 export const VALIDATOR_JOBS_ENDORSE_CHECK: string = process.env.VALIDATOR_JOBS_ENDORSE_CHECK || '0 * * * * *';
 export const VALIDATOR_KEYSTORE_FILE: string = process.env.VALIDATOR_KEYSTORE_FILE || '';
+
 export const VALIDATOR_KEYSTORE_PASSWORD: string = process.env.VALIDATOR_KEYSTORE_PASSWORD || '';
 
 export const PROMETHEUS: boolean = process.env.PROMETHEUS === 'true';
 export const PROMETHEUS_ADDRESS = process.env.PROMETHEUS_ADDRESS || '0.0.0.0:9900';
 
-export const CHARGE_BTC_URL: string = 'https://exsat.network/app/bridge/gas-recharge';
+export let NETWORK_CONFIG: NetworkConfig;
+export const NETWORK = process.env.NETWORK || 'mainnet';
+
+export function setExsatRpcUrls(urls: string[]) {
+  EXSAT_RPC_URLS = urls;
+}
+
+export function setNetworkConfig(networkConfig: any) {
+  NETWORK_CONFIG = networkConfig;
+}

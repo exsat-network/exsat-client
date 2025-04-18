@@ -32,6 +32,7 @@ export class Font {
   static importMessageCyan(text: string) {
     return `${this.fgCyan}${this.bright}${text}${this.reset}`;
   }
+
   static importMessageWhite(text: string) {
     return `${this.bright}${text}${this.reset}`;
   }

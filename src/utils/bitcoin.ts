@@ -1,5 +1,5 @@
-import axios from 'axios';
 import { BTC_RPC_PASSWORD, BTC_RPC_URL, BTC_RPC_USERNAME, CHUNK_SIZE } from './config';
+import { http } from './http';
 
 /**
  * sendBtcRpcRequest
@@ -15,7 +15,7 @@ async function sendBtcRpcRequest(data: object): Promise<any> {
       'Content-Type': 'text/plain',
       Authorization: rpcAuth ? `Basic ${rpcAuth}` : '',
     };
-    const response = await axios.post(BTC_RPC_URL, data, { headers });
+    const response = await http.post(BTC_RPC_URL, data, { headers });
     return response.data;
   } catch (e: any) {
     throw new Error(

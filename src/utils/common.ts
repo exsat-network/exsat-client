@@ -1,11 +1,23 @@
-import axios from 'axios';
 import fs from 'node:fs';
-import { BTC_RPC_URL, CHUNK_SIZE, EXSAT_RPC_URLS } from './config';
+import {
+  BTC_RPC_URL,
+  CHUNK_SIZE,
+  EXSAT_RPC_URLS,
+  NETWORK,
+  NETWORK_CONFIG,
+  setExsatRpcUrls,
+  setNetworkConfig,
+} from './config';
 import { logger } from './logger';
 import { getblockcount } from './bitcoin';
 import path from 'node:path';
 import dotenv from 'dotenv';
 import { Font } from './font';
+import { ClientType } from './enumeration';
+import { getKeystorePath } from '../commander/common';
+import { getAccountInfo, getConfigPassword, getInputPassword } from './keystore';
+import { warnTotalCounter } from './prom';
+import { http } from './http';
 
 /**
  * Pauses execution for a specified number of milliseconds.
@@ -30,35 +42,58 @@ export function getAmountFromQuantity(quantity: string): number {
  * @returns A promise that resolves to the data containing RPC URLs.
  */
 export async function getRpcUrls() {
-  const response = await axios.get(`${process.env.ACCOUNT_INITIALIZER_API_BASE_URL}/api/config/exsat_config`, {
-    headers: {
-      'x-api-key': process.env.ACCOUNT_INITIALIZER_API_SECRET,
-    },
-  });
-  return response.data;
+  try {
+    const response = await http.get(
+      `https://raw.githubusercontent.com/exsat-network/configurations/refs/heads/main/src/${NETWORK}-network.json`
+    );
+    return response.data.native.nodes;
+  } catch (error) {
+    logger.error('Failed to get ExSat RPC URLs', error);
+    throw error;
+  }
+}
+
+export async function loadNetworkConfigurations() {
+  try {
+    const response = await http.get(
+      `https://raw.githubusercontent.com/exsat-network/configurations/refs/heads/main/src/${NETWORK}-network.json`
+    );
+
+    if (!EXSAT_RPC_URLS || EXSAT_RPC_URLS.length === 0 || !isValidUrl(EXSAT_RPC_URLS[0])) {
+      setExsatRpcUrls(response.data.native.nodes);
+    }
+    if (!NETWORK_CONFIG) {
+      setNetworkConfig(response.data.app);
+    }
+  } catch (error) {
+    logger.error('Failed to get ExSat RPC URLs', error);
+    throw error;
+  }
 }
 
 /**
  * Checks the environment for required configurations and exits the process if any are missing.
- * @param keystoreFile - The path to the keystore file.
+ * @param clientType - The client type.
  */
-export async function envCheck(keystoreFile: string) {
+export async function envCheck(clientType: ClientType) {
+  const keystoreFile = getKeystorePath(clientType);
   if (!fs.existsSync(keystoreFile)) {
-    logger.error('No keystore file found, please config .env file first');
+    logger.error(
+      `No ${clientType === ClientType.Synchronizer ? 'synchronizer' : 'validator'} keystore file found, please config .env file first`
+    );
     process.exit(1);
   }
   if (!BTC_RPC_URL) {
     logger.error('BTC_RPC_URL is not set');
     process.exit(1);
   }
-  if (EXSAT_RPC_URLS.length === 0) {
+  if (!EXSAT_RPC_URLS || EXSAT_RPC_URLS.length === 0 || !isValidUrl(EXSAT_RPC_URLS[0])) {
     const result = await getRpcUrls();
-    if (result && result.status === 'success' && result.info?.exsat_rpc) {
-      // @ts-ignore
-      EXSAT_RPC_URLS = result.info.exsat_rpc;
+    if (result) {
+      setExsatRpcUrls(result);
     }
   }
-  if (EXSAT_RPC_URLS.length === 0) {
+  if (!EXSAT_RPC_URLS || EXSAT_RPC_URLS.length === 0 || !isValidUrl(EXSAT_RPC_URLS[0])) {
     logger.error('No valid EXSAT RPC URL found');
     process.exit(1);
   }
@@ -75,8 +110,10 @@ export async function envCheck(keystoreFile: string) {
 
 /**
  * Try calling the function repeatedly
- * @param fn
- * @param retries
+ * @param fn - The function to be called.
+ * @param retries - The number of retries.
+ * @param delay - The delay between retries.
+ * @param ft - The function name.
  */
 export const retry = async (fn: () => Promise<any>, retries = 3, delay = 1000, ft = ''): Promise<any> => {
   for (let i = 0; i < retries; i++) {
@@ -118,7 +155,7 @@ export function showInfo(info) {
   console.log(`${Font.fgCyan}${Font.bright}-----------------------------------------------${Font.reset}`);
   for (const key in info) {
     if (info.hasOwnProperty(key)) {
-      console.log(`${Font.fgCyan}${Font.bright}${key}:${Font.reset}${Font.bright} ${info[key]}${Font.reset}`);
+      console.log(`${Font.fgCyan}${Font.bright}${key}: ${Font.reset}${Font.bright}${info[key]}${Font.reset}`);
     }
   }
   console.log(`${Font.fgCyan}${Font.bright}-----------------------------------------------${Font.reset}`);
@@ -217,4 +254,119 @@ export function reloadEnv() {
     throw new Error('No .env file found');
   }
   dotenv.config({ override: true, path: envFilePath });
+}
+
+export function updateEnvFile(values) {
+  let envFilePath;
+  if (isExsatDocker()) {
+    envFilePath = path.join(process.cwd(), '.exsat', '.env');
+  } else {
+    envFilePath = path.join(process.cwd(), '.env');
+  }
+  if (!fs.existsSync(envFilePath)) {
+    fs.writeFileSync(envFilePath, '');
+  }
+  const envConfig = dotenv.parse(fs.readFileSync(envFilePath, 'utf-8'));
+  Object.keys(values).forEach((key) => {
+    envConfig[key] = values[key];
+  });
+  // Read original .env file contents
+  const originalEnvContent = fs.readFileSync(envFilePath, 'utf-8');
+
+  // Parse original .env file contents
+  const parsedEnv = dotenv.parse(originalEnvContent);
+
+  // Build updated .env file contents, preserving comments and structure
+  const updatedLines = originalEnvContent.split('\n').map((line) => {
+    const [key] = line.split('=');
+    if (key && envConfig.hasOwnProperty(key)) {
+      return `${key}=${envConfig[key.trim()]}`;
+    }
+    return line;
+  });
+
+  // Check if any new key-value pairs need to be added to the end of the file
+  Object.keys(envConfig).forEach((key) => {
+    if (!parsedEnv.hasOwnProperty(key)) {
+      updatedLines.push(`${key}=${envConfig[key]}`);
+    }
+  });
+  // Concatenate updated content into string
+  const updatedEnvContent = updatedLines.join('\n');
+  // Write back the updated .env file contents
+  fs.writeFileSync(envFilePath, updatedEnvContent);
+
+  return true;
+}
+
+/**
+ * Check if transaction id is 64 digit hexadecimal
+ * @param txid
+ */
+export function isValidTxid(txid: string): boolean {
+  // Check if the length is 64
+  if (txid.length !== 64) {
+    return false;
+  }
+  // Check if it is hexadecimal
+  const hexRegex = /^[0-9a-fA-F]+$/;
+  return hexRegex.test(txid);
+}
+
+export function isValidEvmAddress(address) {
+  return /^0x[a-fA-F0-9]{40}$/.test(address);
+}
+
+/**
+ * Remove trailing zeros from a value
+ * @param value
+ */
+export function removeTrailingZeros(value) {
+  if (!value) return 0;
+  if (typeof value == 'number') return value;
+  const [amount, unit] = value.split(' ');
+  return `${parseFloat(amount)} ${unit}`;
+}
+
+/**
+ * Normalize account name
+ * @param name - account name
+ */
+export function normalizeAccountName(name: string) {
+  return name.endsWith('.sat') ? name : `${name}.sat`;
+}
+
+/**
+ * Initialize account info
+ * @param clientType
+ */
+export async function initializeAccount(clientType: ClientType): Promise<{
+  accountInfo: any;
+  password: string;
+}> {
+  const keystoreFile = getKeystorePath(clientType);
+  let password = getConfigPassword(clientType);
+  let accountInfo;
+  if (password) {
+    password = password.trim();
+    accountInfo = await getAccountInfo(keystoreFile, password);
+  } else {
+    while (!accountInfo) {
+      try {
+        password = await getInputPassword();
+        if (password.trim() === 'q') {
+          process.exit(0);
+        }
+        accountInfo = await getAccountInfo(keystoreFile, password);
+      } catch (e) {
+        logger.warn(e);
+        warnTotalCounter.inc({
+          account: accountInfo?.accountName,
+          client: clientType == ClientType.Synchronizer ? 'synchronizer' : 'validator',
+        });
+      }
+    }
+  }
+
+  return { accountInfo, password };
 }

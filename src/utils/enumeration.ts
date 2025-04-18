@@ -1,6 +1,13 @@
 export enum Client {
   Synchronizer = 'synchronizer',
   Validator = 'validator',
+  XSATValidator = 'xsat_validator',
+}
+
+export enum RoleType {
+  synchronizer = 1,
+  validator = 2,
+  xsat_validator = 3,
 }
 
 export enum ClientType {
@@ -55,13 +62,32 @@ export enum KeyType {
   Name = 'name',
 }
 
+export enum KeystoreExistStatus {
+  None = 0,
+  Synchronizer = 1,
+  Validator = 2,
+  Both = 3,
+}
+
+export interface NetworkConfig {
+  portal: string;
+  recharge: string;
+  register: string;
+  userGuide: string;
+  synchronizerRegistration: string;
+  contact: string;
+  minGasBalance: number;
+}
+
 export enum ErrorCode {
   Code1001 = '1001', //1001:blkendt.xsat::endorse: the current endorsement status is disabled
   Code1002 = '1002', //1002:blkendt.xsat::endorse: the block has been parsed and does not need to be endorsed
   Code1003 = '1003', //1003:blkendt.xsat::endorse: the endorsement height cannot exceed height
+  Code1004 = '1004', //1004:blkendt.xsat::endorse: the number of valid validators must be greater than or equal to 2
   Code1008 = '1008', //1008:blkendt.xsat::endorse: the next endorsement time has not yet been reached
   Code2005 = '2005', //2005:blksync.xsat::initbucket: the block has reached consensus
   Code2006 = '2006', //2006:blksync.xsat::initbucket: to become a synchronizer, a block must be produced within 72 hours
+  Code2007 = '2007', //2007:blksync.xsat::revote: synchronizer already in pending record
   Code2008 = '2008', //2008:blksync.xsat::initbucket: cannot init bucket in the current state [verify_pass]
   Code2009 = '2009', //2009:blksync.xsat::pushchunk: the block has reached consensus
   Code2012 = '2012', //2012:blksync.xsat::pushchunk: [blockbuckets] does not exists
