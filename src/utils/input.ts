@@ -147,7 +147,7 @@ export const selectDirPrompt = async () => {
       }
 
       const finalize = await confirm({
-        message: 'Do you want to finalize this directory selection? (Y/N): ',
+        message: 'Do you want to finalize this directory selection?',
       });
 
       if (finalize) {

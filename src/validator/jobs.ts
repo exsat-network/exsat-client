@@ -46,9 +46,15 @@ export class ValidatorJobs {
       return;
     }
 
-    logger.warn(
-      `The current validator[${accountName}] does not meet the endorsement eligibility requirements. Please stake sufficient token first.`
-    );
+    if (validatorInfo.active_flag === 1) {
+      logger.info(
+        `The current validator[${accountName}] is not in the endorsement requirements list for this block height[${height}].`
+      );
+    } else {
+      logger.warn(
+        `The current validator[${accountName}] does not meet the endorsement eligibility requirements. Please stake sufficient token first.`
+      );
+    }
   }
 
   // Submit an endorsement to the blockchain
