@@ -212,7 +212,7 @@ export class SynchronizerJobs {
             }
           } else if (minBlockHash !== minBucket.hash) {
             logger.info(
-              `delbucket: Bitcoin fork happen, delete fork blockbucket, forkHeight: ${maxBucket.height}, hash: ${maxBucket.hash}`
+              `delbucket: Bitcoin fork happen, delete fork blockbucket, forkHeight: ${minBucket.height}, hash: ${minBucket.hash}`
             );
             await this.blockOperations.delbucket(caller, minBucket.height, minBucket.hash);
           } else if (minBucket.height > headHeight + 1) {
