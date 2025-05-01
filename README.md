@@ -150,25 +150,40 @@ could choose the option that save the keystore at /app/.exsat). This way, the ke
 machine. Otherwise, if you remove the Docker container, the keystore file will be lost, and you will need to regenerate
 the keystore file by importing the seed phrase.
 
-**It is highly recommended that the .env file and keystore file be placed in the same directory.**  
-**The keystore password for running Docker in the background needs to be configured in the .env file.**
+**It is highly recommended that the .env file and keystore file be placed in the same directory.**
 
 ## Run commander
 
 ```shell
-docker run --rm -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=commander exsatnetwork/exsat-client:latest
+# Run commander with the keystore password configured in the .env file
+docker run --rm -it -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=commander exsatnetwork/exsat-client:latest
+
+# Run commander with the keystore password provided directly
+docker run --rm -it -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=commander -e VALIDATOR_KEYSTORE_PASSWORD=123456 exsatnetwork/exsat-client:latest
 ```
 
 ## Run synchronizer
 
 ```shell
+# Run synchronizer with the keystore password configured in the .env file
 docker run -d --name synchronizer -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=synchronizer exsatnetwork/exsat-client:latest
+
+# Run synchronizer with the keystore password provided directly
+docker run -d --name synchronizer -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=synchronizer -e VALIDATOR_KEYSTORE_PASSWORD=123456 exsatnetwork/exsat-client:latest
+
+# Fetches the last 100 lines of docker logs
 docker logs -f --tail=100 synchronizer
 ```
 
 ## Run validator
 
 ```shell
+# Run validator with the keystore password configured in the .env file
 docker run -d --name validator -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=validator exsatnetwork/exsat-client:latest
+
+# Run validator with the keystore password provided directly
+docker run -d --name validator -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=validator -e VALIDATOR_KEYSTORE_PASSWORD=123456exsatnetwork/exsat-client:latest
+
+# Fetches the last 100 lines of docker logs
 docker logs -f --tail=100 validator
 ```
