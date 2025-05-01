@@ -150,7 +150,7 @@ could choose the option that save the keystore at /app/.exsat). This way, the ke
 machine. Otherwise, if you remove the Docker container, the keystore file will be lost, and you will need to regenerate
 the keystore file by importing the seed phrase.
 
-**It is highly recommended that the .env file and keystore file be placed in the same directory.**  
+**It is highly recommended that the .env file and keystore file be placed in the same directory.**
 
 ## Run commander
 
