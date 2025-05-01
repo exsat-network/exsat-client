@@ -59,15 +59,12 @@ cp .env.example .env
 vim .env
 ```
 
-This is a simplified env configuration file for **synchronizer** with testnet. For other configuration items, please
+This is a simplified env configuration file for client with mainnet. For other configuration items, please
 refer to the _.env.example_ file for more details.
 
 ```
-# Account Initializer API base URL
-ACCOUNT_INITIALIZER_API_BASE_URL=https://registst3.exactsat.io
-
-# ExSat RPC URLs configurations
-EXSAT_RPC_URLS=["https://chain-tst3.exactsat.io"]
+# network configurations mainnet or testnet
+# NETWORK=mainnet
 
 # Bitcoin RPC URL
 BTC_RPC_URL=
@@ -83,6 +80,13 @@ SYNCHRONIZER_KEYSTORE_FILE=
 
 # Password for the synchronizer's keystore
 SYNCHRONIZER_KEYSTORE_PASSWORD=
+
+# File path to the validator's keystore
+VALIDATOR_KEYSTORE_FILE=
+
+# Password for the validator's keystore
+# Note: When configuring VALIDATOR_KEYSTORE_PASSWORD, if the password contains characters like ', ", or ` and they are not wrapped in quotes, you need to escape them with a backslash (\).
+VALIDATOR_KEYSTORE_PASSWORD=
 ```
 
 Save and close the _.env_ File
@@ -151,19 +155,35 @@ the keystore file by importing the seed phrase.
 ## Run commander
 
 ```shell
-docker run -it --name commander -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=commander exsatnetwork/exsat-client:latest
+# Run commander with the keystore password configured in the .env file
+docker run --rm -it -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=commander exsatnetwork/exsat-client:latest
+
+# Run commander with the keystore password provided directly
+docker run --rm -it -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=commander -e VALIDATOR_KEYSTORE_PASSWORD=123456 exsatnetwork/exsat-client:latest
 ```
 
 ## Run synchronizer
 
 ```shell
+# Run synchronizer with the keystore password configured in the .env file
 docker run -d --name synchronizer -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=synchronizer exsatnetwork/exsat-client:latest
+
+# Run synchronizer with the keystore password provided directly
+docker run -d --name synchronizer -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=synchronizer -e VALIDATOR_KEYSTORE_PASSWORD=123456 exsatnetwork/exsat-client:latest
+
+# Fetches the last 100 lines of docker logs
 docker logs -f --tail=100 synchronizer
 ```
 
 ## Run validator
 
 ```shell
+# Run validator with the keystore password configured in the .env file
 docker run -d --name validator -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=validator exsatnetwork/exsat-client:latest
+
+# Run validator with the keystore password provided directly
+docker run -d --name validator -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=validator -e VALIDATOR_KEYSTORE_PASSWORD=123456exsatnetwork/exsat-client:latest
+
+# Fetches the last 100 lines of docker logs
 docker logs -f --tail=100 validator
 ```
