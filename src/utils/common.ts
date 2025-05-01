@@ -230,12 +230,13 @@ export function getNextUploadHeight(currentUploadedHeights: number[], headHeight
  */
 export function reloadEnv() {
   let envFilePath;
-  if (IS_DOCKER) {
+  if (process.env.RUNNING_IN_DOCKER === 'true') {
     envFilePath = path.join(process.cwd(), '.exsat', '.env');
   } else {
     envFilePath = path.join(process.cwd(), '.env');
   }
   if (!fs.existsSync(envFilePath)) {
+    console.log(`No .env file found, IS_DOCKER=${IS_DOCKER}`, IS_DOCKER);
     throw new Error(`No .env file found, IS_DOCKER=${IS_DOCKER}`);
   }
   dotenv.config({ override: true, path: envFilePath });
