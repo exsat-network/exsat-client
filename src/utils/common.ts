@@ -236,7 +236,7 @@ export function reloadEnv() {
     envFilePath = path.join(process.cwd(), '.env');
   }
   if (!fs.existsSync(envFilePath)) {
-    throw new Error('No .env file found');
+    throw new Error(`No .env file found, IS_DOCKER=${IS_DOCKER}`);
   }
   dotenv.config({ override: true, path: envFilePath });
 }
