@@ -4,6 +4,7 @@ import { NetworkConfig } from './enumeration';
 reloadEnv();
 
 // Read the configuration from the .env file and use the default value if there is no configuration
+export const IS_DOCKER: boolean = process.env.RUNNING_IN_DOCKER === 'true';
 export const MAX_RETRIES = parseInt(process.env.MAX_RETRIES) || 3;
 export const RETRY_INTERVAL_MS = process.env.RETRY_INTERVAL_MS ? parseInt(process.env.RETRY_INTERVAL_MS) : 2000;
 export const HTTP_TIMEOUT = parseInt(process.env.HTTP_TIMEOUT) || 10000;
@@ -12,7 +13,6 @@ export const RES_PERMISSION: string = process.env.RES_PERMISSION;
 
 export const LOGGER_MAX_SIZE: string = process.env.LOGGER_MAX_SIZE || '30m';
 export const LOGGER_MAX_FILES: string = process.env.LOGGER_MAX_FILES || '30d';
-export const LOGGER_DIR: string = process.env.LOGGER_DIR || 'logs';
 
 export const BTC_RPC_URL: string = process.env.BTC_RPC_URL;
 export const BTC_RPC_USERNAME: string = process.env.BTC_RPC_USERNAME;

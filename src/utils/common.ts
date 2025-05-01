@@ -3,6 +3,7 @@ import {
   BTC_RPC_URL,
   CHUNK_SIZE,
   EXSAT_RPC_URLS,
+  IS_DOCKER,
   NETWORK,
   NETWORK_CONFIG,
   setExsatRpcUrls,
@@ -225,27 +226,11 @@ export function getNextUploadHeight(currentUploadedHeights: number[], headHeight
 }
 
 /**
- * Check if running in Docker.
- */
-export function isExsatDocker(): boolean {
-  try {
-    // Check for /.dockerenv file
-    if (fs.existsSync('/exsat.lock')) {
-      return true;
-    }
-  } catch (err) {
-    console.error('Error checking if running in Docker:', err);
-  }
-
-  return false;
-}
-
-/**
  * Reload the .env file.
  */
 export function reloadEnv() {
   let envFilePath;
-  if (isExsatDocker()) {
+  if (IS_DOCKER) {
     envFilePath = path.join(process.cwd(), '.exsat', '.env');
   } else {
     envFilePath = path.join(process.cwd(), '.env');
@@ -258,7 +243,7 @@ export function reloadEnv() {
 
 export function updateEnvFile(values) {
   let envFilePath;
-  if (isExsatDocker()) {
+  if (IS_DOCKER) {
     envFilePath = path.join(process.cwd(), '.exsat', '.env');
   } else {
     envFilePath = path.join(process.cwd(), '.env');

@@ -1,6 +1,7 @@
-const { createLogger, format, transports } = require('winston');
 import DailyRotateFile from 'winston-daily-rotate-file';
-import { LOGGER_DIR, LOGGER_MAX_FILES, LOGGER_MAX_SIZE } from './config';
+import { IS_DOCKER, LOGGER_MAX_FILES, LOGGER_MAX_SIZE } from './config';
+
+const { createLogger, format, transports } = require('winston');
 
 const customFormat = format.combine(
   format.timestamp({ format: 'YYYY-MM-DDTHH:mm:ss.SSSZ' }),
@@ -22,6 +23,7 @@ export const logger = createLogger({
 });
 
 export function configureLogger(clientType: string) {
+  const LOGGER_DIR = IS_DOCKER ? '/app/.exsat/logs' : 'logs';
   const fileTransport = new DailyRotateFile({
     level: 'info',
     filename: `${LOGGER_DIR}/${clientType}/info-%DATE%.log`,
