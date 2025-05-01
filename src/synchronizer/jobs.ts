@@ -198,6 +198,8 @@ export class SynchronizerJobs {
         } else {
           const minBucket = blockbuckets[0];
           const maxBucket = blockbuckets[blockbuckets.length - 1];
+          const minBlockhashInfo = await getblockhash(minBucket.height);
+          const minBlockHash = minBlockhashInfo.result;
           if (forkHeight > 0) {
             logger.info(
               `delbucket: Bitcoin fork happen, delete all blockbuckets, forkHeight: ${forkHeight}, forkHash: ${forkHash}`
@@ -208,6 +210,11 @@ export class SynchronizerJobs {
                 await this.blockOperations.delbucket(caller, blockbucket.height, blockbucket.hash);
               }
             }
+          } else if (minBlockHash !== minBucket.hash) {
+            logger.info(
+              `delbucket: Bitcoin fork happen, delete fork blockbucket, forkHeight: ${maxBucket.height}, hash: ${maxBucket.hash}`
+            );
+            await this.blockOperations.delbucket(caller, minBucket.height, minBucket.hash);
           } else if (minBucket.height > headHeight + 1) {
             logger.info(
               `delbucket: The prev block need reupload, delete max bucket, height: ${maxBucket.height}, hash: ${maxBucket.hash}`
