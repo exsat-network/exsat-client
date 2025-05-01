@@ -3,7 +3,7 @@ import path from 'path';
 import { promisify } from 'node:util';
 import os from 'node:os';
 import fs from 'fs-extra';
-import { isExsatDocker } from './common';
+import { IS_DOCKER } from './config';
 
 export async function inputWithCancel(
   message: string,
@@ -76,7 +76,7 @@ async function checkAndCreatePath(directoryPath: string): Promise<void> {
 export const selectDirPrompt = async () => {
   let rootPath;
   let choices;
-  if (!isExsatDocker()) {
+  if (!IS_DOCKER) {
     rootPath = path.resolve(os.homedir() + '/.exsat');
     choices = [
       { name: `Home Path(path: ${rootPath})`, value: '2' },

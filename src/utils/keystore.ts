@@ -36,6 +36,7 @@ import {
 
 import { isHexStrict, isString, validator } from 'web3-validator';
 import { normalizeAccountName } from './common';
+import { SYNCHRONIZER_KEYSTORE_PASSWORD, VALIDATOR_KEYSTORE_PASSWORD } from './config';
 
 const keyStoreSchema = {
   type: 'object',
@@ -86,10 +87,10 @@ export function getConfigPassword(clientType: number) {
   if (!password) {
     switch (clientType) {
       case ClientType.Validator:
-        password = process.env.VALIDATOR_KEYSTORE_PASSWORD;
+        password = VALIDATOR_KEYSTORE_PASSWORD;
         break;
       case ClientType.Synchronizer:
-        password = process.env.SYNCHRONIZER_KEYSTORE_PASSWORD;
+        password = SYNCHRONIZER_KEYSTORE_PASSWORD;
         break;
       default:
         throw new Error('Invalid client type');

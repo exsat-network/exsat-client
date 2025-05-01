@@ -59,15 +59,12 @@ cp .env.example .env
 vim .env
 ```
 
-This is a simplified env configuration file for **synchronizer** with testnet. For other configuration items, please
+This is a simplified env configuration file for client with mainnet. For other configuration items, please
 refer to the _.env.example_ file for more details.
 
 ```
-# Account Initializer API base URL
-ACCOUNT_INITIALIZER_API_BASE_URL=https://registst3.exactsat.io
-
-# ExSat RPC URLs configurations
-EXSAT_RPC_URLS=["https://chain-tst3.exactsat.io"]
+# network configurations mainnet or testnet
+# NETWORK=mainnet
 
 # Bitcoin RPC URL
 BTC_RPC_URL=
@@ -83,6 +80,13 @@ SYNCHRONIZER_KEYSTORE_FILE=
 
 # Password for the synchronizer's keystore
 SYNCHRONIZER_KEYSTORE_PASSWORD=
+
+# File path to the validator's keystore
+VALIDATOR_KEYSTORE_FILE=
+
+# Password for the validator's keystore
+# Note: When configuring VALIDATOR_KEYSTORE_PASSWORD, if the password contains characters like ', ", or ` and they are not wrapped in quotes, you need to escape them with a backslash (\).
+VALIDATOR_KEYSTORE_PASSWORD=
 ```
 
 Save and close the _.env_ File
@@ -146,12 +150,13 @@ could choose the option that save the keystore at /app/.exsat). This way, the ke
 machine. Otherwise, if you remove the Docker container, the keystore file will be lost, and you will need to regenerate
 the keystore file by importing the seed phrase.
 
-**It is highly recommended that the .env file and keystore file be placed in the same directory.**
+**It is highly recommended that the .env file and keystore file be placed in the same directory.**  
+**The keystore password for running Docker in the background needs to be configured in the .env file.**
 
 ## Run commander
 
 ```shell
-docker run -it --name commander -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=commander exsatnetwork/exsat-client:latest
+docker run --rm -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=commander exsatnetwork/exsat-client:latest
 ```
 
 ## Run synchronizer

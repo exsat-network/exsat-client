@@ -7,10 +7,10 @@ import WIF from 'wif';
 import { bytesToHex } from 'web3-utils';
 import { confirm, input, password, select } from '@inquirer/prompts';
 import { clearLines, inputWithCancel, processAndUpdatePassword, selectDirPrompt } from '../utils/input';
-import { isExsatDocker, normalizeAccountName, retry, updateEnvFile } from '../utils/common';
+import { normalizeAccountName, retry, updateEnvFile } from '../utils/common';
 import { Font } from '../utils/font';
 import { createKeystore, keystoreExist } from '../utils/keystore';
-import { EXSAT_RPC_URLS } from '../utils/config';
+import { IS_DOCKER, EXSAT_RPC_URLS } from '../utils/config';
 import { Client } from '../utils/enumeration';
 import TableApi from '../utils/table-api';
 import { http } from '../utils/http';
@@ -84,7 +84,7 @@ async function saveKeystore(privateKey, username, role?) {
   let pathConfirm = 'yes';
   do {
     selectedPath = await selectDirPrompt();
-    if (isExsatDocker()) {
+    if (IS_DOCKER) {
       pathConfirm = await input({
         message: `Please ensure that the save path you set ( ${selectedPath} ) matches the Docker mapping path. Otherwise, your keystore file may be lost. ( Enter "yes" to continue, or "no" to go back to the previous step ):`,
         validate: (input) => ['yes', 'no'].includes(input.toLowerCase()) || 'Please input "yes" or "no".',
