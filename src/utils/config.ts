@@ -1,10 +1,11 @@
 import { reloadEnv } from './common';
 import { NetworkConfig } from './enumeration';
 
+export const IS_DOCKER: boolean = process.env.RUNNING_IN_DOCKER === 'true';
+
 reloadEnv();
 
 // Read the configuration from the .env file and use the default value if there is no configuration
-export const IS_DOCKER: boolean = process.env.RUNNING_IN_DOCKER === 'true';
 export const MAX_RETRIES = parseInt(process.env.MAX_RETRIES) || 3;
 export const RETRY_INTERVAL_MS = process.env.RETRY_INTERVAL_MS ? parseInt(process.env.RETRY_INTERVAL_MS) : 2000;
 export const HTTP_TIMEOUT = parseInt(process.env.HTTP_TIMEOUT) || 10000;
