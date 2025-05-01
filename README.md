@@ -156,9 +156,7 @@ the keystore file by importing the seed phrase.
 ## Run commander
 
 ```shell
-docker run -it --name commander -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=commander exsatnetwork/exsat-client:latest
-#after executing or re-enter, you need to first remove the old commander docker container.
-docker rm -f commander
+docker run --rm -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=commander exsatnetwork/exsat-client:latest
 ```
 
 ## Run synchronizer
