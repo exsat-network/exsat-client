@@ -86,10 +86,10 @@ export function getConfigPassword(clientType: number) {
   if (!password) {
     switch (clientType) {
       case ClientType.Validator:
-        password = process.env.VALIDATOR_KEYSTORE_PASSWORD;
+        password = process.env.VALIDATOR_KEYSTORE_PASSWORD || '';
         break;
       case ClientType.Synchronizer:
-        password = process.env.SYNCHRONIZER_KEYSTORE_PASSWORD;
+        password = process.env.SYNCHRONIZER_KEYSTORE_PASSWORD || '';
         break;
       default:
         throw new Error('Invalid client type');
