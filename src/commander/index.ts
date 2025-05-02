@@ -4,8 +4,8 @@ import { ValidatorCommander } from './validator';
 import { Version } from '../utils/version';
 import { checkAccountRegistrationStatus, getKeystoreBaseInfo, notAccountMenu, updateMenu } from './common';
 import { Client, ClientType, KeystoreExistStatus } from '../utils/enumeration';
-import { isExsatDocker, loadNetworkConfigurations, reloadEnv, showInfo } from '../utils/common';
-import { NETWORK_CONFIG } from '../utils/config';
+import { loadNetworkConfigurations, reloadEnv, showInfo } from '../utils/common';
+import { IS_DOCKER, NETWORK_CONFIG } from '../utils/config';
 import { keystoreExistStatus } from '../utils/keystore';
 import { getInputRole } from './account';
 
@@ -15,7 +15,6 @@ import { getInputRole } from './account';
  */
 async function main() {
   await loadNetworkConfigurations();
-  const isDocker = isExsatDocker();
 
   showInfo({
     'Please note':
@@ -25,13 +24,13 @@ async function main() {
 
   // Check for client updates
   let versions;
-  if (isDocker) {
+  if (IS_DOCKER) {
     versions = await Version.checkForDockerUpdates();
   } else {
     versions = await Version.checkForUpdates();
   }
   if (versions.newVersion) {
-    await updateMenu(versions, isDocker);
+    await updateMenu(versions, IS_DOCKER);
   }
 
   let keystoreStatus = keystoreExistStatus();

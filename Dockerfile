@@ -6,12 +6,10 @@ RUN apt-get update && apt-get install -y curl \
   && npm install -g yarn \
   && apt-get clean
 
-# Create exsat identity
-RUN touch /exsat.lock
+ENV RUNNING_IN_DOCKER=true
 
 WORKDIR /app
 COPY . /app
-RUN yarn install \
-    && yarn build
+RUN yarn install && yarn build
 
 CMD ["sh", "-c", "yarn start-$CLIENT_TYPE"]
