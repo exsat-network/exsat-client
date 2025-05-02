@@ -15,7 +15,7 @@
     "@scure/bip39": "^1.0.0",
     "@wharfkit/session": "^1.4.0",
     "@wharfkit/wallet-plugin-privatekey": "^1.1.0",
-    "axios": "^1.7.4",
+    "axios": "^1.9.0",
     "bitcoinjs-lib": "^6.1.6",
     "bn.js": "^5.2.1",
     "crypto-js": "^4.2.0",
