@@ -3,6 +3,7 @@
 The current Git repository only describes the operations on the client side. If you need complete instructions on how to register and run the Synchronizer and Validator on the exSat network, please refer to this link for more comprehensive information: [https://docs.exsat.network/get-started](https://docs.exsat.network/get-started).
 
 ## Table of Contents
+
 - [Hardware Requirement](#hardware-requirement)
 - [Operating System](#operating-system)
 - [Prerequisites](#prerequisites)
@@ -33,14 +34,17 @@ It is recommended to use the Ubuntu system or other Linux distributions.
 If you choose to install from the source, ensure the following tools are installed on your system:
 
 - **Git**
+
   - Check: `git --version`
   - Install: [Git Installation Guide](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
 
 - **Node.js** (version 20.0.0 or higher)
+
   - Check: `node -v`
   - Install: [Node.js Installation Guide](https://nodejs.org/en/download/package-manager)
 
 - **Yarn**
+
   - Check: `yarn -v`
   - Install: `npm install -g yarn`
 
@@ -127,11 +131,13 @@ Open a terminal window.
 Navigate to the project directory and execute the commands based on different roles:
 
 - Start Commander:
+
   ```bash
   yarn start-commander
   ```
 
 - Start Synchronizer:
+
   ```bash
   yarn start-synchronizer
   ```
@@ -148,10 +154,13 @@ If you prefer to manage the client processes with PM2, you need to build the pro
 **Note: Ensure that the keystore password is configured in the .env file.**
 
 - Start Synchronizer with PM2:
+
   ```bash
   pm2 start yarn --name synchronizer -- start-synchronizer
   ```
+
   or
+
   ```bash
   pm2 start ecosystem.config.js --only synchronizer
   ```
@@ -166,6 +175,7 @@ If you prefer to manage the client processes with PM2, you need to build the pro
   ```
 
 You can check the status of your PM2 processes with:
+
 ```bash
 pm2 list
 ```
@@ -173,6 +183,7 @@ pm2 list
 ## Troubleshooting
 
 - **Issue**: Startup failure with permission denied.
+
   - **Solution**: Ensure you are running the commands under the correct user; use `sudo` if necessary.
 
 - **Issue**: Dependency installation failure.
