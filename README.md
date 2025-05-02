@@ -182,7 +182,7 @@ docker logs -f --tail=100 synchronizer
 docker run -d --name validator -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=validator exsatnetwork/exsat-client:latest
 
 # Run validator with the keystore password provided directly
-docker run -d --name validator -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=validator -e VALIDATOR_KEYSTORE_PASSWORD=123456exsatnetwork/exsat-client:latest
+docker run -d --name validator -v $HOME/.exsat:/app/.exsat -e CLIENT_TYPE=validator -e VALIDATOR_KEYSTORE_PASSWORD=123456 exsatnetwork/exsat-client:latest
 
 # Fetches the last 100 lines of docker logs
 docker logs -f --tail=100 validator
