@@ -90,7 +90,6 @@ SYNCHRONIZER_KEYSTORE_PASSWORD=
 VALIDATOR_KEYSTORE_FILE=
 
 # Password for the validator's keystore
-# Note: When configuring VALIDATOR_KEYSTORE_PASSWORD, if the password contains characters like ', ", or `, ensure to escape them with a backslash (\).
 VALIDATOR_KEYSTORE_PASSWORD=
 ```
 
