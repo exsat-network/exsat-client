@@ -41,7 +41,8 @@ export class ValidatorJobs {
         await this.submit(accountName, height, hash);
         return;
       }
-    } else if (validatorInfo.active_flag !== 0) {
+    }
+    if (validatorInfo.active_flag !== 0) {
       await this.submit(accountName, height, hash);
       return;
     }
