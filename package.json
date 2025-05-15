@@ -1,6 +1,6 @@
 {
   "name": "exsat-client",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "author": "RobinHolmes <robin@exsat.org>",
   "license": "MIT",
   "scripts": {
