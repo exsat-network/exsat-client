@@ -37,7 +37,7 @@ export class ValidatorJobs {
       }
 
       const isQualifiedEndorser = this.isEndorserQualified(endorsement.requested_validators, accountName);
-      if (isQualifiedEndorser || validatorInfo.last_consensus_height < height) {
+      if (isQualifiedEndorser || (validatorInfo.latest_consensus_block < height && validatorInfo.active_flag !== 0)) {
         await this.submit(accountName, height, hash);
         return;
       }
