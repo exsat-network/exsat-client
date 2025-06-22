@@ -26,6 +26,7 @@ export enum ContractName {
   rwddist = 'rwddist.xsat',
   compete = 'compete.xsat',
   res = 'res.xsat',
+  custody = 'custody.xsat',
 }
 
 export enum BlockStatus {
@@ -67,6 +68,12 @@ export enum KeystoreExistStatus {
   Synchronizer = 1,
   Validator = 2,
   Both = 3,
+}
+
+export enum VerificationStatus {
+  Pending = 0,
+  Approved = 1,
+  Rejected = 2,
 }
 
 export interface NetworkConfig {

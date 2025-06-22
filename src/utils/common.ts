@@ -356,3 +356,65 @@ export async function initializeAccount(clientType: ClientType): Promise<{
 
   return { accountInfo, password };
 }
+
+/**
+ * Check if BTC address format is valid
+ * @param address - BTC address to validate
+ */
+export function isValidBtcAddress(address: string): boolean {
+  if (!address || typeof address !== 'string') {
+    return false;
+  }
+
+  // Remove whitespace
+  address = address.trim();
+
+  // Check for different address types
+  if (address.startsWith('1')) {
+    // Legacy P2PKH address (26-35 characters)
+    return /^1[a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(address);
+  } else if (address.startsWith('3')) {
+    // P2SH address (26-35 characters)
+    return /^3[a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(address);
+  } else if (address.startsWith('m') || address.startsWith('n')) {
+    // Testnet P2PKH address (26-35 characters)
+    return /^[mn][a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(address);
+  } else if (address.startsWith('2')) {
+    // Testnet P2SH address (26-35 characters)
+    return /^2[a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(address);
+  } else if (address.startsWith('bc1')) {
+    // Native SegWit (Bech32) address
+    return /^bc1[a-z0-9]{25,62}$/.test(address);
+  } else if (address.startsWith('tb1')) {
+    // Testnet SegWit (Bech32) address
+    return /^tb1[a-z0-9]{25,62}$/.test(address);
+  } else if (address.startsWith('bc1p')) {
+    // Mainnet Taproot address
+    return /^bc1p[a-z0-9]{25,62}$/.test(address);
+  } else if (address.startsWith('tb1p')) {
+    // Testnet Taproot address
+    return /^tb1p[a-z0-9]{25,62}$/.test(address);
+  }
+
+  return false;
+}
+
+/**
+ * Check if commission rate format is valid (0.00-100.00)
+ * @param rate - Commission rate string to validate
+ */
+export function isValidCommissionRate(rate: string): boolean {
+  const num = parseFloat(rate);
+
+  // Check if it is a valid number and within the range
+  return !isNaN(num) && num >= 0 && num <= 100 && /^\d+(\.\d{1,2})?$/.test(rate);
+}
+
+/**
+ * Check if email format is valid
+ * @param email - Email string to validate
+ */
+export function isValidEmail(email: string): boolean {
+  if (!email) return true; // Empty email is allowed (optional)
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
