@@ -79,15 +79,7 @@ class ExsatApi {
     }
   }
 
-  /**
-   * Executes a exsat action and handles potential errors and retries.
-   * @param account - The account to execute the action on.
-   * @param name - The name of the action to execute.
-   * @param data - The data to send with the action.
-   * @param showLog
-   * @returns The result of the transaction.
-   */
-  public async executeAction(account: string, name: string, data: any, showLog = true) {
+  private async getAuthorization() {
     const packageVersion = await Version.getLocalVersion();
     let resPermission = packageVersion.startsWith('1.0') ? 'active' : 'res';
     if (RES_PERMISSION) {
@@ -103,6 +95,19 @@ class ExsatApi {
         permission: 'active',
       },
     ];
+    return authorization;
+  }
+
+  /**
+   * Executes a exsat action and handles potential errors and retries.
+   * @param account - The account to execute the action on.
+   * @param name - The name of the action to execute.
+   * @param data - The data to send with the action.
+   * @param showLog
+   * @returns The result of the transaction.
+   */
+  public async executeAction(account: string, name: string, data: any, showLog = true) {
+    const authorization = await this.getAuthorization();
     try {
       const result = await this.session.transact(
         {
@@ -126,6 +131,43 @@ class ExsatApi {
       dataStr = dataStr.length > 500 ? dataStr.substring(0, 500) + '...' : dataStr;
       if (showLog) {
         logger.info(`Transaction result, account: ${account}, name: ${name}, data: ${dataStr}`, e);
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Executes multiple exsat actions and handles potential errors and retries.
+   * @param datas - The data to send with the action.
+   * @param showLog
+   * @returns The result of the transaction.
+   */
+  public async executeActions(datas: { account: string; name: string; data: any }[], showLog = true) {
+    const authorization = await this.getAuthorization();
+
+    const actions = datas.map((action) => ({
+      account: action.account,
+      name: action.name,
+      authorization,
+      data: action.data,
+    }));
+
+    try {
+      const result = await this.session.transact(
+        {
+          actions,
+        },
+        {
+          expireSeconds: 30,
+        }
+      );
+      // logger.info(`Execute actions: ${this.executeActions++}`);
+      return result.response;
+    } catch (e: any) {
+      let dataStr = JSON.stringify(datas);
+      dataStr = dataStr.length > 500 ? dataStr.substring(0, 500) + '...' : dataStr;
+      if (showLog) {
+        logger.info(`Transaction result, account: ${datas[0].account}, name: ${datas[0].name}, data: ${dataStr}`, e);
       }
       throw e;
     }

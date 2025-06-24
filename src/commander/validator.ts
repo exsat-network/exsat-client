@@ -39,13 +39,10 @@ export class ValidatorCommander {
   private validatorInfo: any;
   private isCreditStaker: boolean = false;
   private creditStakingInfo: {
-    hasEnrollment: boolean;
     random?: string;
     hasVerification?: boolean;
     verificationStatus?: VerificationStatus;
-  } = {
-    hasEnrollment: false,
-  };
+  } = {};
   private tableApi: TableApi;
   private exsatApi: ExsatApi;
   private blkendtConfig: any;
@@ -79,7 +76,7 @@ export class ValidatorCommander {
     const validator = this.validatorInfo;
 
     // Check the credit staking status to refresh the menu
-    await this.checkCreditStakingStatus(validator);
+    await this.checkCreditStakingStatus();
 
     let showMessageInfo = await this.getShowMessageInfo(validator);
 
@@ -284,6 +281,15 @@ export class ValidatorCommander {
    * Selects to verify BTC address.
    */
   async selectToVerifyBtcAddress() {
+    if (this.creditStakingInfo.verificationStatus === VerificationStatus.Rejected) {
+      // Call contract enroll to refresh random number
+      const enrollResult = await this.exsatApi.executeAction(ContractName.custody, 'enroll', {
+        account: this.exsatAccountInfo.accountName,
+      });
+
+      this.creditStakingInfo.random = String(enrollResult.processed.action_traces[0].return_value_data);
+    }
+
     await this.verifyBtcAddress();
 
     // Refresh the menu
@@ -331,25 +337,16 @@ export class ValidatorCommander {
 
   /**
    * Check the credit staking status of the validator.
-   * @param validatorInfo
    */
-  async checkCreditStakingStatus(validatorInfo: any) {
-    if (validatorInfo.role || `0x${validatorInfo.stake_address}` !== EVM_ZERO_ADDRESS) {
+  async checkCreditStakingStatus() {
+    const enrollmentInfo = await this.tableApi.getEnrollmentInfo(this.exsatAccountInfo.accountName);
+    if (!enrollmentInfo) {
       // Validator is not a credit staker
       this.isCreditStaker = false;
       return;
     }
 
     this.isCreditStaker = true;
-
-    // Check if the credit staker has enrollment
-    const enrollmentInfo = await this.tableApi.getEnrollmentInfo(this.exsatAccountInfo.accountName);
-    if (!enrollmentInfo) {
-      this.creditStakingInfo.hasEnrollment = false;
-      return;
-    }
-
-    this.creditStakingInfo.hasEnrollment = true;
     this.creditStakingInfo.random = String(enrollmentInfo.random);
 
     // Check if the credit staker has verification
@@ -461,17 +458,35 @@ export class ValidatorCommander {
     };
 
     try {
-      const res = await this.exsatApi.executeAction(ContractName.endrmng, 'newregvldtor', data);
-      await this.updateValidatorInfo();
-
       if (selectCreditStaking) {
-        await this.verifyBtcAddress();
-      }
+        // register validator and enroll credit staking
+        const actions = [
+          {
+            account: ContractName.endrmng,
+            name: 'newregvldtor',
+            data,
+          },
+          {
+            account: ContractName.custody,
+            name: 'enroll',
+            data: { account: this.exsatAccountInfo.accountName },
+          },
+        ];
+        const res = await this.exsatApi.executeActions(actions);
 
-      return res;
+        // update validator info
+        await this.updateValidatorInfo();
+        this.creditStakingInfo.random = String(res.processed.action_traces[1].return_value_data);
+
+        // verify btc address
+        await this.verifyBtcAddress();
+      } else {
+        await this.exsatApi.executeAction(ContractName.endrmng, 'newregvldtor', data);
+
+        await this.updateValidatorInfo();
+      }
     } catch (e: any) {
       logger.error(`Failed to register validator: ${e.message}`);
-      return null;
     }
   }
 
@@ -564,21 +579,8 @@ export class ValidatorCommander {
    */
   async verifyBtcAddress() {
     try {
-      if (
-        !this.creditStakingInfo.hasEnrollment ||
-        this.creditStakingInfo.verificationStatus === VerificationStatus.Rejected
-      ) {
-        // Call contract enroll to get random number
-        const enrollResult = await this.exsatApi.executeAction(ContractName.custody, 'enroll', {
-          account: this.exsatAccountInfo.accountName,
-        });
-
-        this.creditStakingInfo.hasEnrollment = true;
-        this.creditStakingInfo.random = String(enrollResult.processed.action_traces[0].return_value_data);
-      }
-
       showInfo({
-        'BTC Address Verification': `Please prepare a BTC address with more than 100 BTC as your credit staked BTC address. And use this credit staked BTC address send out x.xxxx${this.creditStakingInfo.random} BTC ( x means any number, for example 0.0000${this.creditStakingInfo.random} BTC ) to any address for verifying the ownership. After finished the transaction, please input the BTC address and the transaction Id.`,
+        'BTC Address Verification': `Please prepare a BTC address with more than 100 BTC as your credit staked BTC address. And use this credit staked BTC address send out x.${'x'.repeat(8 - this.creditStakingInfo.random.length)}${this.creditStakingInfo.random} BTC ( x means any number, for example 0.${'0'.repeat(8 - this.creditStakingInfo.random.length)}${this.creditStakingInfo.random} BTC ) to any address for verifying the ownership. After finished the transaction, please input the BTC address and the transaction Id.`,
       });
 
       const btcAddress = await inputWithCancel(
