@@ -357,46 +357,94 @@ export async function initializeAccount(clientType: ClientType): Promise<{
   return { accountInfo, password };
 }
 
+const validPrefixes = {
+  mainnet: {
+    P2PKH: '1',
+    P2SH: '3',
+    Bech32: 'bc1q',
+    Bech32m: 'bc1p',
+  },
+  testnet: {
+    P2PKH: ['m', 'n'],
+    P2SH: '2',
+    Bech32: 'tb1q',
+    Bech32m: 'tb1p',
+  },
+  supplement: ['bcr'],
+};
+
 /**
- * Check if BTC address format is valid
- * @param address - BTC address to validate
+ * Get the network of a BTC address
+ * @param address - BTC address
+ * @returns 'mainnet' or 'testnet' or null
  */
-export function isValidBtcAddress(address: string): boolean {
-  if (!address || typeof address !== 'string') {
-    return false;
+export function getBtcAddressNetwork(address: string): string | null {
+  // Check mainnet and testnet prefixes and validate address length
+  if (
+    address.startsWith(validPrefixes.mainnet.P2PKH) ||
+    address.startsWith(validPrefixes.mainnet.P2SH) ||
+    address.startsWith(validPrefixes.mainnet.Bech32) ||
+    address.startsWith(validPrefixes.mainnet.Bech32m)
+  ) {
+    // Mainnet address length restrictions
+    if (address.startsWith(validPrefixes.mainnet.P2PKH) || address.startsWith(validPrefixes.mainnet.P2SH)) {
+      // Address length restrictions for '1' and '3' prefixes (26-35)
+      if (address.length >= 26 && address.length <= 35) {
+        return 'mainnet';
+      }
+    } else if (address.startsWith(validPrefixes.mainnet.Bech32)) {
+      // Address length restrictions for 'bc1q' prefixes (42 or 62)
+      if (address.length === 42 || address.length === 62) {
+        return 'mainnet';
+      }
+    } else if (address.startsWith(validPrefixes.mainnet.Bech32m)) {
+      // Address length restrictions for 'bc1p' prefixes (62)
+      if (address.length === 62) {
+        return 'mainnet';
+      }
+    }
   }
 
-  // Remove whitespace
-  address = address.trim();
-
-  // Check for different address types
-  if (address.startsWith('1')) {
-    // Legacy P2PKH address (26-35 characters)
-    return /^1[a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(address);
-  } else if (address.startsWith('3')) {
-    // P2SH address (26-35 characters)
-    return /^3[a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(address);
-  } else if (address.startsWith('m') || address.startsWith('n')) {
-    // Testnet P2PKH address (26-35 characters)
-    return /^[mn][a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(address);
-  } else if (address.startsWith('2')) {
-    // Testnet P2SH address (26-35 characters)
-    return /^2[a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(address);
-  } else if (address.startsWith('bc1')) {
-    // Native SegWit (Bech32) address
-    return /^bc1[a-z0-9]{25,62}$/.test(address);
-  } else if (address.startsWith('tb1')) {
-    // Testnet SegWit (Bech32) address
-    return /^tb1[a-z0-9]{25,62}$/.test(address);
-  } else if (address.startsWith('bc1p')) {
-    // Mainnet Taproot address
-    return /^bc1p[a-z0-9]{25,62}$/.test(address);
-  } else if (address.startsWith('tb1p')) {
-    // Testnet Taproot address
-    return /^tb1p[a-z0-9]{25,62}$/.test(address);
+  if (
+    validPrefixes.testnet.P2PKH.includes(address[0]) ||
+    address.startsWith(validPrefixes.testnet.P2SH) ||
+    address.startsWith(validPrefixes.testnet.Bech32) ||
+    address.startsWith(validPrefixes.testnet.Bech32m)
+  ) {
+    // Testnet address length restrictions
+    if (validPrefixes.testnet.P2PKH.includes(address[0])) {
+      // Address length restrictions for 'm' and 'n' prefixes (26-35)
+      if (address.length >= 26 && address.length <= 35) {
+        return 'testnet';
+      }
+    } else if (address.startsWith(validPrefixes.testnet.P2SH)) {
+      // Address length restrictions for '2' prefixes (26-35)
+      if (address.length >= 26 && address.length <= 35) {
+        return 'testnet';
+      }
+    } else if (address.startsWith(validPrefixes.testnet.Bech32)) {
+      // Address length restrictions for 'tb1q' prefixes (42)
+      if (address.length === 42) {
+        return 'testnet';
+      }
+    } else if (address.startsWith(validPrefixes.testnet.Bech32m)) {
+      // Address length restrictions for 'tb1p' prefixes (62)
+      if (address.length === 62) {
+        return 'testnet';
+      }
+    }
   }
 
-  return false;
+  if (validPrefixes.supplement) {
+    for (const prefix of validPrefixes.supplement) {
+      if (address.startsWith(prefix)) {
+        return 'testnet';
+      }
+    }
+  }
+
+  // If no match, return null
+  return null;
 }
 
 /**
@@ -417,4 +465,12 @@ export function isValidCommissionRate(rate: string): boolean {
 export function isValidEmail(email: string): boolean {
   if (!email) return true; // Empty email is allowed (optional)
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+/**
+ * Check if all characters in the string are zeros
+ * @param str - String to check
+ */
+export function isAllZero(str: string): boolean {
+  return /^0+$/.test(str);
 }

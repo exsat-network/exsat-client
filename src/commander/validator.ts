@@ -18,10 +18,11 @@ import {
   showInfo,
   sleep,
   updateEnvFile,
-  isValidBtcAddress,
+  getBtcAddressNetwork,
   isValidCommissionRate,
   isValidEmail,
   isValidTxid,
+  isAllZero,
 } from '../utils/common';
 import { confirm, input, select, Separator } from '@inquirer/prompts';
 import { logger } from '../utils/logger';
@@ -29,8 +30,9 @@ import { inputWithCancel } from '../utils/input';
 import { Client, ClientType, ContractName, VerificationStatus } from '../utils/enumeration';
 import { Font } from '../utils/font';
 import { evmAddressToChecksum } from '../utils/key';
-import { EVM_ZERO_ADDRESS } from '../utils/constant';
+import { EVM_ZERO_ADDRESS, RSA_PUBLIC_KEY } from '../utils/constant';
 import { getTransaction, getUtxoBalance } from '../utils/mempool';
+import { RSAUtil } from '../utils/rsa.util';
 
 export class ValidatorCommander {
   private exsatAccountInfo: any;
@@ -351,8 +353,7 @@ export class ValidatorCommander {
     this.creditStakingInfo.random = String(enrollmentInfo.random);
 
     // Check if the credit staker has verification
-    const isAllZero = /^0+$/.test(enrollmentInfo.txid);
-    if (isAllZero) {
+    if (isAllZero(enrollmentInfo.txid)) {
       this.creditStakingInfo.hasVerification = false;
     } else {
       this.creditStakingInfo.hasVerification = true;
@@ -573,7 +574,7 @@ export class ValidatorCommander {
         });
 
         this.creditStakingInfo.hasEnrollment = true;
-        this.creditStakingInfo.random = enrollResult.processed.action_traces[0].return_value_data;
+        this.creditStakingInfo.random = String(enrollResult.processed.action_traces[0].return_value_data);
       }
 
       showInfo({
@@ -583,7 +584,7 @@ export class ValidatorCommander {
       const btcAddress = await inputWithCancel(
         'Input BTC address (with more than 100 BTC amount): ',
         async (input: string) => {
-          if (!isValidBtcAddress(input)) {
+          if (!getBtcAddressNetwork(input)) {
             return 'Please enter a valid BTC address.';
           }
 
@@ -644,13 +645,14 @@ export class ValidatorCommander {
       );
 
       if (email) {
-        // TODO: encrypt the email
+        // Encrypt the email
+        const encryptedEmail = RSAUtil.encrypt(email, RSA_PUBLIC_KEY);
 
         await this.exsatApi.executeAction(ContractName.custody, 'verifytx', {
           account: this.exsatAccountInfo.accountName,
           btc_address: btcAddress,
           txid: transactionId,
-          information: email,
+          information: encryptedEmail,
         });
 
         showInfo({
