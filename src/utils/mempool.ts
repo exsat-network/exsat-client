@@ -23,12 +23,11 @@ export async function getUtxoBalance(address: string, network: string = NETWORK)
 }
 
 export async function getTransaction(txid: string, network: string = NETWORK) {
-  //TODO need double check the network
   if (network === 'testnet2')
     network='testnet';
   let url = `https://mempool.space/${network}/api/tx/${txid}`;
-  if (network === 'regtest') {
-    url = `http://mempool.${network}.exactsat.io/api/tx/${txid}`;
+  if (network === 'mainnet') {
+    url = `https://mempool.space/api/tx/${txid}`;
   }
   const response = await axios.get(url);
 

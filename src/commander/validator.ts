@@ -34,6 +34,7 @@ import { EVM_ZERO_ADDRESS, RSA_PUBLIC_KEY } from '../utils/constant';
 import { getTransaction, getUtxoBalance } from '../utils/mempool';
 import { RSAUtil } from '../utils/rsa.util';
 import { leftPadInput } from "../utils/common";
+import { NETWORK } from '../utils/config';
 
 export class ValidatorCommander {
   private exsatAccountInfo: any;
@@ -77,6 +78,7 @@ export class ValidatorCommander {
     const validator = this.validatorInfo;
 
     // Check the credit staking status to refresh the menu
+
     await this.checkCreditStakingStatus();
 
     let showMessageInfo = await this.getShowMessageInfo(validator);
@@ -752,20 +754,19 @@ export class ValidatorCommander {
           reason: `The transferred amount of your inputted transaction id does not match the amount we required (${leftPadInput(mantissa,8,'x')} BTC).`,
         };
       }
-
-      // Check if the transaction is within the verification period
-      const enrollmentInfo = await this.tableApi.getEnrollmentInfo(this.exsatAccountInfo.accountName);
-      if (
-        transaction.status.block_height < enrollmentInfo.start_height
-        // TODO: remove this after testing
-        // ||
-        // transaction.status.block_height > enrollmentInfo.end_height
-      ) {
-        return {
-          success: false,
-          reason: `The transferred amount of your inputted transaction id does not match the amount we required (${leftPadInput(mantissa,8,'x')} BTC).`,
-        };
-      }
+      if(NETWORK === 'mainnet') {
+        // Check if the transaction is within the verification period
+        const enrollmentInfo = await this.tableApi.getEnrollmentInfo(this.exsatAccountInfo.accountName);
+        if (
+            transaction.status.block_height < enrollmentInfo.start_height
+            || transaction.status.block_height > enrollmentInfo.end_height
+        ) {
+          return {
+            success: false,
+            reason: `The transferred amount of your inputted transaction id does not match the amount we required (${leftPadInput(mantissa, 8, 'x')} BTC).`,
+          };
+        }
+      }[]
 
       return {
         success: true,
