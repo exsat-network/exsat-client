@@ -5,8 +5,8 @@ export async function getUtxoBalance(address: string, network: string = NETWORK)
   let balance: number = 0;
   let url: string;
 
-  if (network === 'regtest') {
-    url = `http://mempool.regtest.exactsat.io/api/address/${address}`;
+  if (network === 'testnet2' || network === 'testnet') {
+    url = `https://mempool.space/testnet/api/address/${address}`;
   } else if (network === 'mainnet' || !network) {
     url = `https://mempool.space/api/address/${address}`;
   } else {
@@ -22,6 +22,8 @@ export async function getUtxoBalance(address: string, network: string = NETWORK)
 }
 
 export async function getTransaction(txid: string, network: string = NETWORK) {
+  if (network === 'testnet2')
+    network='testnet';
   let url = `https://mempool.space/${network}/api/tx/${txid}`;
   if (network === 'regtest') {
     url = `http://mempool.${network}.exactsat.io/api/tx/${txid}`;

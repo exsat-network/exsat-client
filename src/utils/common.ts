@@ -148,7 +148,7 @@ export function isValidJson(jsonString: string): boolean {
   }
 }
 /**
- * Left pad an input string to expected length, for example 5678->x.00005678
+ * Left pad an input string to expected length, for example 5678->x.xxxx5678
  * @param {number|string} input - input string
  * @param {number} totalLength - total length
  * @param {string} padChar - padChar，default is 'x'
