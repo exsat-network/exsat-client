@@ -5,6 +5,7 @@ export async function getUtxoBalance(address: string, network: string = NETWORK)
   let balance: number = 0;
   let url: string;
 
+  //TODO need double check the network
   if (network === 'testnet2' || network === 'testnet') {
     url = `https://mempool.space/testnet/api/address/${address}`;
   } else if (network === 'mainnet' || !network) {
@@ -22,6 +23,7 @@ export async function getUtxoBalance(address: string, network: string = NETWORK)
 }
 
 export async function getTransaction(txid: string, network: string = NETWORK) {
+  //TODO need double check the network
   if (network === 'testnet2')
     network='testnet';
   let url = `https://mempool.space/${network}/api/tx/${txid}`;
