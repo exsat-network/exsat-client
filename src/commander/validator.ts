@@ -33,6 +33,7 @@ import { evmAddressToChecksum } from '../utils/key';
 import { EVM_ZERO_ADDRESS, RSA_PUBLIC_KEY } from '../utils/constant';
 import { getTransaction, getUtxoBalance } from '../utils/mempool';
 import { RSAUtil } from '../utils/rsa.util';
+import { leftPadInput } from "../utils/common";
 
 export class ValidatorCommander {
   private exsatAccountInfo: any;
@@ -107,7 +108,7 @@ export class ValidatorCommander {
       { name: 'Quit', value: 'quit', description: 'Quit' },
     ];
 
-    // Add Stake Address option for non-Credit Staker BTC Validator
+    // Add Stake Address option for Non Credit-based BTC Validator
     if (!validator.role && !this.isCreditStaker) {
       menus.splice(1, 0, {
         name: 'Change Stake Address',
@@ -135,7 +136,7 @@ export class ValidatorCommander {
       );
     }
 
-    // Add special menu for BTC Validator and Credit Staker
+    // Add special menu for Credit-based BTC Validator
     if (!validator.role && this.isCreditStaker) {
       const { hasVerification, verificationStatus } = this.creditStakingInfo;
 
@@ -278,7 +279,7 @@ export class ValidatorCommander {
   }
 
   /**
-   * Selects to verify BTC address.
+   * Select to verify BTC address.
    */
   async selectToVerifyBtcAddress() {
     if (this.creditStakingInfo.verificationStatus === VerificationStatus.Rejected) {
@@ -459,7 +460,7 @@ export class ValidatorCommander {
 
     try {
       if (selectCreditStaking) {
-        // register validator and enroll credit staking
+        // register and enroll for Credit-based BTC Validator
         const actions = [
           {
             account: ContractName.endrmng,
@@ -580,7 +581,7 @@ export class ValidatorCommander {
   async verifyBtcAddress() {
     try {
       showInfo({
-        'BTC Address Verification': `Please prepare a BTC address with more than 100 BTC as your credit staked BTC address. And use this credit staked BTC address send out x.${'x'.repeat(8 - this.creditStakingInfo.random.length)}${this.creditStakingInfo.random} BTC ( x means any number, for example 0.${'0'.repeat(8 - this.creditStakingInfo.random.length)}${this.creditStakingInfo.random} BTC ) to any address for verifying the ownership. After finished the transaction, please input the BTC address and the transaction Id.`,
+        'BTC Address Verification': `Please prepare a BTC address with more than 100 BTC as your credit staked BTC address. And use this credit staked BTC address send out ${leftPadInput(this.creditStakingInfo.random,8,'x')} BTC (x means any number, for example ${leftPadInput(this.creditStakingInfo.random,8,'0')} BTC) to any address for verifying the ownership. After finished the transaction, please input the BTC address and the transaction Id.`,
       });
 
       const btcAddress = await inputWithCancel(
@@ -592,7 +593,7 @@ export class ValidatorCommander {
 
           const isValidBalance = await this.validateBtcBalance(input);
           if (!isValidBalance) {
-            return 'The balance of your inputed BTC address is less than 100 BTC. Please input a valid BTC address.';
+            return 'The balance of your inputted BTC address is less than 100 BTC. Please input a valid BTC address.';
           }
 
           return true;
@@ -693,7 +694,8 @@ export class ValidatorCommander {
           });
           break;
         case VerificationStatus.Rejected:
-          const reason = this.getVerificationFailureReason(enrollmentInfo.verification_result);
+          const requiredRandom=`${leftPadInput(enrollmentInfo.random,8,'x')} BTC`;
+          const reason = this.getVerificationFailureReason(enrollmentInfo.verification_result,requiredRandom);
           showInfo({
             'Verification Failed': `We are sorry to inform you that your verification status is failed. The reason is that ${reason}. If you want to reverify, please go to "Verify Self-Custodied BTC Address" action.`,
           });
@@ -740,14 +742,14 @@ export class ValidatorCommander {
       if (fromAddress !== btcAddress) {
         return {
           success: false,
-          reason: 'The transaction does not send from the inputed BTC address.',
+          reason: 'The BTC address from your inputted transaction is not consistent with the BTC address your inputted.',
         };
       }
 
       if (amount.toString().slice(-mantissa.length) !== mantissa) {
         return {
           success: false,
-          reason: 'The transaction amount does not match the required amount.',
+          reason: `The transferred amount of your inputted transaction id does not match the amount we required (${leftPadInput(mantissa,8,'x')} BTC).`,
         };
       }
 
@@ -756,12 +758,12 @@ export class ValidatorCommander {
       if (
         transaction.status.block_height < enrollmentInfo.start_height
         // TODO: remove this after testing
-        // &&
+        // ||
         // transaction.status.block_height > enrollmentInfo.end_height
       ) {
         return {
           success: false,
-          reason: 'The transaction is not within the verification period.',
+          reason: `The transferred amount of your inputted transaction id does not match the amount we required (${leftPadInput(mantissa,8,'x')} BTC).`,
         };
       }
 
@@ -784,18 +786,17 @@ export class ValidatorCommander {
   private async validateBtcBalance(btcAddress: string): Promise<boolean> {
     const balance = await getUtxoBalance(btcAddress);
 
-    // TODO: change to 100 BTC
-    return balance >= 10000000;
+    return balance >= 10000000000;
   }
 
   /**
    * Get verification failure reason.
    * @private
    */
-  private getVerificationFailureReason(verificationResult: string): string {
+  private getVerificationFailureReason(verificationResult: string, requiredRandom : string): string {
     const reasons = {
-      1: 'the balance of your inputed BTC address is less than 100 BTC',
-      2: 'the transferred amount of your inputed transaction id does not match the amount we required (x.xxxx1234 BTC)',
+      1: 'the balance of your inputted BTC address is less than 100 BTC',
+      2: `the transferred amount of your inputted transaction id does not match the amount we required (${requiredRandom})`,
       3: 'your BTC address has already staked at other protocol',
       4: 'your BTC address does not pass fraud check or AML check',
     };

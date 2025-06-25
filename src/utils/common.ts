@@ -147,6 +147,16 @@ export function isValidJson(jsonString: string): boolean {
     return false;
   }
 }
+/**
+ * Left pad an input string to expected length, for example 5678->x.00005678
+ * @param {number|string} input - input string
+ * @param {number} totalLength - total length
+ * @param {string} padChar - padChar，default is 'x'
+ * @returns {string}
+ */
+export function leftPadInput(input, totalLength, padChar = 'x'): string {
+  return `${padChar}.${`${padChar}`.repeat(totalLength - input.toString().length)}${input}`;
+}
 
 /**
  * Print info to the console.
