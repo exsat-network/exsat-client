@@ -742,7 +742,7 @@ export class ValidatorCommander {
       if (fromAddress !== btcAddress) {
         return {
           success: false,
-          reason: 'The BTC address from your inputted transaction is not consistent with the BTC address your inputted.',
+          reason: 'The BTC address from your inputted transaction is not consistent with the BTC address you inputted.',
         };
       }
 
