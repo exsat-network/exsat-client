@@ -763,7 +763,7 @@ export class ValidatorCommander {
         ) {
           return {
             success: false,
-            reason: `The transferred amount of your inputted transaction id does not match the amount we required (${leftPadInput(mantissa, 8, 'x')} BTC).`,
+            reason: `The BTC block height of your inputted transaction exceeds the block height we required(${transaction.status.block_height}).`,
           };
         }
       }
