@@ -763,7 +763,7 @@ export class ValidatorCommander {
         ) {
           return {
             success: false,
-            reason: `The BTC block height of your inputted transaction exceeds the block height we required(${transaction.status.block_height}).`,
+            reason: `The BTC block height of your inputted transaction(${transaction.status.block_height}) exceeds the block height range(from ${enrollmentInfo.start_height} to ${enrollmentInfo.end_height}) we required.`,
           };
         }
       }
