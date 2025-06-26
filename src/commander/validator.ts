@@ -766,7 +766,7 @@ export class ValidatorCommander {
             reason: `The transferred amount of your inputted transaction id does not match the amount we required (${leftPadInput(mantissa, 8, 'x')} BTC).`,
           };
         }
-      }[]
+      }
 
       return {
         success: true,
