@@ -33,7 +33,7 @@ import { evmAddressToChecksum } from '../utils/key';
 import { EVM_ZERO_ADDRESS, RSA_PUBLIC_KEY } from '../utils/constant';
 import { getTransaction, getUtxoBalance } from '../utils/mempool';
 import { RSAUtil } from '../utils/rsa.util';
-import { leftPadInput } from "../utils/common";
+import { leftPadInput } from '../utils/common';
 import { NETWORK } from '../utils/config';
 
 export class ValidatorCommander {
@@ -580,7 +580,7 @@ export class ValidatorCommander {
   async verifyBtcAddress() {
     try {
       showInfo({
-        'BTC Address Verification': `Please prepare a BTC address with more than 100 BTC as your credit staked BTC address. And use this credit staked BTC address send out ${leftPadInput(this.creditStakingInfo.random,8,'x')} BTC (x means any number, for example ${leftPadInput(this.creditStakingInfo.random,8,'0')} BTC) to any address for verifying the ownership. After finished the transaction, please input the BTC address and the transaction Id.`,
+        'BTC Address Verification': `Please prepare a BTC address with more than 100 BTC as your credit staked BTC address. And use this credit staked BTC address send out ${leftPadInput(this.creditStakingInfo.random, 8, 'x')} BTC (x means any number, for example ${leftPadInput(this.creditStakingInfo.random, 8, '0')} BTC) to any address for verifying the ownership. After finished the transaction, please input the BTC address and the transaction Id.`,
       });
 
       const btcAddress = await inputWithCancel(
@@ -693,8 +693,8 @@ export class ValidatorCommander {
           });
           break;
         case VerificationStatus.Rejected:
-          const requiredRandom=`${leftPadInput(enrollmentInfo.random,8,'x')} BTC`;
-          const reason = this.getVerificationFailureReason(enrollmentInfo.verification_result,requiredRandom);
+          const requiredRandom = `${leftPadInput(enrollmentInfo.random, 8, 'x')} BTC`;
+          const reason = this.getVerificationFailureReason(enrollmentInfo.verification_result, requiredRandom);
           showInfo({
             'Verification Failed': `We are sorry to inform you that your verification status is failed. The reason is that ${reason}. If you want to reverify, please go to "Verify Self-Custodied BTC Address" action.`,
           });
@@ -748,15 +748,15 @@ export class ValidatorCommander {
       if (amount.toString().slice(-mantissa.length) !== mantissa) {
         return {
           success: false,
-          reason: `The transferred amount of your inputted transaction id does not match the amount we required (${leftPadInput(mantissa,8,'x')} BTC).`,
+          reason: `The transferred amount of your inputted transaction id does not match the amount we required (${leftPadInput(mantissa, 8, 'x')} BTC).`,
         };
       }
-      if(NETWORK === 'mainnet') {
+      if (NETWORK === 'mainnet') {
         // Check if the transaction is within the verification period
         const enrollmentInfo = await this.tableApi.getEnrollmentInfo(this.exsatAccountInfo.accountName);
         if (
-            transaction.status.block_height < enrollmentInfo.start_height
-            || transaction.status.block_height > enrollmentInfo.end_height
+          transaction.status.block_height < enrollmentInfo.start_height ||
+          transaction.status.block_height > enrollmentInfo.end_height
         ) {
           return {
             success: false,
@@ -791,7 +791,7 @@ export class ValidatorCommander {
    * Get verification failure reason.
    * @private
    */
-  private getVerificationFailureReason(verificationResult: string, requiredRandom : string): string {
+  private getVerificationFailureReason(verificationResult: string, requiredRandom: string): string {
     const reasons = {
       1: 'the balance of your inputted BTC address is less than 100 BTC',
       2: `the transferred amount of your inputted transaction id does not match the amount we required (${requiredRandom})`,
