@@ -342,18 +342,6 @@ class TableApi {
     }
     return null;
   }
-
-  public async getCustodieInfo(account: string): Promise<any> {
-    const rows = await this.getTableRows(ContractName.custody, ContractName.custody, 'custodies', {
-      limit: 1,
-      lower_bound: Name.from(account),
-      upper_bound: Name.from(account),
-    });
-    if (rows && rows.length > 0) {
-      return rows[0];
-    }
-    return null;
-  }
 }
 
 export default TableApi;
