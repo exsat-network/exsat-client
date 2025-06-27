@@ -483,8 +483,9 @@ export class ValidatorCommander {
 
         await this.updateValidatorInfo();
       }
-    } catch (e: any) {
-      logger.error(`Failed to register validator: ${e.message}`);
+    } catch (error: any) {
+      logger.error(`Failed to register validator: ${error.message}`);
+      await input({ message: 'Press [Enter] to continue...' });
     }
   }
 
@@ -665,9 +666,9 @@ export class ValidatorCommander {
       await input({ message: 'Press [Enter] to continue...' });
 
       return true;
-    } catch (error) {
-      logger.error('Failed to submit verification:', error);
-      console.log('Failed to submit verification. Please try again.');
+    } catch (error: any) {
+      logger.error(`Failed to submit verification: ${error.message}`);
+      await input({ message: 'Press [Enter] to continue...' });
       return false;
     }
   }
@@ -709,9 +710,8 @@ export class ValidatorCommander {
       }
 
       return true;
-    } catch (error) {
-      logger.error('Failed to check verification status:', error);
-      console.log('Failed to check verification status. Please try again.');
+    } catch (error: any) {
+      logger.error(`Failed to check verification status: ${error.message}`);
       await input({ message: 'Press [Enter] to continue...' });
       return false;
     }
@@ -769,7 +769,6 @@ export class ValidatorCommander {
         success: true,
       };
     } catch (error) {
-      logger.error('Failed to validate transaction:', error);
       return {
         success: false,
         reason: 'Failed to validate transaction.',
