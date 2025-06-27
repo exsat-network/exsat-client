@@ -76,11 +76,6 @@ export class ValidatorCommander {
    */
   async managerMenu() {
     const validator = this.validatorInfo;
-
-    // Check the credit staking status to refresh the menu
-
-    await this.checkCreditStakingStatus();
-
     let showMessageInfo = await this.getShowMessageInfo(validator);
 
     showInfo(showMessageInfo);
@@ -499,6 +494,8 @@ export class ValidatorCommander {
    * @private
    */
   private async getShowMessageInfo(validator: any) {
+    await this.checkCreditStakingStatus();
+
     const accountName = this.exsatAccountInfo.accountName;
     const btcBalance = await this.tableApi.getAccountBalance(accountName);
 
