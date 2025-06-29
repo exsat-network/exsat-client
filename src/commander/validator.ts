@@ -585,7 +585,7 @@ export class ValidatorCommander {
       });
 
       const btcAddress = await inputWithCancel(
-        'Input BTC address (with more than 100 BTC amount): ',
+        'Input BTC address (with more than 100 BTC amount, Input "q" to return): ',
         async (input: string) => {
           if (!getBtcAddressNetwork(input)) {
             return 'Please enter a valid BTC address.';
@@ -604,7 +604,7 @@ export class ValidatorCommander {
         return false;
       }
 
-      const transactionId = await inputWithCancel('Input Transaction Id: ', async (input: string) => {
+      const transactionId = await inputWithCancel('Input Transaction Id (Input "q" to return):  ', async (input: string) => {
         if (!isValidTxid(input)) {
           return 'Please enter a valid transaction ID (64 characters).';
         }
