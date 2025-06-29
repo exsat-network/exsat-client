@@ -35,6 +35,7 @@ import { getTransaction, getUtxoBalance } from '../utils/mempool';
 import { RSAUtil } from '../utils/rsa.util';
 import { leftPadInput } from '../utils/common';
 import { NETWORK } from '../utils/config';
+import { getblockcount } from '../utils/bitcoin';
 
 export class ValidatorCommander {
   private exsatAccountInfo: any;
@@ -44,6 +45,7 @@ export class ValidatorCommander {
     random?: string;
     hasVerification?: boolean;
     verificationStatus?: VerificationStatus;
+    randomExpirationBlock?: number;
   } = {};
   private tableApi: TableApi;
   private exsatApi: ExsatApi;
@@ -286,6 +288,17 @@ export class ValidatorCommander {
       });
 
       this.creditStakingInfo.random = String(enrollResult.processed.action_traces[0].return_value_data);
+    } else if (NETWORK === 'mainnet') {
+      // Check if the random number is expired or about to expire, if so, refresh it
+      const blockcountInfo = await getblockcount();
+
+      if (this.creditStakingInfo.randomExpirationBlock < blockcountInfo.result) {
+        logger.info('Your transfer random number is expired or about to expire, refreshing...');
+        const enrollResult = await this.exsatApi.executeAction(ContractName.custody, 'enroll', {
+          account: this.exsatAccountInfo.accountName,
+        });
+        this.creditStakingInfo.random = String(enrollResult.processed.action_traces[0].return_value_data);
+      }
     }
 
     await this.verifyBtcAddress();
@@ -346,6 +359,7 @@ export class ValidatorCommander {
 
     this.isCreditStaker = true;
     this.creditStakingInfo.random = String(enrollmentInfo.random);
+    this.creditStakingInfo.randomExpirationBlock = enrollmentInfo.end_height;
 
     // Check if the credit staker has verification
     if (isAllZero(enrollmentInfo.txid)) {
@@ -604,18 +618,21 @@ export class ValidatorCommander {
         return false;
       }
 
-      const transactionId = await inputWithCancel('Input Transaction Id (Input "q" to return):  ', async (input: string) => {
-        if (!isValidTxid(input)) {
-          return 'Please enter a valid transaction ID (64 characters).';
-        }
+      const transactionId = await inputWithCancel(
+        'Input Transaction Id (Input "q" to return):  ',
+        async (input: string) => {
+          if (!isValidTxid(input)) {
+            return 'Please enter a valid transaction ID (64 characters).';
+          }
 
-        const validationResult = await this.validateTransaction(btcAddress, input, this.creditStakingInfo.random);
-        if (!validationResult.success) {
-          return validationResult.reason;
-        }
+          const validationResult = await this.validateTransaction(btcAddress, input, this.creditStakingInfo.random);
+          if (!validationResult.success) {
+            return validationResult.reason;
+          }
 
-        return true;
-      });
+          return true;
+        }
+      );
 
       if (!transactionId) {
         return false;
