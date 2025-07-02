@@ -23,6 +23,7 @@ import {
   isValidEmail,
   isValidTxid,
   isAllZero,
+  convertDisplayValue,
 } from '../utils/common';
 import { confirm, input, select, Separator } from '@inquirer/prompts';
 import { logger } from '../utils/logger';
@@ -33,14 +34,15 @@ import { evmAddressToChecksum } from '../utils/key';
 import { EVM_ZERO_ADDRESS, RSA_PUBLIC_KEY } from '../utils/constant';
 import { getTransaction, getUtxoBalance } from '../utils/mempool';
 import { RSAUtil } from '../utils/rsa.util';
-import { leftPadInput } from '../utils/common';
+import { convertToDays, leftPadInput } from '../utils/common';
 import { NETWORK } from '../utils/config';
 import { getblockcount } from '../utils/bitcoin';
 
 export class ValidatorCommander {
   private exsatAccountInfo: any;
   private validatorInfo: any;
-  private isCreditStaker: boolean = false;
+  private isNewCreditStaker: boolean = false;
+  private isOldCreditStaker: boolean = false;
   private creditStakingInfo: {
     random?: string;
     hasVerification?: boolean;
@@ -108,7 +110,7 @@ export class ValidatorCommander {
     ];
 
     // Add Stake Address option for Non Credit-based BTC Validator
-    if (!validator.role && !this.isCreditStaker) {
+    if (!validator.role && !this.isNewCreditStaker) {
       menus.splice(1, 0, {
         name: 'Change Stake Address',
         value: 'set_stake_address',
@@ -117,7 +119,9 @@ export class ValidatorCommander {
     }
 
     if (!validator.role) {
-      const rewardAddressMenuName = this.isCreditStaker ? 'Change Reward Address' : 'Change Commission Reward Address';
+      const rewardAddressMenuName = this.isNewCreditStaker
+        ? 'Change Reward Address'
+        : 'Change Commission Reward Address';
 
       menus.splice(
         1,
@@ -125,7 +129,7 @@ export class ValidatorCommander {
         {
           name: rewardAddressMenuName,
           value: 'set_reward_address',
-          description: this.isCreditStaker ? 'Set/Change Reward Address' : 'Set/Change Commission Reward Address',
+          description: this.isNewCreditStaker ? 'Set/Change Reward Address' : 'Set/Change Commission Reward Address',
         },
         {
           name: 'Change Commission Rate',
@@ -136,7 +140,7 @@ export class ValidatorCommander {
     }
 
     // Add special menu for Credit-based BTC Validator
-    if (!validator.role && this.isCreditStaker) {
+    if (!validator.role && this.isNewCreditStaker) {
       const { hasVerification, verificationStatus } = this.creditStakingInfo;
 
       if (hasVerification) {
@@ -184,9 +188,21 @@ export class ValidatorCommander {
    * Sets the reward address for the validator.
    */
   async setRewardAddress() {
-    const message = this.isCreditStaker
-      ? 'Enter reward address (Input "q" to return): '
-      : 'Enter commission reward address (Input "q" to return): ';
+    if (this.isNewCreditStaker || this.isOldCreditStaker) {
+      const confirmInput = await input({
+        message: `Are you sure to change your reward address? Please note that after you changed the reward address, if you still have unclaimed reward, please use your old reward address to claim the reward via UTXO my staking page (https://utxoverse.xyz/my-staking). The new generated reward can be claimed with new reward address via the Consensus Portal (https://portal.exsat.network/). ( Enter "yes" to continue, or "no" to go back to the previous step ):`,
+        validate: (input) => ['yes', 'no'].includes(input.toLowerCase()) || 'Please input "yes" or "no".',
+      });
+
+      if (confirmInput.toLowerCase() === 'no') {
+        return false;
+      }
+    }
+
+    const message =
+      this.isNewCreditStaker || this.isOldCreditStaker
+        ? 'Please input your new reward address (EVM address) (Input "q" to return): '
+        : 'Enter commission reward address (Input "q" to return): ';
 
     const rewardAddress = await inputWithCancel(message, (input: string) => {
       if (!isValidEvmAddress(input)) {
@@ -203,9 +219,10 @@ export class ValidatorCommander {
     };
     try {
       await this.exsatApi.executeAction(ContractName.endrmng, 'setrwdaddr', data);
-      const successMessage = this.isCreditStaker
-        ? `Set reward address: ${rewardAddress} successfully`
-        : `Set commission reward address: ${rewardAddress} successfully`;
+      const successMessage =
+        this.isNewCreditStaker || this.isOldCreditStaker
+          ? `You have sucessfully changed your reward address: ${rewardAddress}. If you still have unclaimed reward, please use your old reward address to claim the reward via UTXO my staking page (https://utxoverse.xyz/my-staking). The new generated reward can be claimed with new reward address via the Consensus Portal (https://portal.exsat.network/)`
+          : `Set commission reward address: ${rewardAddress} successfully`;
       logger.info(successMessage);
       await this.updateValidatorInfo();
       return true;
@@ -218,7 +235,7 @@ export class ValidatorCommander {
    * Sets the stake address for the validator.
    */
   async setStakeAddress() {
-    if (this.isCreditStaker) {
+    if (this.isNewCreditStaker) {
       console.log('Credit Stakers do not need to set stake address.');
       return false;
     }
@@ -283,21 +300,19 @@ export class ValidatorCommander {
   async selectToVerifyBtcAddress() {
     if (this.creditStakingInfo.verificationStatus === VerificationStatus.Rejected) {
       // Call contract enroll to refresh random number
-      const enrollResult = await this.exsatApi.executeAction(ContractName.custody, 'enroll', {
+      await this.exsatApi.executeAction(ContractName.custody, 'enroll', {
         account: this.exsatAccountInfo.accountName,
       });
-
-      this.creditStakingInfo.random = String(enrollResult.processed.action_traces[0].return_value_data);
+      await this.checkCreditStakingStatus();
     } else if (NETWORK === 'mainnet') {
-      // Check if the random number is expired or about to expire, if so, refresh it
+      // Check if the random number is expired, if so, refresh it
       const blockcountInfo = await getblockcount();
-
       if (this.creditStakingInfo.randomExpirationBlock < blockcountInfo.result) {
-        logger.info('Your transfer random number is expired or about to expire, refreshing...');
-        const enrollResult = await this.exsatApi.executeAction(ContractName.custody, 'enroll', {
+        logger.info('Your transfer random number is expired, refreshing...');
+        await this.exsatApi.executeAction(ContractName.custody, 'enroll', {
           account: this.exsatAccountInfo.accountName,
         });
-        this.creditStakingInfo.random = String(enrollResult.processed.action_traces[0].return_value_data);
+        await this.checkCreditStakingStatus();
       }
     }
 
@@ -352,12 +367,15 @@ export class ValidatorCommander {
   async checkCreditStakingStatus() {
     const enrollmentInfo = await this.tableApi.getEnrollmentInfo(this.exsatAccountInfo.accountName);
     if (!enrollmentInfo) {
-      // Validator is not a credit staker
-      this.isCreditStaker = false;
+      this.isNewCreditStaker = false;
+
+      // Check if the validator is an old credit staker
+      this.isOldCreditStaker = await this.tableApi.checkIsOldCreditStaker(this.exsatAccountInfo.accountName);
       return;
     }
 
-    this.isCreditStaker = true;
+    // Validator is a new credit staker
+    this.isNewCreditStaker = true;
     this.creditStakingInfo.random = String(enrollmentInfo.random);
     this.creditStakingInfo.randomExpirationBlock = enrollmentInfo.end_height;
 
@@ -375,11 +393,11 @@ export class ValidatorCommander {
    */
   async checkRewardsAddress() {
     if (!this.validatorInfo.reward_address && !this.validatorInfo.role) {
-      const settingName = this.isCreditStaker ? 'Reward Address' : 'Commission Reward Address';
+      const settingName = this.isNewCreditStaker ? 'Reward Address' : 'Commission Reward Address';
       logger.info(`${settingName} is not set.`);
       await this.handleMissingSetting(settingName, 'set_reward_address');
     } else {
-      const settingName = this.isCreditStaker ? 'Reward address' : 'Commission reward address';
+      const settingName = this.isNewCreditStaker ? 'Reward address' : 'Commission reward address';
       logger.info(`${settingName} is already set correctly.`);
     }
   }
@@ -484,11 +502,11 @@ export class ValidatorCommander {
             data: { account: this.exsatAccountInfo.accountName },
           },
         ];
-        const res = await this.exsatApi.executeActions(actions);
+        await this.exsatApi.executeActions(actions);
+        await this.checkCreditStakingStatus();
 
         // update validator info
         await this.updateValidatorInfo();
-        this.creditStakingInfo.random = String(res.processed.action_traces[1].return_value_data);
 
         // verify btc address
         await this.verifyBtcAddress();
@@ -536,19 +554,18 @@ export class ValidatorCommander {
         'Public Key': this.exsatAccountInfo.publicKey,
         'Gas Balance': btcBalance ? removeTrailingZeros(btcBalance) : `0 BTC`,
         'Commission Rate': validator.commission_rate ? `${validator.commission_rate / 100}%` : '0%',
-        'Total BTC Staked': removeTrailingZeros(validator.quantity),
+        'Total BTC Staked': convertDisplayValue(
+          validator.qualification,
+          parseFloat(this.blkendtConfig.min_btc_qualification)
+        ),
         'Is eligible for consensus':
-          parseFloat(validator.quantity) >= parseFloat(this.blkendtConfig.min_btc_qualification)
+          parseFloat(validator.qualification) >= parseFloat(this.blkendtConfig.min_btc_qualification)
             ? 'Yes'
             : `No, requires staking at least ${removeTrailingZeros(this.blkendtConfig.min_btc_qualification)}`,
         'BTC RPC Node': isValidUrl(process.env.BTC_RPC_URL) ? process.env.BTC_RPC_URL : 'Invalid',
       };
 
-      if (this.isCreditStaker) {
-        if (this.creditStakingInfo.verificationStatus === VerificationStatus.Approved) {
-          baseInfo['Is eligible for consensus'] = 'Yes';
-        }
-
+      if (this.isNewCreditStaker || this.isOldCreditStaker) {
         return {
           ...baseInfo,
           'Staking Method': 'Self-Custodied BTC Address',
@@ -594,8 +611,20 @@ export class ValidatorCommander {
    */
   async verifyBtcAddress() {
     try {
+      const blockcountInfo = await getblockcount();
+
+      //test begin
+      console.log(
+        `end_block_height:${this.creditStakingInfo.randomExpirationBlock},head_block_height: ${blockcountInfo.result}`
+      );
+      //test end
+
       showInfo({
-        'BTC Address Verification': `Please prepare a BTC address with more than 100 BTC as your credit staked BTC address. And use this credit staked BTC address send out ${leftPadInput(this.creditStakingInfo.random, 8, 'x')} BTC (x means any number, for example ${leftPadInput(this.creditStakingInfo.random, 8, '0')} BTC) to any address for verifying the ownership. After finished the transaction, please input the BTC address and the transaction Id.`,
+        'BTC Address Verification': `Please prepare a BTC address with more than 100 BTC as your credit staked BTC address. And use this credit staked BTC address send out ${leftPadInput(this.creditStakingInfo.random, 8, 'x')} BTC (x means any number, for example ${leftPadInput(this.creditStakingInfo.random, 8, '0')} BTC) to any address for verifying the ownership. ${
+          NETWORK === 'mainnet'
+            ? `Please make your transaction within ${convertToDays(this.creditStakingInfo.randomExpirationBlock, blockcountInfo.result)} days (before ${this.creditStakingInfo.randomExpirationBlock} BTC block height). `
+            : ''
+        }After finished the transaction, please input the BTC address and the transaction Id.`,
       });
 
       const btcAddress = await inputWithCancel(

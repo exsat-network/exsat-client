@@ -342,6 +342,21 @@ class TableApi {
     }
     return null;
   }
+
+  /**
+   * Checks if the validator is an old credit staker.
+   * @param account - The account name.
+   * @returns A boolean indicating if the validator is an old credit staker.
+   */
+  public async checkIsOldCreditStaker(account: string): Promise<boolean> {
+    const rows = await this.getTableRows(ContractName.custody, ContractName.custody, 'custodies', {
+      limit: 1000,
+    });
+    if (rows && rows.length > 0) {
+      return rows.some((row: any) => String(row.validator) === account && Number(row.value) >= 10000000000);
+    }
+    return false;
+  }
 }
 
 export default TableApi;

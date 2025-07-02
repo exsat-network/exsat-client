@@ -325,6 +325,23 @@ export function removeTrailingZeros(value) {
 }
 
 /**
+ * Convert value to display value
+ * @param value
+ * @param minQualification
+ */
+export function convertDisplayValue(value, minQualification) {
+  if (!value) return 0;
+  if (typeof value == 'number') return value;
+
+  const [amount, unit] = value.split(' ');
+  if (parseFloat(amount) < minQualification) {
+    return `0 ${unit}`;
+  } else {
+    return `${minQualification} ${unit}`;
+  }
+}
+
+/**
  * Normalize account name
  * @param name - account name
  */
@@ -483,4 +500,23 @@ export function isValidEmail(email: string): boolean {
  */
 export function isAllZero(str: string): boolean {
   return /^0+$/.test(str);
+}
+
+/**
+ * Convert block count to days
+ * @param fromBlock - From block
+ * @param toBlock - To block
+ * @returns Days
+ */
+export function convertToDays(fromBlock: number, toBlock: number): number {
+  const blockCount = toBlock - fromBlock;
+
+  if (blockCount < 0) {
+    return 0;
+  } else if (blockCount === 0) {
+    return 1;
+  }
+
+  const days = blockCount / 144; // 144 blocks per day
+  return Math.ceil(days);
 }
