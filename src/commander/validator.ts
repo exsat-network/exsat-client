@@ -110,7 +110,7 @@ export class ValidatorCommander {
     ];
 
     // Add Stake Address option for Non Credit-based BTC Validator
-    if (!validator.role && !this.isNewCreditStaker) {
+    if (!validator.role && !this.isNewCreditStaker && !this.isOldCreditStaker) {
       menus.splice(1, 0, {
         name: 'Change Stake Address',
         value: 'set_stake_address',
@@ -119,9 +119,8 @@ export class ValidatorCommander {
     }
 
     if (!validator.role) {
-      const rewardAddressMenuName = this.isNewCreditStaker
-        ? 'Change Reward Address'
-        : 'Change Commission Reward Address';
+      const rewardAddressMenuName =
+        this.isNewCreditStaker || this.isOldCreditStaker ? 'Change Reward Address' : 'Change Commission Reward Address';
 
       menus.splice(
         1,
@@ -129,7 +128,10 @@ export class ValidatorCommander {
         {
           name: rewardAddressMenuName,
           value: 'set_reward_address',
-          description: this.isNewCreditStaker ? 'Set/Change Reward Address' : 'Set/Change Commission Reward Address',
+          description:
+            this.isNewCreditStaker || this.isOldCreditStaker
+              ? 'Set/Change Reward Address'
+              : 'Set/Change Commission Reward Address',
         },
         {
           name: 'Change Commission Rate',
@@ -444,7 +446,7 @@ export class ValidatorCommander {
       const stakingMethod = await select({
         message: 'Please choose your BTC staking method:',
         choices: [
-          { name: 'Verify your self-custodied BTC address', value: 'self_custodied' },
+          { name: 'Self-Custodied BTC Staking', value: 'self_custodied' },
           { name: 'Bridge your BTC to exSat Network to stake (Higher Reward)', value: 'bridge' },
         ],
       });
