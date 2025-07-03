@@ -613,12 +613,6 @@ export class ValidatorCommander {
     try {
       const blockcountInfo = await getblockcount();
 
-      //test begin
-      console.log(
-        `end_block_height:${this.creditStakingInfo.randomExpirationBlock},head_block_height: ${blockcountInfo.result}`
-      );
-      //test end
-
       showInfo({
         'BTC Address Verification': `Please prepare a BTC address with more than 100 BTC as your credit staked BTC address. And use this credit staked BTC address send out ${leftPadInput(this.creditStakingInfo.random, 8, 'x')} BTC (x means any number, for example ${leftPadInput(this.creditStakingInfo.random, 8, '0')} BTC) to any address for verifying the ownership. ${
           NETWORK === 'mainnet'
