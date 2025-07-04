@@ -366,7 +366,9 @@ export class ValidatorCommander {
   /**
    * Check the credit staking status of the validator.
    */
-  async checkCreditStakingStatus() {
+  async checkCreditStakingStatus(delay = 1000) {
+    await sleep(delay);
+
     const enrollmentInfo = await this.tableApi.getEnrollmentInfo(this.exsatAccountInfo.accountName);
     if (!enrollmentInfo) {
       this.isNewCreditStaker = false;
