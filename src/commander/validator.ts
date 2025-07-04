@@ -24,6 +24,7 @@ import {
   isValidTxid,
   isAllZero,
   convertDisplayValue,
+  highlight,
 } from '../utils/common';
 import { confirm, input, select, Separator } from '@inquirer/prompts';
 import { logger } from '../utils/logger';
@@ -618,7 +619,7 @@ export class ValidatorCommander {
       const blockcountInfo = await getblockcount();
 
       showInfo({
-        'BTC Address Verification': `Please prepare a BTC address with more than 100 BTC as your credit staked BTC address. And use this credit staked BTC address send out ${leftPadInput(this.creditStakingInfo.random, 8, 'x')} BTC (x means any number, for example ${leftPadInput(this.creditStakingInfo.random, 8, '0')} BTC) to any address for verifying the ownership. ${
+        'BTC Address Verification': `Please prepare a BTC address with more than 100 BTC as your credit staked BTC address. And use this credit staked BTC address send out ${highlight(leftPadInput(this.creditStakingInfo.random, 8, 'x'))} BTC (x means any number, for example ${highlight(leftPadInput(this.creditStakingInfo.random, 8, '0'))} BTC) to any address for verifying the ownership. ${
           NETWORK === 'mainnet'
             ? `Please make your transaction within ${convertToDays(this.creditStakingInfo.randomExpirationBlock, blockcountInfo.result)} days (before ${this.creditStakingInfo.randomExpirationBlock} BTC block height). `
             : ''

@@ -520,3 +520,12 @@ export function convertToDays(fromBlock: number, toBlock: number): number {
   const days = blockCount / 144; // 144 blocks per day
   return Math.ceil(days);
 }
+
+/**
+ * Highlight the string
+ * @param str - The string to highlight
+ * @returns The highlighted string
+ */
+export function highlight(str: string) {
+  return `${Font.fgYellow}${str}${Font.reset}${Font.bright}`;
+}
