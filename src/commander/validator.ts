@@ -9,6 +9,7 @@ import {
   resetBtcRpcUrl,
   setBtcRpcUrl,
   stakeClaimManagement,
+  howToClaimReward,
 } from './common';
 import process from 'node:process';
 import {
@@ -87,11 +88,6 @@ export class ValidatorCommander {
 
     let menus = [
       {
-        name: 'Stake or Claim Management',
-        value: 'stake_claim_management',
-        description: 'A Link To Stake or Claim Management',
-      },
-      {
         name: 'Change BTC RPC Node',
         value: 'reset_btc_rpc',
         description: 'Change BTC RPC Node',
@@ -110,19 +106,31 @@ export class ValidatorCommander {
       { name: 'Quit', value: 'quit', description: 'Quit' },
     ];
 
-    // Add Stake Address option for Non Credit-based BTC Validator
-    if (!validator.role && !this.isNewCreditStaker && !this.isOldCreditStaker) {
-      menus.splice(1, 0, {
-        name: 'Change Stake Address',
-        value: 'set_stake_address',
-        description: 'Set/Change Stake Address',
-      });
-    }
-
     if (!validator.role) {
+      if (this.isNewCreditStaker || this.isOldCreditStaker) {
+        menus.splice(0, 0, {
+          name: 'How to Claim Reward',
+          value: 'how_to_claim_reward',
+          description: 'How to Claim Reward',
+        });
+      } else {
+        menus.splice(0, 0, {
+          name: 'How to Stake and Claim Reward',
+          value: 'stake_claim_management',
+          description: 'How to Stake and Claim Reward',
+        });
+
+        // Add Stake Address option for Non Credit-based BTC Validator
+        menus.splice(1, 0, {
+          name: 'Change Stake Address',
+          value: 'set_stake_address',
+          description: 'Set/Change Stake Address',
+        });
+      }
+
+      // Add Reward Address option for BTC Validator
       const rewardAddressMenuName =
         this.isNewCreditStaker || this.isOldCreditStaker ? 'Change Reward Address' : 'Change Commission Reward Address';
-
       menus.splice(
         1,
         0,
@@ -140,6 +148,12 @@ export class ValidatorCommander {
           description: 'Set/Change Commission Rate',
         }
       );
+    } else {
+      menus.splice(0, 0, {
+        name: 'Stake or Claim Management',
+        value: 'stake_claim_management',
+        description: 'A Link To Stake or Claim Management',
+      });
     }
 
     // Add special menu for Credit-based BTC Validator
@@ -171,6 +185,7 @@ export class ValidatorCommander {
 
     const client = validator.role ? Client.XSATValidator : Client.Validator;
     const actions: { [key: string]: () => Promise<any> } = {
+      how_to_claim_reward: async () => await howToClaimReward(),
       stake_claim_management: async () => await stakeClaimManagement(client),
       set_reward_address: async () => await this.setRewardAddress(),
       set_stake_address: async () => await this.setStakeAddress(),
@@ -480,6 +495,13 @@ export class ValidatorCommander {
             return 'Please enter a valid number between 0.00 and 100.00';
           }
           return true;
+        },
+      });
+    } else {
+      stakeAddress = await input({
+        message: 'Enter your stake address: ',
+        validate: (value) => {
+          return isValidEvmAddress(value) ? true : 'Invalid address';
         },
       });
     }
