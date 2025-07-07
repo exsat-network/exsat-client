@@ -353,7 +353,7 @@ class TableApi {
       limit: 1000,
     });
     if (rows && rows.length > 0) {
-      return rows.some((row: any) => String(row.validator) === account && Number(row.value) >= 10000000000);
+      return rows.some((row: any) => String(row.validator) === account);
     }
     return false;
   }
