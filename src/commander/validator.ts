@@ -322,7 +322,7 @@ export class ValidatorCommander {
         account: this.exsatAccountInfo.accountName,
       });
       await this.checkCreditStakingStatus();
-    } else if (NETWORK === 'mainnet') {
+    } else {
       // Check if the random number is expired, if so, refresh it
       const blockcountInfo = await getblockcount();
       if (this.creditStakingInfo.randomExpirationBlock < blockcountInfo.result) {
