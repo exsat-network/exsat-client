@@ -291,6 +291,15 @@ export function getKeystorePath(clientType: ClientType): string {
   return keystoreFile;
 }
 
+export async function howToClaimReward() {
+  console.log(
+    `Please go to the Consensus Portal page and connect with your reward address to claim rewards and commission.\nConsensus Portal Url: ${Font.bright}${Font.fgGreen}${NETWORK_CONFIG.portal}${Font.reset}\n`
+  );
+  await input({ message: 'Press [Enter] to continue...' });
+  clearLines(1);
+  return true;
+}
+
 export async function stakeClaimManagement(client: Client) {
   let message;
   switch (client) {

@@ -325,6 +325,38 @@ class TableApi {
     }
     return false;
   }
+
+  /**
+   * Retrieves enrollment information for a given account.
+   * @param account - The account name.
+   * @returns The enrollment data or null if not found.
+   */
+  public async getEnrollmentInfo(account: string): Promise<any> {
+    const rows = await this.getTableRows(ContractName.custody, ContractName.custody, 'enrollments', {
+      limit: 1,
+      lower_bound: Name.from(account),
+      upper_bound: Name.from(account),
+    });
+    if (rows && rows.length > 0) {
+      return rows[0];
+    }
+    return null;
+  }
+
+  /**
+   * Checks if the validator is an old credit staker.
+   * @param account - The account name.
+   * @returns A boolean indicating if the validator is an old credit staker.
+   */
+  public async checkIsOldCreditStaker(account: string): Promise<boolean> {
+    const rows = await this.getTableRows(ContractName.custody, ContractName.custody, 'custodies', {
+      limit: 1000,
+    });
+    if (rows && rows.length > 0) {
+      return rows.some((row: any) => String(row.validator) === account);
+    }
+    return false;
+  }
 }
 
 export default TableApi;
