@@ -147,6 +147,16 @@ export function isValidJson(jsonString: string): boolean {
     return false;
   }
 }
+/**
+ * Left pad an input string to expected length, for example 5678->x.xxxx5678
+ * @param {number|string} input - input string
+ * @param {number} totalLength - total length
+ * @param {string} padChar - padChar，default is 'x'
+ * @returns {string}
+ */
+export function leftPadInput(input, totalLength, padChar = 'x'): string {
+  return `${padChar}.${`${padChar}`.repeat(totalLength - input.toString().length)}${input}`;
+}
 
 /**
  * Print info to the console.
@@ -315,6 +325,23 @@ export function removeTrailingZeros(value) {
 }
 
 /**
+ * Convert value to display value
+ * @param value
+ * @param minQualification
+ */
+export function convertDisplayValue(value, minQualification) {
+  if (!value) return 0;
+  if (typeof value == 'number') return value;
+
+  const [amount, unit] = value.split(' ');
+  if (parseFloat(amount) < minQualification) {
+    return `0 ${unit}`;
+  } else {
+    return `${minQualification} ${unit}`;
+  }
+}
+
+/**
  * Normalize account name
  * @param name - account name
  */
@@ -355,4 +382,150 @@ export async function initializeAccount(clientType: ClientType): Promise<{
   }
 
   return { accountInfo, password };
+}
+
+const validPrefixes = {
+  mainnet: {
+    P2PKH: '1',
+    P2SH: '3',
+    Bech32: 'bc1q',
+    Bech32m: 'bc1p',
+  },
+  testnet: {
+    P2PKH: ['m', 'n'],
+    P2SH: '2',
+    Bech32: 'tb1q',
+    Bech32m: 'tb1p',
+  },
+  supplement: ['bcr'],
+};
+
+/**
+ * Get the network of a BTC address
+ * @param address - BTC address
+ * @returns 'mainnet' or 'testnet' or null
+ */
+export function getBtcAddressNetwork(address: string): string | null {
+  // Check mainnet and testnet prefixes and validate address length
+  if (
+    address.startsWith(validPrefixes.mainnet.P2PKH) ||
+    address.startsWith(validPrefixes.mainnet.P2SH) ||
+    address.startsWith(validPrefixes.mainnet.Bech32) ||
+    address.startsWith(validPrefixes.mainnet.Bech32m)
+  ) {
+    // Mainnet address length restrictions
+    if (address.startsWith(validPrefixes.mainnet.P2PKH) || address.startsWith(validPrefixes.mainnet.P2SH)) {
+      // Address length restrictions for '1' and '3' prefixes (26-35)
+      if (address.length >= 26 && address.length <= 35) {
+        return 'mainnet';
+      }
+    } else if (address.startsWith(validPrefixes.mainnet.Bech32)) {
+      // Address length restrictions for 'bc1q' prefixes (42 or 62)
+      if (address.length === 42 || address.length === 62) {
+        return 'mainnet';
+      }
+    } else if (address.startsWith(validPrefixes.mainnet.Bech32m)) {
+      // Address length restrictions for 'bc1p' prefixes (62)
+      if (address.length === 62) {
+        return 'mainnet';
+      }
+    }
+  }
+
+  if (
+    validPrefixes.testnet.P2PKH.includes(address[0]) ||
+    address.startsWith(validPrefixes.testnet.P2SH) ||
+    address.startsWith(validPrefixes.testnet.Bech32) ||
+    address.startsWith(validPrefixes.testnet.Bech32m)
+  ) {
+    // Testnet address length restrictions
+    if (validPrefixes.testnet.P2PKH.includes(address[0])) {
+      // Address length restrictions for 'm' and 'n' prefixes (26-35)
+      if (address.length >= 26 && address.length <= 35) {
+        return 'testnet';
+      }
+    } else if (address.startsWith(validPrefixes.testnet.P2SH)) {
+      // Address length restrictions for '2' prefixes (26-35)
+      if (address.length >= 26 && address.length <= 35) {
+        return 'testnet';
+      }
+    } else if (address.startsWith(validPrefixes.testnet.Bech32)) {
+      // Address length restrictions for 'tb1q' prefixes (42)
+      if (address.length === 42) {
+        return 'testnet';
+      }
+    } else if (address.startsWith(validPrefixes.testnet.Bech32m)) {
+      // Address length restrictions for 'tb1p' prefixes (62)
+      if (address.length === 62) {
+        return 'testnet';
+      }
+    }
+  }
+
+  if (validPrefixes.supplement) {
+    for (const prefix of validPrefixes.supplement) {
+      if (address.startsWith(prefix)) {
+        return 'testnet';
+      }
+    }
+  }
+
+  // If no match, return null
+  return null;
+}
+
+/**
+ * Check if commission rate format is valid (0.00-100.00)
+ * @param rate - Commission rate string to validate
+ */
+export function isValidCommissionRate(rate: string): boolean {
+  const num = parseFloat(rate);
+
+  // Check if it is a valid number and within the range
+  return !isNaN(num) && num >= 0 && num <= 100 && /^\d+(\.\d{1,2})?$/.test(rate);
+}
+
+/**
+ * Check if email format is valid
+ * @param email - Email string to validate
+ */
+export function isValidEmail(email: string): boolean {
+  if (!email) return true; // Empty email is allowed (optional)
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+/**
+ * Check if all characters in the string are zeros
+ * @param str - String to check
+ */
+export function isAllZero(str: string): boolean {
+  return /^0+$/.test(str);
+}
+
+/**
+ * Convert block count to days
+ * @param fromBlock - From block
+ * @param toBlock - To block
+ * @returns Days
+ */
+export function convertToDays(fromBlock: number, toBlock: number): number {
+  const blockCount = toBlock - fromBlock;
+
+  if (blockCount < 0) {
+    return 0;
+  } else if (blockCount === 0) {
+    return 1;
+  }
+
+  const days = blockCount / 144; // 144 blocks per day
+  return Math.ceil(days);
+}
+
+/**
+ * Highlight the string
+ * @param str - The string to highlight
+ * @returns The highlighted string
+ */
+export function highlight(str: string) {
+  return `${Font.fgYellow}${str}${Font.reset}${Font.bright}`;
 }

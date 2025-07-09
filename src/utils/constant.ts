@@ -1,0 +1,6 @@
+export const EVM_ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+export const RSA_PUBLIC_KEY =
+  '-----BEGIN PUBLIC KEY-----\n' +
+  'MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAM/osyPXL8Vj4y/isL5JCIBZmUtE5jGW\n' +
+  'sFkQC69qpd+uWrmldsp5BkavBPNTCVBOmOBpgIgdtS4tq3mruVvaRjsCAwEAAQ==\n' +
+  '-----END PUBLIC KEY-----\n';
