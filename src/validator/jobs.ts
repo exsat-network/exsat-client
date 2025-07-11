@@ -28,7 +28,7 @@ export class ValidatorJobs {
   // Check if an endorsement is needed and submit if necessary
   async checkAndSubmit(accountName: string, height: number, hash: string) {
     const validatorInfo = await this.state.tableApi!.getValidatorInfo(accountName);
-    logger.info('validatorInfo', JSON.stringify(validatorInfo, null, 2));
+    logger.info(`validatorInfo=${JSON.stringify(validatorInfo, null, 2)}`);
     const scope = validatorInfo.role ? this.xsatScope(height) : height;
     const endorsement = await this.state.tableApi!.getEndorsementByBlockId(scope, hash);
     if (endorsement) {
@@ -39,14 +39,10 @@ export class ValidatorJobs {
 
       const isQualifiedEndorser = this.isEndorserQualified(endorsement.requested_validators, accountName);
       logger.info(
-        'isQualifiedEndorser',
-        isQualifiedEndorser,
-        'validatorInfo.latest_consensus_block',
-        validatorInfo.latest_consensus_block,
-        'height',
-        height,
-        'validatorInfo.active_flag',
-        validatorInfo.active_flag
+        `isQualifiedEndorser=${isQualifiedEndorser}, latest_consensus_block=${validatorInfo.latest_consensus_block}, height=${height}, active_flag=${validatorInfo.active_flag}`
+      );
+      logger.info(
+        `isQualified=${isQualifiedEndorser || (validatorInfo.latest_consensus_block < height && validatorInfo.active_flag !== 0)}`
       );
       if (isQualifiedEndorser || (validatorInfo.latest_consensus_block < height && validatorInfo.active_flag !== 0)) {
         await this.submit(accountName, height, hash);
@@ -75,7 +71,7 @@ export class ValidatorJobs {
       height,
       hash,
     });
-    logger.info('endorsement result', JSON.stringify(result));
+    logger.info(`endorsement result=${JSON.stringify(result)}`);
     if (result && result.transaction_id) {
       blockValidateTotalCounter.inc({
         account: this.state.accountName,
@@ -105,9 +101,9 @@ export class ValidatorJobs {
       }
       logger.info('Endorse task is running');
       const blockcountInfo = await getblockcount();
-      logger.info('blockcountInfo', blockcountInfo.result);
       const blockhashInfo = await getblockhash(blockcountInfo.result);
-      logger.info('blockhashInfo', blockhashInfo.result);
+      logger.info(`blockcountInfo=${blockcountInfo.result}`);
+      logger.info(`blockhashInfo=${blockhashInfo.result}`);
       await this.checkAndSubmit(this.state.accountName, blockcountInfo.result, blockhashInfo.result);
     } catch (e) {
       const errorMessage = getErrorMessage(e);
