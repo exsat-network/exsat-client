@@ -73,6 +73,7 @@ export class ValidatorJobs {
     });
     logger.info(`endorsement result=${JSON.stringify(result)}`);
     if (result && result.transaction_id) {
+      logger.info(`result.transaction_id= ${result.transaction_id}`);
       blockValidateTotalCounter.inc({
         account: this.state.accountName,
         client: this.state.client,
