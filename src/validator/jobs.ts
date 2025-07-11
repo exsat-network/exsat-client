@@ -28,7 +28,7 @@ export class ValidatorJobs {
   // Check if an endorsement is needed and submit if necessary
   async checkAndSubmit(accountName: string, height: number, hash: string) {
     const validatorInfo = await this.state.tableApi!.getValidatorInfo(accountName);
-    console.log('validatorInfo', JSON.stringify(validatorInfo, null, 2));
+    logger.info('validatorInfo', JSON.stringify(validatorInfo, null, 2));
     const scope = validatorInfo.role ? this.xsatScope(height) : height;
     const endorsement = await this.state.tableApi!.getEndorsementByBlockId(scope, hash);
     if (endorsement) {
@@ -38,7 +38,7 @@ export class ValidatorJobs {
       }
 
       const isQualifiedEndorser = this.isEndorserQualified(endorsement.requested_validators, accountName);
-      console.log(
+      logger.info(
         'isQualifiedEndorser',
         isQualifiedEndorser,
         'validatorInfo.latest_consensus_block',
@@ -75,7 +75,7 @@ export class ValidatorJobs {
       height,
       hash,
     });
-    console.log('endorsement result', JSON.stringify(result));
+    logger.info('endorsement result', JSON.stringify(result));
     if (result && result.transaction_id) {
       blockValidateTotalCounter.inc({
         account: this.state.accountName,
@@ -105,9 +105,9 @@ export class ValidatorJobs {
       }
       logger.info('Endorse task is running');
       const blockcountInfo = await getblockcount();
-      console.log('blockcountInfo', blockcountInfo.result);
+      logger.info('blockcountInfo', blockcountInfo.result);
       const blockhashInfo = await getblockhash(blockcountInfo.result);
-      console.log('blockhashInfo', blockhashInfo.result);
+      logger.info('blockhashInfo', blockhashInfo.result);
       await this.checkAndSubmit(this.state.accountName, blockcountInfo.result, blockhashInfo.result);
     } catch (e) {
       const errorMessage = getErrorMessage(e);
