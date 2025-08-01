@@ -248,6 +248,14 @@ class ExsatApi {
     }
   }
 
+  public async withdraw(quantity: string) {
+    const result = await this.executeAction(ContractName.rescmng, 'withdraw', {
+      owner: this.accountName,
+      quantity,
+    });
+    return result;
+  }
+
   /**
    * Retrieves rows from a table, with support for pagination and retry logic.
    * @param code - The smart contract to query.

@@ -93,6 +93,11 @@ export class ValidatorCommander {
         description: 'Change BTC RPC Node',
       },
       {
+        name: 'Withdraw BTC Gas',
+        value: 'withdraw_gas',
+        description: 'Withdraw BTC Gas',
+      },
+      {
         name: 'Export Private Key',
         value: 'export_private_key',
         description: 'Export Private Key',
@@ -198,8 +203,28 @@ export class ValidatorCommander {
       verify_btc_address: async () => await this.selectToVerifyBtcAddress(),
       check_verification_status: async () => await this.checkVerificationStatus(),
       quit: async () => process.exit(),
+      withdraw_gas: async () => await this.withdrawGas(),
     };
     await promptMenuLoop(menus, actions, 'Select an Action', true);
+  }
+
+  async withdrawGas() {
+    const gasBalance = await this.tableApi.getAccountBalance(this.exsatAccountInfo.accountName);
+
+    const confirmInput = await confirm({
+      message: `Are you sure to withdraw ${gasBalance} gas?`,
+    });
+    if (!confirmInput) {
+      return false;
+    }
+    const result = await this.exsatApi.withdraw(gasBalance);
+    if (result.processed.receipt.status === 'executed') {
+      logger.info(`Withdraw ${gasBalance} gas successfully`);
+    } else {
+      logger.error(`Withdraw ${gasBalance} gas failed, please try again later.`);
+    }
+
+    return true;
   }
 
   /**
