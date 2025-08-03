@@ -26,6 +26,7 @@ import {
   isAllZero,
   convertDisplayValue,
   highlight,
+  getAmountFromQuantity,
 } from '../utils/common';
 import { confirm, input, select, Separator } from '@inquirer/prompts';
 import { logger } from '../utils/logger';
@@ -210,18 +211,115 @@ export class ValidatorCommander {
 
   async withdrawGas() {
     const gasBalance = await this.tableApi.getAccountBalance(this.exsatAccountInfo.accountName);
+    const gasBalanceAmount = getAmountFromQuantity(gasBalance);
+
+    if (!gasBalance || gasBalanceAmount <= 0) {
+      logger.info('No gas balance available for withdrawal.');
+      return false;
+    }
+
+
+    const withdrawAmount = await inputWithCancel(
+      `Enter withdrawal amount (max: ${gasBalance}, Input "q" to return, press Enter for all): `,
+      (input: string) => {
+        if (!input || input.trim() === '') {
+          return true; // Use all balance as default
+        }
+        
+        const amount = parseFloat(input);
+        if (isNaN(amount) || amount <= 0) {
+          return 'Please enter a valid positive number.';
+        }
+        
+        if (amount > gasBalanceAmount) {
+          return `Withdrawal amount cannot exceed your balance (${gasBalance}).`;
+        }
+        
+        return true;
+      }
+    );
+
+    // If user pressed Enter (empty input), use all balance
+    const finalWithdrawAmount = !withdrawAmount || withdrawAmount.trim() === '' ? gasBalanceAmount : withdrawAmount;
+
+    // Convert user input to EOS asset format with 8 decimal places
+    const btcAmount = parseFloat(String(finalWithdrawAmount));
+    const withdrawAmountFormatted = btcAmount.toFixed(8) + ' BTC';
+    const withdrawAmountDisplay = removeTrailingZeros(withdrawAmountFormatted);
+    const validatorInfo = await this.tableApi.getValidatorInfo(this.exsatAccountInfo.accountName);
+    const defaultEvmAddress = validatorInfo?.memo || '';
+
+    let evmAddress;
+    if (defaultEvmAddress && isValidEvmAddress(defaultEvmAddress)) {
+      // If memo is a valid EVM address, use it as default
+      evmAddress = await inputWithCancel(
+        `Enter EVM address (default: ${defaultEvmAddress}, Input "q" to return): `,
+        (input: string) => {
+          if (!input || input.trim() === '') {
+            return true; // Use default
+          }
+          if (!isValidEvmAddress(input)) {
+            return 'Please enter a valid EVM address.';
+          }
+          return true;
+        }
+      );
+      
+      if (!evmAddress) {
+        evmAddress = defaultEvmAddress;
+      }
+    } else {
+      // If memo is not a valid EVM address, force user to input
+      evmAddress = await inputWithCancel(
+        'Enter EVM address (Input "q" to return): ',
+        (input: string) => {
+          if (!input || input.trim() === '') {
+            return 'Please enter a valid EVM address.';
+          }
+          if (!isValidEvmAddress(input)) {
+            return 'Please enter a valid EVM address.';
+          }
+          return true;
+        }
+      );
+      
+      if (!evmAddress) {
+        return false;
+      }
+    }
 
     const confirmInput = await confirm({
-      message: `Are you sure to withdraw ${gasBalance} gas?`,
+      message: `Are you sure to withdraw ${withdrawAmountDisplay} to EVM address ${evmAddress}?`,
     });
+    
     if (!confirmInput) {
       return false;
     }
-    const result = await this.exsatApi.withdraw(gasBalance);
-    if (result.processed.receipt.status === 'executed') {
-      logger.info(`Withdraw ${gasBalance} gas successfully`);
+    
+    // First, withdraw BTC
+    const withdrawResult = await this.exsatApi.withdraw(withdrawAmountFormatted);
+    if (withdrawResult.processed.receipt.status === 'executed') {
+      logger.info(`Withdraw ${withdrawAmountDisplay} successfully`);
+      
+      // Then, transfer BTC to evm.xsat with memo
+      try {
+        const transferResult = await this.exsatApi.executeAction('btc.xsat', 'transfer', {
+          from: this.exsatAccountInfo.accountName,
+          to: 'evm.xsat',
+          quantity: withdrawAmountFormatted,
+          memo: evmAddress,
+        });
+        
+        if (transferResult.processed.receipt.status === 'executed') {
+          logger.info(`Transfer ${withdrawAmountDisplay} to ${evmAddress} successfully`);
+        } else {
+          logger.error(`Transfer ${withdrawAmountDisplay} to ${evmAddress} failed, please try again later.`);
+        }
+      } catch (error: any) {
+        logger.error(`Transfer to ${evmAddress} failed: ${error.message}`);
+      }
     } else {
-      logger.error(`Withdraw ${gasBalance} gas failed, please try again later.`);
+      logger.error(`Withdraw ${withdrawAmountDisplay} failed, please try again later.`);
     }
 
     return true;
