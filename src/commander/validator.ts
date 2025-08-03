@@ -218,23 +218,22 @@ export class ValidatorCommander {
       return false;
     }
 
-
     const withdrawAmount = await inputWithCancel(
       `Enter withdrawal amount (max: ${gasBalance}, Input "q" to return, press Enter for all): `,
       (input: string) => {
         if (!input || input.trim() === '') {
           return true; // Use all balance as default
         }
-        
+
         const amount = parseFloat(input);
         if (isNaN(amount) || amount <= 0) {
           return 'Please enter a valid positive number.';
         }
-        
+
         if (amount > gasBalanceAmount) {
           return `Withdrawal amount cannot exceed your balance (${gasBalance}).`;
         }
-        
+
         return true;
       }
     );
@@ -264,25 +263,22 @@ export class ValidatorCommander {
           return true;
         }
       );
-      
+
       if (!evmAddress) {
         evmAddress = defaultEvmAddress;
       }
     } else {
       // If memo is not a valid EVM address, force user to input
-      evmAddress = await inputWithCancel(
-        'Enter EVM address (Input "q" to return): ',
-        (input: string) => {
-          if (!input || input.trim() === '') {
-            return 'Please enter a valid EVM address.';
-          }
-          if (!isValidEvmAddress(input)) {
-            return 'Please enter a valid EVM address.';
-          }
-          return true;
+      evmAddress = await inputWithCancel('Enter EVM address (Input "q" to return): ', (input: string) => {
+        if (!input || input.trim() === '') {
+          return 'Please enter a valid EVM address.';
         }
-      );
-      
+        if (!isValidEvmAddress(input)) {
+          return 'Please enter a valid EVM address.';
+        }
+        return true;
+      });
+
       if (!evmAddress) {
         return false;
       }
@@ -291,16 +287,16 @@ export class ValidatorCommander {
     const confirmInput = await confirm({
       message: `Are you sure to withdraw ${withdrawAmountDisplay} to EVM address ${evmAddress}?`,
     });
-    
+
     if (!confirmInput) {
       return false;
     }
-    
+
     // First, withdraw BTC
     const withdrawResult = await this.exsatApi.withdraw(withdrawAmountFormatted);
     if (withdrawResult.processed.receipt.status === 'executed') {
       logger.info(`Withdraw ${withdrawAmountDisplay} successfully`);
-      
+
       // Then, transfer BTC to evm.xsat with memo
       try {
         const transferResult = await this.exsatApi.executeAction('btc.xsat', 'transfer', {
@@ -309,7 +305,7 @@ export class ValidatorCommander {
           quantity: withdrawAmountFormatted,
           memo: evmAddress,
         });
-        
+
         if (transferResult.processed.receipt.status === 'executed') {
           logger.info(`Transfer ${withdrawAmountDisplay} to ${evmAddress} successfully`);
         } else {
