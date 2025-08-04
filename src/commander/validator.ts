@@ -211,9 +211,14 @@ export class ValidatorCommander {
 
   async withdrawGas() {
     const gasBalance = await this.tableApi.getAccountBalance(this.exsatAccountInfo.accountName);
-    const gasBalanceAmount = getAmountFromQuantity(gasBalance);
 
-    if (!gasBalance || gasBalanceAmount <= 0) {
+    if (!gasBalance) {
+      logger.info('No gas balance available for withdrawal.');
+      return false;
+    }
+
+    const gasBalanceAmount = getAmountFromQuantity(gasBalance);
+    if (gasBalanceAmount <= 0) {
       logger.info('No gas balance available for withdrawal.');
       return false;
     }
@@ -292,30 +297,38 @@ export class ValidatorCommander {
       return false;
     }
 
-    // First, withdraw BTC
-    const withdrawResult = await this.exsatApi.withdraw(withdrawAmountFormatted);
-    if (withdrawResult.processed.receipt.status === 'executed') {
-      logger.info(`Withdraw ${withdrawAmountDisplay} successfully`);
-
-      // Then, transfer BTC to evm.xsat with memo
-      try {
-        const transferResult = await this.exsatApi.executeAction('btc.xsat', 'transfer', {
+    // Execute both actions in a single transaction
+    const actions = [
+      {
+        account: ContractName.rescmng,
+        name: 'withdraw',
+        data: {
+          owner: this.exsatAccountInfo.accountName,
+          quantity: withdrawAmountFormatted,
+        },
+      },
+      {
+        account: ContractName.btc,
+        name: 'transfer',
+        data: {
           from: this.exsatAccountInfo.accountName,
-          to: 'evm.xsat',
+          to: ContractName.evm,
           quantity: withdrawAmountFormatted,
           memo: evmAddress,
-        });
+        },
+      },
+    ];
 
-        if (transferResult.processed.receipt.status === 'executed') {
-          logger.info(`Transfer ${withdrawAmountDisplay} to ${evmAddress} successfully`);
-        } else {
-          logger.error(`Transfer ${withdrawAmountDisplay} to ${evmAddress} failed, please try again later.`);
-        }
-      } catch (error: any) {
-        logger.error(`Transfer to ${evmAddress} failed: ${error.message}`);
+    try {
+      const result = await this.exsatApi.executeActions(actions);
+      if (result.processed.receipt.status === 'executed') {
+        logger.info(`Withdraw and transfer ${withdrawAmountDisplay} to ${evmAddress} successfully`);
+      } else {
+        logger.error(`Withdraw-sp; transfer ${withdrawAmountDisplay} to ${evmAddress} failed, please try again later.`);
       }
-    } else {
-      logger.error(`Withdraw ${withdrawAmountDisplay} failed, please try again later.`);
+    } catch (error: any) {
+      logger.error(`Withdraw and transfer to ${evmAddress} failed: ${error.message}`);
+      logger.error(`Error details: ${JSON.stringify(error)}`);
     }
 
     return true;

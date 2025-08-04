@@ -27,6 +27,8 @@ export enum ContractName {
   compete = 'compete.xsat',
   res = 'res.xsat',
   custody = 'custody.xsat',
+  btc = 'btc.xsat',
+  evm = 'evm.xsat',
 }
 
 export enum BlockStatus {
