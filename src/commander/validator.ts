@@ -235,6 +235,10 @@ export class ValidatorCommander {
           return 'Please enter a valid positive number.';
         }
 
+        if (input.trim() === 'q') {
+          return false;
+        }
+
         if (amount > gasBalanceAmount) {
           return `Withdrawal amount cannot exceed your balance (${gasBalance}).`;
         }
@@ -242,6 +246,10 @@ export class ValidatorCommander {
         return true;
       }
     );
+
+    if (withdrawAmount === false) {
+      return false;
+    }
 
     // If user pressed Enter (empty input), use all balance
     const finalWithdrawAmount = !withdrawAmount || withdrawAmount.trim() === '' ? gasBalanceAmount : withdrawAmount;
@@ -262,12 +270,19 @@ export class ValidatorCommander {
           if (!input || input.trim() === '') {
             return true; // Use default
           }
+          if (input.trim() === 'q') {
+            return false;
+          }
           if (!isValidEvmAddress(input)) {
             return 'Please enter a valid EVM address.';
           }
           return true;
         }
       );
+
+      if (evmAddress === false) {
+        return false;
+      }
 
       if (!evmAddress) {
         evmAddress = defaultEvmAddress;
