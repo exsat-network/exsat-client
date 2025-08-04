@@ -26,6 +26,7 @@ import {
   isAllZero,
   convertDisplayValue,
   highlight,
+  getAmountFromQuantity,
 } from '../utils/common';
 import { confirm, input, select, Separator } from '@inquirer/prompts';
 import { logger } from '../utils/logger';
@@ -91,6 +92,11 @@ export class ValidatorCommander {
         name: 'Change BTC RPC Node',
         value: 'reset_btc_rpc',
         description: 'Change BTC RPC Node',
+      },
+      {
+        name: 'Withdraw BTC Gas',
+        value: 'withdraw_gas',
+        description: 'Withdraw BTC Gas',
       },
       {
         name: 'Export Private Key',
@@ -198,8 +204,149 @@ export class ValidatorCommander {
       verify_btc_address: async () => await this.selectToVerifyBtcAddress(),
       check_verification_status: async () => await this.checkVerificationStatus(),
       quit: async () => process.exit(),
+      withdraw_gas: async () => await this.withdrawGas(),
     };
     await promptMenuLoop(menus, actions, 'Select an Action', true);
+  }
+
+  async withdrawGas() {
+    const gasBalance = await this.tableApi.getAccountBalance(this.exsatAccountInfo.accountName);
+
+    if (!gasBalance) {
+      logger.info('No gas balance available for withdrawal.');
+      return false;
+    }
+
+    const gasBalanceAmount = getAmountFromQuantity(gasBalance);
+    if (gasBalanceAmount <= 0) {
+      logger.info('No gas balance available for withdrawal.');
+      return false;
+    }
+
+    const withdrawAmount = await inputWithCancel(
+      `Enter withdrawal amount (max: ${gasBalance}, Input "q" to return, press Enter for all): `,
+      (input: string) => {
+        if (!input || input.trim() === '') {
+          return true; // Use all balance as default
+        }
+
+        const amount = parseFloat(input);
+        if (isNaN(amount) || amount <= 0) {
+          return 'Please enter a valid positive number.';
+        }
+
+        if (input.trim() === 'q') {
+          return false;
+        }
+
+        if (amount > gasBalanceAmount) {
+          return `Withdrawal amount cannot exceed your balance (${gasBalance}).`;
+        }
+
+        return true;
+      }
+    );
+
+    if (withdrawAmount === false) {
+      return false;
+    }
+
+    // If user pressed Enter (empty input), use all balance
+    const finalWithdrawAmount = !withdrawAmount || withdrawAmount.trim() === '' ? gasBalanceAmount : withdrawAmount;
+
+    // Convert user input to EOS asset format with 8 decimal places
+    const btcAmount = parseFloat(String(finalWithdrawAmount));
+    const withdrawAmountFormatted = btcAmount.toFixed(8) + ' BTC';
+    const withdrawAmountDisplay = removeTrailingZeros(withdrawAmountFormatted);
+    const validatorInfo = await this.tableApi.getValidatorInfo(this.exsatAccountInfo.accountName);
+    const defaultEvmAddress = validatorInfo?.memo || '';
+
+    let evmAddress;
+    if (defaultEvmAddress && isValidEvmAddress(defaultEvmAddress)) {
+      // If memo is a valid EVM address, use it as default
+      evmAddress = await inputWithCancel(
+        `Enter EVM address (default: ${defaultEvmAddress}, Input "q" to return): `,
+        (input: string) => {
+          if (!input || input.trim() === '') {
+            return true; // Use default
+          }
+          if (input.trim() === 'q') {
+            return false;
+          }
+          if (!isValidEvmAddress(input)) {
+            return 'Please enter a valid EVM address.';
+          }
+          return true;
+        }
+      );
+
+      if (evmAddress === false) {
+        return false;
+      }
+
+      if (!evmAddress) {
+        evmAddress = defaultEvmAddress;
+      }
+    } else {
+      // If memo is not a valid EVM address, force user to input
+      evmAddress = await inputWithCancel('Enter EVM address (Input "q" to return): ', (input: string) => {
+        if (!input || input.trim() === '') {
+          return 'Please enter a valid EVM address.';
+        }
+        if (!isValidEvmAddress(input)) {
+          return 'Please enter a valid EVM address.';
+        }
+        return true;
+      });
+
+      if (!evmAddress) {
+        return false;
+      }
+    }
+
+    const confirmInput = await confirm({
+      message: `Are you sure to withdraw ${withdrawAmountDisplay} to EVM address ${evmAddress}?`,
+    });
+
+    if (!confirmInput) {
+      return false;
+    }
+
+    // Execute both actions in a single transaction
+    const actions = [
+      {
+        account: ContractName.rescmng,
+        name: 'withdraw',
+        data: {
+          owner: this.exsatAccountInfo.accountName,
+          quantity: withdrawAmountFormatted,
+        },
+      },
+      {
+        account: ContractName.btc,
+        name: 'transfer',
+        data: {
+          from: this.exsatAccountInfo.accountName,
+          to: ContractName.evm,
+          quantity: withdrawAmountFormatted,
+          memo: evmAddress,
+        },
+      },
+    ];
+
+    try {
+      const result = await this.exsatApi.executeActions(actions);
+      if (result.processed.receipt.status === 'executed') {
+        logger.info(`Withdraw and transfer ${withdrawAmountDisplay} to ${evmAddress} successfully`);
+      } else {
+        logger.error(`Withdraw-sp; transfer ${withdrawAmountDisplay} to ${evmAddress} failed, please try again later.`);
+      }
+    } catch (error: any) {
+      logger.error(`Withdraw and transfer to ${evmAddress} failed: ${error.message}`);
+      logger.error(`Error details: ${JSON.stringify(error)}`);
+    }
+
+    return true;
   }
 
   /**
