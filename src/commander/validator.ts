@@ -339,7 +339,9 @@ export class ValidatorCommander {
       if (result.processed.receipt.status === 'executed') {
         logger.info(`Withdraw and transfer ${withdrawAmountFormatted} to ${evmAddress} successfully`);
       } else {
-        logger.error(`Withdraw-sp; transfer ${withdrawAmountFormatted} to ${evmAddress} failed, please try again later.`);
+        logger.error(
+          `Withdraw-sp; transfer ${withdrawAmountFormatted} to ${evmAddress} failed, please try again later.`
+        );
       }
     } catch (error: any) {
       logger.error(`Withdraw and transfer to ${evmAddress} failed: ${error.message}`);
