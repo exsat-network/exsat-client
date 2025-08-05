@@ -305,7 +305,7 @@ export class ValidatorCommander {
     }
 
     const confirmInput = await confirm({
-      message: `Are you sure to withdraw ${withdrawAmountDisplay} to EVM address ${evmAddress}?`,
+      message: `Are you sure to withdraw ${withdrawAmountFormatted} to EVM address ${evmAddress}?`,
     });
 
     if (!confirmInput) {
@@ -337,9 +337,9 @@ export class ValidatorCommander {
     try {
       const result = await this.exsatApi.executeActions(actions);
       if (result.processed.receipt.status === 'executed') {
-        logger.info(`Withdraw and transfer ${withdrawAmountDisplay} to ${evmAddress} successfully`);
+        logger.info(`Withdraw and transfer ${withdrawAmountFormatted} to ${evmAddress} successfully`);
       } else {
-        logger.error(`Withdraw-sp; transfer ${withdrawAmountDisplay} to ${evmAddress} failed, please try again later.`);
+        logger.error(`Withdraw-sp; transfer ${withdrawAmountFormatted} to ${evmAddress} failed, please try again later.`);
       }
     } catch (error: any) {
       logger.error(`Withdraw and transfer to ${evmAddress} failed: ${error.message}`);
@@ -711,7 +711,7 @@ export class ValidatorCommander {
         'Account Name': accountName,
         'Account Role': 'XSAT Validator',
         'Public Key': this.exsatAccountInfo.publicKey,
-        'Gas Balance': btcBalance ? removeTrailingZeros(btcBalance) : `0 BTC`,
+        'Gas Balance': btcBalance ? btcBalance : `0 BTC`,
         'Total XSAT Staked': removeTrailingZeros(validator.xsat_quantity),
         'Is eligible for consensus':
           parseFloat(validator.xsat_quantity) >= parseFloat(this.blkendtConfig.min_xsat_qualification)
@@ -726,7 +726,7 @@ export class ValidatorCommander {
         'Account Name': accountName,
         'Account Role': 'BTC Validator',
         'Public Key': this.exsatAccountInfo.publicKey,
-        'Gas Balance': btcBalance ? removeTrailingZeros(btcBalance) : `0 BTC`,
+        'Gas Balance': btcBalance ? btcBalance : `0 BTC`,
         'Commission Rate': validator.commission_rate ? `${validator.commission_rate / 100}%` : '0%',
         'Total BTC Staked': convertDisplayValue(
           validator.qualification,
