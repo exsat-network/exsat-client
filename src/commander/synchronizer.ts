@@ -295,7 +295,7 @@ export class SynchronizerCommander {
       'Account Name': accountName,
       Role: 'Synchronizer',
       'Public Key': this.exsatAccountInfo.publicKey,
-      'Gas Balance': btcBalance ? removeTrailingZeros(btcBalance) : `0 BTC`,
+      'Gas Balance': btcBalance ? btcBalance : `0 BTC`,
       'Reward Address': synchronizer.memo || 'Unset',
       'BTC RPC Node': isValidUrl(process.env.BTC_RPC_URL) ? process.env.BTC_RPC_URL : 'Invalid',
       'Eligible for Consensus': 'Yes',
